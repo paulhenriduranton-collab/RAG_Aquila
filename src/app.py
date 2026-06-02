@@ -1,11 +1,3 @@
-"""
-app.py
-
-Interface Streamlit très simple pour poser des questions aux documents.
-Lancer avec :
-streamlit run src/app.py
-"""
-
 import streamlit as st
 from ask import ask_question
 

@@ -24,7 +24,7 @@ question = st.text_input("Votre question")
 
 if st.button("Répondre"):
     if not question.strip():
-        st.warning("Merci d’écrire une question.")
+        st.warning("Merci d’écrire une question simple.")
     else:
         with st.spinner("Recherche dans les documents..."):
             answer = ask_question(question)

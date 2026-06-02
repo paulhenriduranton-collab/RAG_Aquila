@@ -50,11 +50,15 @@ def main():
     print(f"{len(chunks)} chunk(s) créé(s).")
 
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
-    Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        persist_directory=str(VECTOR_DB_DIR),
-    )
+    batch_size = 50
+    db = None
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        print(f"Lot {i // batch_size + 1} / {len(chunks) // batch_size + 1} ({len(batch)} chunks)...", flush=True)
+        if db is None:
+            db = Chroma.from_documents(batch, embeddings, persist_directory=str(VECTOR_DB_DIR))
+        else:
+            db.add_documents(batch)
     print("Index créé dans vector_db/.")
 
 

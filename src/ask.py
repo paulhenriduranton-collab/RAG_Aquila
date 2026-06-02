@@ -1,27 +1,15 @@
 from pathlib import Path
-import requests
 
 from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings, OllamaLLM
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 VECTOR_DB_DIR = BASE_DIR / "vector_db"
 PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"
 EMBED_MODEL = "nomic-embed-text"
-GEN_MODEL = "gemma:latest"
+GEN_MODEL = "gemma:2b"
 
-
-def ask_gemma(prompt: str) -> str:
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": GEN_MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {"num_ctx": 16384},
-        },
-    )
-    return r.json()["response"]
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096)
 
 
 def ask_question(question: str) -> str:
@@ -41,7 +29,7 @@ def ask_question(question: str) -> str:
     prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
     prompt = prompt_template.format(question=question, context=context)
 
-    return ask_gemma(prompt)
+    return llm.invoke(prompt)
 
 
 if __name__ == "__main__":

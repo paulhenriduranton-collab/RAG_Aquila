@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Le projet utilise 6 outils principaux. Voici leur rôle exact.
+Le projet utilise 5 outils principaux. Voici leur rôle exact.
 
 ---
 
@@ -81,12 +81,3 @@ Chroma cherche par proximité de sens :
 
 **Analogie :** LangChain c'est comme une boîte à outils Ikea — les pièces sont déjà fabriquées, tu n'as plus qu'à les assembler.
 
----
-
-## 6. Streamlit
-
-**Ce que c'est :** Une librairie Python qui crée des interfaces web très simplement.
-
-**Ce qu'il fait dans ce projet :** Il transforme le fichier `app.py` (30 lignes de Python) en une page web avec un champ texte et un bouton. Pas besoin de connaître HTML, CSS ou JavaScript.
-
-**Comment ça marche :** Tu lances `streamlit run src/app.py` dans le terminal, et Streamlit ouvre automatiquement `http://localhost:8501` dans ton navigateur.

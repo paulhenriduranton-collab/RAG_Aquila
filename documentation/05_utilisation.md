@@ -59,13 +59,13 @@ Index créé dans vector_db/.
 
 **Durée :** 10 à 20 minutes selon ta machine. À ne refaire que si tu ajoutes de nouveaux documents.
 
-### Étape 3 — Lancer l'interface
+### Étape 3 — Poser une question
 
 ```powershell
-streamlit run src/app.py
+python src/ask.py
 ```
 
-Streamlit ouvre automatiquement `http://localhost:8501` dans ton navigateur. Tu peux maintenant poser tes questions.
+Le terminal affiche `Question :`. Tape ta question et appuie sur Entrée. Les chunks récupérés s'affichent avec leur score, puis la réponse apparaît. Utilise **Ctrl+C** pour quitter.
 
 ---
 
@@ -73,7 +73,7 @@ Streamlit ouvre automatiquement `http://localhost:8501` dans ton navigateur. Tu 
 
 1. Copie les nouveaux fichiers dans `documents/`
 2. Relance `python src/ingest.py` — cela recrée la base entière
-3. Relance `streamlit run src/app.py`
+3. Relance `python src/ask.py`
 
 ---
 
@@ -91,10 +91,3 @@ ollama pull gemma:latest
 
 ---
 
-## Poser une question en ligne de commande (sans interface)
-
-```powershell
-python src/ask.py
-```
-
-Le terminal affiche `Pose ta question :`, tu tapes ta question et appuies sur Entrée.

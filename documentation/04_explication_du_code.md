@@ -142,9 +142,13 @@ Traite les chunks par lots de 50 pour éviter les crashs mémoire. Le premier lo
 
 ```python
 GEN_MODEL = "gemma:latest"
-llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096)
+SCORE_THRESHOLD = 0.3
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=8192, temperature=0)
 ```
-`OllamaLLM` est le modèle de génération (différent de `OllamaEmbeddings` qui transforme en vecteurs). `num_ctx=4096` = fenêtre de contexte de 4096 tokens.
+- `OllamaLLM` est le modèle de génération (différent de `OllamaEmbeddings` qui transforme en vecteurs)
+- `num_ctx=8192` = fenêtre de contexte de 8192 tokens (assez large pour plusieurs chunks)
+- `temperature=0` = réponses déterministes, le modèle ne "brode" pas
+- `SCORE_THRESHOLD = 0.3` = seuil de pertinence : un chunk est gardé seulement si son score de similarité dépasse 0.3
 
 **Pourquoi `llm` est créé en dehors de la fonction ?** Pour ne pas le recharger à chaque question. Le charger une fois au démarrage est plus efficace.
 
@@ -153,19 +157,14 @@ llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096)
 ### La fonction `ask_question(question)` ligne par ligne
 
 ```python
-    vector_db = Chroma(
-        persist_directory=str(VECTOR_DB_DIR),
-        embedding_function=embeddings,
-    )
+    raw = vector_db.similarity_search_with_relevance_scores(question, k=5)
 ```
-Ouvre la base existante (créée par `ingest.py`). Ne recrée rien, lit juste le fichier `chroma.sqlite3`.
+Récupère les 5 chunks les plus proches avec leur score de similarité (entre 0 et 1, 1 = identique).
 
 ```python
-    docs = vector_db.as_retriever(search_kwargs={"k": 4}).invoke(question)
+    docs = [doc for doc, score in raw if score >= SCORE_THRESHOLD]
 ```
-- `.as_retriever()` = transforme la base en "chercheur"
-- `search_kwargs={"k": 4}` = retourne les 4 morceaux les plus proches
-- `.invoke(question)` = lance la recherche avec ta question
+Filtre : ne garde que les chunks vraiment pertinents. Si aucun chunk ne dépasse le seuil, le système répond directement sans interroger le LLM — ce qui évite les hallucinations.
 
 ```python
     context_parts = []
@@ -174,54 +173,14 @@ Ouvre la base existante (créée par `ingest.py`). Ne recrée rien, lit juste le
         context_parts.append(f"Source : {source}\n{doc.page_content}")
     context = "\n\n---\n\n".join(context_parts)
 ```
-Formate les 4 morceaux trouvés en un bloc de texte avec le nom du fichier source devant chacun. Les morceaux sont séparés par `---` pour que le LLM comprenne où commence chaque extrait.
+Formate les chunks retenus en un bloc de texte avec le nom du fichier source devant chacun. Les morceaux sont séparés par `---` pour que le LLM comprenne où commence chaque extrait.
 
 ```python
     prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
     prompt = prompt_template.format(question=question, context=context)
-```
-Lit le fichier `rag_prompt.txt` et remplace `{question}` et `{context}` par les vraies valeurs.
-
-```python
     return llm.invoke(prompt)
 ```
-Envoie le prompt à gemma et retourne sa réponse.
-
----
-
-## app.py — L'interface Streamlit
-
-```python
-st.set_page_config(page_title="RAG simple", page_icon="📄")
-```
-Configure le titre et l'icône de l'onglet du navigateur.
-
-```python
-st.title("RAG simple — Questions Maths :")
-st.write("Pose une question...")
-```
-Affiche du texte sur la page.
-
-```python
-question = st.text_input("Votre question")
-```
-Crée un champ texte. Streamlit stocke ce que l'utilisateur tape dans la variable `question`.
-
-```python
-if st.button("Répondre"):
-    if not question.strip():
-        st.warning("Merci d'écrire une question simple.")
-    else:
-        with st.spinner("Recherche dans les documents..."):
-            answer = ask_question(question)
-        st.subheader("Réponse")
-        st.write(answer)
-```
-- `st.button()` retourne `True` quand on clique dessus
-- `question.strip()` = enlève les espaces au début/fin pour vérifier que ce n'est pas vide
-- `st.spinner()` = affiche une animation de chargement pendant le calcul
-- `st.subheader()` = titre de niveau 2
-- `st.write()` = affiche le texte de la réponse
+Lit le fichier `rag_prompt.txt`, injecte la question et le contexte, puis envoie à gemma.
 
 ---
 

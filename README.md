@@ -24,8 +24,7 @@ Projet Aquila/
 │   └── rag_prompt.txt
 └── src/
     ├── ingest.py    ← indexe les documents
-    ├── ask.py       ← pose une question en ligne de commande
-    └── app.py       ← interface Streamlit
+    └── ask.py       ← pose une question en ligne de commande
 ```
 
 ## Prérequis
@@ -68,19 +67,13 @@ python src/ingest.py
 
 Cela crée l'index vectoriel dans `vector_db/`. À relancer si vous ajoutez de nouveaux documents.
 
-### 3. Lancer l'interface
-
-```bash
-streamlit run src/app.py
-```
-
-L'interface s'ouvre dans le navigateur. Posez votre question et cliquez sur **Répondre**.
-
-### (Optionnel) Poser une question en ligne de commande
+### 3. Poser une question
 
 ```bash
 python src/ask.py
 ```
+
+Le terminal affiche `Question :`, tapez votre question et appuyez sur Entrée. Ctrl+C pour quitter.
 
 ## Limites volontairement acceptées
 

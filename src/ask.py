@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 VECTOR_DB_DIR = BASE_DIR / "vector_db"
 PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"
 EMBED_MODEL = "nomic-embed-text"
-GEN_MODEL = "gemma:latest"
+GEN_MODEL = "gemma:2b"
 SCORE_THRESHOLD = 0.3
 
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=8192, temperature=0)

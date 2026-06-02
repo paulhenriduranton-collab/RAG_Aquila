@@ -14,7 +14,7 @@ st.set_page_config(
     page_icon="📄",
 )
 
-st.title("RAG simple — Questions sur documents")
+st.title("RAG simple — Questions sur documents benjamin")
 
 st.write(
     "Pose une question. Le modèle répondra à partir des documents indexés."

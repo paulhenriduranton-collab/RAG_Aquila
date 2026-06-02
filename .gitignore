@@ -3,3 +3,5 @@ venv/
 pycache/
 *.pyc
 .env
+vector_db/
+test_embed.py

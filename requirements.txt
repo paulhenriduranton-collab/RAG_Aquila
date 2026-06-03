@@ -4,6 +4,8 @@ langchain-community
 langchain-chroma
 chromadb
 pypdf
+pymupdf4llm
 docx2txt
 requests
 rank_bm25
+streamlit

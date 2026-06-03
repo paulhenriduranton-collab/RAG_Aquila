@@ -30,10 +30,9 @@ Quand l'environnement est actif, tu vois `(venv)` au début de chaque ligne du t
 
 ```powershell
 pip install -r requirements.txt
-pip install pymupdf4llm
 ```
 
-`pymupdf4llm` est installé séparément car il n'est pas dans le `requirements.txt` d'origine — c'est l'extracteur PDF amélioré pour les polys de maths.
+Toutes les dépendances sont dans `requirements.txt`, y compris `pymupdf4llm` (extracteur PDF) et `streamlit` (interface web).
 
 ---
 
@@ -66,6 +65,16 @@ Index créé dans vector_db/.
 **Durée :** 10 à 30 minutes selon ta machine. À ne refaire que si tu ajoutes de nouveaux documents.
 
 ### Étape 3 — Poser une question
+
+**Option A — Interface web (recommandé) :**
+
+```powershell
+python -m streamlit run src/app.py
+```
+
+Un onglet s'ouvre dans ton navigateur à `http://localhost:8501`. Tu tapes ta question dans le champ et tu cliques **Envoyer**.
+
+**Option B — Ligne de commande :**
 
 ```powershell
 python src/ask.py

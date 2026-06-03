@@ -31,7 +31,8 @@ RAG_Aquila/
 │   └── rag_prompt.txt
 ├── src/
 │   ├── ingest.py     ← indexe les documents
-│   └── ask.py        ← pose une question en ligne de commande
+│   ├── ask.py        ← pose une question en ligne de commande
+│   └── app.py        ← interface web Streamlit
 └── documentation/    ← documentation détaillée du projet
 ```
 
@@ -52,7 +53,6 @@ ollama pull gemma2:2b
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-pip install pymupdf4llm
 ```
 
 ## Utilisation
@@ -71,11 +71,17 @@ Crée la base vectorielle dans `vector_db/`. À relancer à chaque ajout de docu
 
 ### 3. Poser une question
 
+**Interface web (recommandé) :**
+
+```powershell
+python -m streamlit run src/app.py
+```
+
+**Ligne de commande :**
+
 ```powershell
 python src/ask.py
 ```
-
-Tape ta question, appuie sur Entrée. Ctrl+C pour quitter.
 
 ## Documentation complète
 

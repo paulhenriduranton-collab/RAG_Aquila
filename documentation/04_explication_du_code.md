@@ -245,6 +245,47 @@ Les chunks sont formatés avec leur source, séparés par `---`, et injectés da
 
 ---
 
+## app.py — L'interface web Streamlit
+
+`app.py` est une interface graphique minimaliste qui remplace le terminal pour poser des questions.
+
+```python
+import sys
+from pathlib import Path
+
+import streamlit as st
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ask import ask_question
+```
+
+`sys.path.insert` ajoute le dossier `src/` au chemin Python pour pouvoir importer `ask_question` depuis `ask.py` qui est dans le même dossier.
+
+```python
+st.title("RAG Aquila")
+
+question = st.text_input("Votre question :")
+
+if st.button("Envoyer") and question:
+    with st.spinner("Recherche en cours..."):
+        reponse = ask_question(question)
+    st.write(reponse)
+```
+
+- `st.text_input` → champ de saisie texte
+- `st.button("Envoyer")` → bouton qui déclenche la recherche
+- `st.spinner` → indicateur de chargement pendant que `ask_question()` tourne
+- `st.write` → affiche la réponse dans la page
+
+**Pour lancer l'interface :**
+```powershell
+python -m streamlit run src/app.py
+```
+
+Streamlit ouvre automatiquement un onglet dans le navigateur à `http://localhost:8501`.
+
+---
+
 ## rag_prompt.txt — Les instructions pour l'IA
 
 ```

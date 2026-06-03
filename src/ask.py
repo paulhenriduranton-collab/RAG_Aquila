@@ -11,8 +11,8 @@ PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"
 EMBED_MODEL = "nomic-embed-text"
 GEN_MODEL = "gemma2:2b"
 K_RETRIEVE = 20        # candidats par méthode avant fusion
-K_FINAL = 3            # chunks envoyés au LLM
-SEMANTIC_MIN_SCORE = 0.65  # seuil en dessous duquel un résultat sémantique est ignoré
+K_FINAL = 5            # chunks envoyés au LLM
+SEMANTIC_MIN_SCORE = 0.50  # seuil en dessous duquel un résultat sémantique est ignoré
 BM25_WEIGHT = 0.5      # poids du score BM25 normalisé dans la fusion
 
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)

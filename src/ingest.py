@@ -5,7 +5,7 @@ from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.document_loaders import (
     TextLoader,
-    PyPDFLoader,
+    PyMuPDFLoader,
     Docx2txtLoader,
 )
 
@@ -24,7 +24,7 @@ def load_documents():
         if suffix == ".txt":
             loader = TextLoader(str(file_path), encoding="utf-8")
         elif suffix == ".pdf":
-            loader = PyPDFLoader(str(file_path))
+            loader = PyMuPDFLoader(str(file_path))
         elif suffix == ".docx":
             loader = Docx2txtLoader(str(file_path))
         else:

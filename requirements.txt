@@ -6,3 +6,4 @@ chromadb
 pypdf
 docx2txt
 requests
+rank_bm25

@@ -1,89 +1,82 @@
-# RAG simple — Stage découverte
+# RAG Aquila — Stage découverte
 
-Ce projet est une version volontairement simplifiée d'un RAG.
-
-L'objectif est de permettre à un LLM local (Gemma via Ollama) de répondre à des questions en s'appuyant sur des fichiers placés dans le dossier `documents/`.
+Système RAG (Retrieval-Augmented Generation) permettant à un LLM local de répondre à des questions en s'appuyant uniquement sur des fichiers placés dans `documents/`. Conçu pour des polycopiés de mathématiques.
 
 ## Fonctionnement général
 
 ```text
-Documents → Découpage du texte → Embeddings (nomic-embed-text) → Recherche des passages utiles → Réponse (gemma:latest)
+Documents PDF/TXT/DOCX
+    → Extraction Markdown (pymupdf4llm)
+    → Découpage en chunks de 1000 caractères
+    → Embeddings multilingues (bge-m3 via Ollama)
+    → Base vectorielle ChromaDB
+
+Question utilisateur
+    → Recherche sémantique dense (bge-m3, top 20)
+    → Recherche lexicale BM25 (top 20)
+    → Fusion RRF (Reciprocal Rank Fusion)
+    → Top 5 chunks envoyés à gemma2:2b
+    → Réponse affichée
 ```
 
 ## Arborescence
 
 ```text
-Projet Aquila/
-│
+RAG_Aquila/
 ├── README.md
 ├── requirements.txt
-│
-├── documents/       ← mettre ici les fichiers à indexer (.pdf, .txt, .docx)
-├── vector_db/       ← index ChromaDB généré automatiquement
+├── documents/        ← fichiers à indexer (.pdf, .txt, .docx)
+├── vector_db/        ← index ChromaDB (généré automatiquement)
 ├── prompts/
 │   └── rag_prompt.txt
-└── src/
-    ├── ingest.py    ← indexe les documents
-    └── ask.py       ← pose une question en ligne de commande
+├── src/
+│   ├── ingest.py     ← indexe les documents
+│   └── ask.py        ← pose une question en ligne de commande
+└── documentation/    ← documentation détaillée du projet
 ```
 
 ## Prérequis
 
+- Python 3.10 à 3.13 (pas 3.14 — incompatibilité Pillow)
 - [Ollama](https://ollama.com/) installé et en cours d'exécution
-- Les deux modèles suivants téléchargés :
+- Modèles téléchargés :
 
-```bash
-ollama pull gemma:latest
-ollama pull nomic-embed-text
+```powershell
+ollama pull bge-m3
+ollama pull gemma2:2b
 ```
 
 ## Installation
 
-Créer et activer un environnement virtuel :
-
-```bash
+```powershell
 python -m venv venv
-venv\Scripts\activate      # Windows
-# source venv/bin/activate  # Mac/Linux
-```
-
-Installer les dépendances :
-
-```bash
+venv\Scripts\activate
 pip install -r requirements.txt
+pip install pymupdf4llm
 ```
 
 ## Utilisation
 
 ### 1. Ajouter les documents
 
-Mettre les fichiers dans le dossier `documents/` (`.pdf`, `.txt` ou `.docx`).
+Copier les fichiers dans `documents/` (`.pdf`, `.txt` ou `.docx`).
 
-### 2. Indexer les documents
+### 2. Indexer
 
-```bash
+```powershell
 python src/ingest.py
 ```
 
-Cela crée l'index vectoriel dans `vector_db/`. À relancer si vous ajoutez de nouveaux documents.
+Crée la base vectorielle dans `vector_db/`. À relancer à chaque ajout de document.
 
 ### 3. Poser une question
 
-```bash
+```powershell
 python src/ask.py
 ```
 
-Le terminal affiche `Question :`, tapez votre question et appuyez sur Entrée. Ctrl+C pour quitter.
+Tape ta question, appuie sur Entrée. Ctrl+C pour quitter.
 
-## Limites volontairement acceptées
+## Documentation complète
 
-Ce projet est pensé pour un stage découverte.
-
-Il ne couvre pas :
-- la gestion fine des droits utilisateurs ;
-- l'évaluation avancée des réponses ;
-- le monitoring ;
-- le déploiement cloud ;
-- la gestion complexe de centaines de milliers de documents.
-
-L'objectif est de comprendre la logique du RAG, pas de construire une solution industrielle.
+Voir [documentation/00_index.md](documentation/00_index.md).

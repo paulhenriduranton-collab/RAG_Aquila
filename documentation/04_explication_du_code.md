@@ -2,7 +2,7 @@
 
 ## ingest.py — Le script d'indexation
 
-### Les imports (lignes 1–10)
+### Les imports (lignes 1–9)
 
 ```python
 from pathlib import Path
@@ -10,124 +10,112 @@ from pathlib import Path
 `pathlib` est une librairie Python standard pour manipuler les chemins de fichiers. Elle fonctionne sur Windows (`\`) et Mac/Linux (`/`) sans qu'on ait à s'en préoccuper.
 
 ```python
+import pymupdf4llm
+```
+Extracteur PDF qui produit du Markdown structuré. Remplace `PyMuPDFLoader` de LangChain qui produisait du texte brut avec les espaces manquants autour des formules mathématiques.
+
+```python
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 ```
-L'outil de découpage récursif. Voir la doc `03_fonctionnement_detaille.md` pour le détail.
+L'outil de découpage récursif en chunks. Voir `03_fonctionnement_detaille.md` pour le détail.
 
 ```python
 from langchain_chroma import Chroma
-```
-L'interface Python pour parler à la base de données ChromaDB.
-
-```python
 from langchain_ollama import OllamaEmbeddings
+from langchain_community.document_loaders import TextLoader, Docx2txtLoader
+from langchain_core.documents import Document
 ```
-L'interface pour appeler le modèle `nomic-embed-text` via Ollama.
-
-```python
-from langchain_community.document_loaders import (
-    TextLoader, PyPDFLoader, Docx2txtLoader,
-)
-```
-Trois outils de lecture : un pour chaque format de fichier supporté.
+Interfaces LangChain pour ChromaDB, les embeddings Ollama, et les loaders de fichiers texte/Word.
 
 ---
 
-### Les constantes (lignes 12–15)
+### Les constantes (lignes 11–14)
 
 ```python
 BASE_DIR = Path(__file__).resolve().parent.parent
+DOCUMENTS_DIR = BASE_DIR / "documents"
+VECTOR_DB_DIR = BASE_DIR / "vector_db"
+EMBED_MODEL = "bge-m3"
 ```
-- `__file__` = le chemin complet de `ingest.py` lui-même
-- `.resolve()` = transforme en chemin absolu (ex: `C:\Users\...`)
-- `.parent` = remonte d'un dossier (on passe de `src/` à `Projet Aquila/`)
-- `.parent` = remonte encore (on est déjà à la racine)
 
-Résultat : `BASE_DIR = C:\Users\paulh\OneDrive\Bureau\Projet Aquila`
-
-```python
-DOCUMENTS_DIR = BASE_DIR / "documents"   # → .../Projet Aquila/documents
-VECTOR_DB_DIR = BASE_DIR / "vector_db"   # → .../Projet Aquila/vector_db
-EMBED_MODEL = "nomic-embed-text"
-```
+- `__file__` = chemin complet de `ingest.py` lui-même
+- `.resolve().parent.parent` = remonte deux niveaux → racine du projet
+- `EMBED_MODEL = "bge-m3"` → modèle multilingue avec fenêtre de 8192 tokens, adapté au français scientifique
 
 ---
 
-### La fonction `load_documents()` (lignes 18–37)
+### La fonction `_load_pdf()` (lignes 17–20)
 
 ```python
-def load_documents():
-    documents = []
-    for file_path in DOCUMENTS_DIR.iterdir():
+def _load_pdf(pdf_path: Path) -> list[Document]:
+    md_text = pymupdf4llm.to_markdown(str(pdf_path))
+    return [Document(page_content=md_text, metadata={"source": pdf_path.name})]
 ```
-Parcourt tous les fichiers dans `documents/`. `iterdir()` retourne un objet par fichier.
+
+Convertit un PDF entier en **un seul document Markdown**. Contrairement à PyMuPDFLoader qui créait un Document par page, `pymupdf4llm` retourne le document entier avec sa structure Markdown préservée (titres `##`, `###`, tableaux, listes).
+
+Le `RecursiveCharacterTextSplitter` s'occupera ensuite de le découper intelligemment selon les séparateurs Markdown.
+
+---
+
+### La fonction `load_documents()` (lignes 23–42)
 
 ```python
-        if file_path.name.startswith("."):
-            continue
+for file_path in sorted(DOCUMENTS_DIR.iterdir()):
+    if file_path.name.startswith("."):
+        continue
 ```
-Ignore les fichiers cachés (`.DS_Store` sur Mac, etc.). `continue` = passe au fichier suivant sans traiter celui-ci.
+Parcourt les fichiers dans l'ordre alphabétique. Ignore les fichiers cachés (`.DS_Store` sur Mac, etc.).
 
 ```python
-        suffix = file_path.suffix.lower()
-```
-Récupère l'extension : `.pdf`, `.txt`, `.docx`... `.lower()` met en minuscules pour éviter les problèmes avec `.PDF` ou `.Pdf`.
-
-```python
-        if suffix == ".txt":
-            loader = TextLoader(str(file_path), encoding="utf-8")
-        elif suffix == ".pdf":
-            loader = PyPDFLoader(str(file_path))
-        elif suffix == ".docx":
-            loader = Docx2txtLoader(str(file_path))
-        else:
-            print(f"Format ignoré : {file_path.name}")
-            continue
-```
-Choisit le bon outil selon l'extension. Si le format n'est pas reconnu, affiche un message et passe au fichier suivant.
-
-```python
+    suffix = file_path.suffix.lower()
+    if suffix == ".txt":
+        loader = TextLoader(str(file_path), encoding="utf-8")
+        loaded = loader.load()
+    elif suffix == ".pdf":
+        loaded = _load_pdf(file_path)
+    elif suffix == ".docx":
+        loader = Docx2txtLoader(str(file_path))
         loaded = loader.load()
 ```
-Charge le fichier. Pour un PDF, retourne autant d'éléments que de pages.
+Choisit l'outil selon le format. Les PDFs passent par `_load_pdf()` (pymupdf4llm), les autres formats utilisent les loaders LangChain standard.
 
 ```python
-        for doc in loaded:
-            doc.metadata["source"] = file_path.name
+    for doc in loaded:
+        doc.metadata["source"] = file_path.name
+    documents.extend(loaded)
+    print(f"  ✓ {file_path.name} ({len(loaded)} doc(s))")
 ```
-Ajoute le nom du fichier dans les métadonnées de chaque morceau. Ça permettra plus tard de dire "cette réponse vient de `analyse_fonctionnelle.pdf`".
-
-```python
-        documents.extend(loaded)
-    return documents
-```
-Ajoute les documents chargés à la liste. `extend` ajoute plusieurs éléments d'un coup (contrairement à `append` qui en ajoute un seul).
+Ajoute le nom du fichier dans les métadonnées — ça permettra d'afficher "cette réponse vient de `calcul_diff.pdf`" lors des questions.
 
 ---
 
-### La fonction `main()` (lignes 40–58)
+### La fonction `main()` (lignes 45–73)
 
 ```python
-    splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=120)
-    chunks = splitter.split_documents(documents)
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200,
+    separators=["\n## ", "\n### ", "\n\n", "\n", " ", ""],
+)
 ```
-Découpe tous les documents en morceaux. `chunks` est une liste de ~601 éléments.
+
+- `chunk_size=1000` → max 1000 caractères par chunk. Dimensionné pour les maths : une définition complète fait souvent 600-900 caractères.
+- `chunk_overlap=200` → 200 caractères de recouvrement entre chunks consécutifs, pour ne pas couper une définition en deux.
+- `separators` → ordre de priorité de découpage : d'abord les titres Markdown (`##`, `###`), puis les paragraphes, puis les lignes, puis les mots. Exploite la structure produite par pymupdf4llm.
 
 ```python
-    embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+batch_size = 50
+db = None
+for i in range(0, len(chunks), batch_size):
+    batch = chunks[i:i + batch_size]
+    if db is None:
+        db = Chroma.from_documents(batch, embeddings, persist_directory=str(VECTOR_DB_DIR))
+    else:
+        db.add_documents(batch)
 ```
-Crée l'objet qui va appeler `nomic-embed-text` via Ollama. À ce stade, aucun calcul n'est encore fait.
-
-```python
-    db = None
-    for i in range(0, len(chunks), batch_size):
-        batch = chunks[i:i + batch_size]
-        if db is None:
-            db = Chroma.from_documents(batch, embeddings, persist_directory=str(VECTOR_DB_DIR))
-        else:
-            db.add_documents(batch)
-```
-Traite les chunks par lots de 50 pour éviter les crashs mémoire. Le premier lot crée la base, les suivants ajoutent dedans.
+Traite les chunks par lots de 50 pour éviter les crashs mémoire. Le premier lot crée la base ChromaDB, les suivants y ajoutent des données.
 
 ---
 
@@ -135,73 +123,149 @@ Traite les chunks par lots de 50 pour éviter les crashs mémoire. Le premier lo
 
 ### La différence avec ingest.py
 
-`ingest.py` lit les documents et construit la base — il s'exécute une seule fois.
-`ask.py` interroge la base et génère une réponse — il s'exécute à chaque question.
+`ingest.py` lit les documents et construit la base — il s'exécute **une seule fois** (ou après ajout de nouveaux documents).
+`ask.py` interroge la base et génère une réponse — il s'exécute **à chaque question**.
 
-### Les nouvelles constantes
+---
+
+### Les constantes (lignes 8–17)
 
 ```python
-GEN_MODEL = "gemma:latest"
-SCORE_THRESHOLD = 0.3
-llm = OllamaLLM(model=GEN_MODEL, num_ctx=8192, temperature=0)
+EMBED_MODEL = "bge-m3"
+GEN_MODEL = "gemma2:2b"
+K_RETRIEVE = 20    # candidats par méthode avant fusion
+K_FINAL = 5        # chunks envoyés au LLM
+RRF_K = 60         # constante RRF (standard = 60)
 ```
-- `OllamaLLM` est le modèle de génération (différent de `OllamaEmbeddings` qui transforme en vecteurs)
-- `num_ctx=8192` = fenêtre de contexte de 8192 tokens (assez large pour plusieurs chunks)
-- `temperature=0` = réponses déterministes, le modèle ne "brode" pas
-- `SCORE_THRESHOLD = 0.3` = seuil de pertinence : un chunk est gardé seulement si son score de similarité dépasse 0.3
+
+- `EMBED_MODEL` doit être le **même modèle** que dans `ingest.py` — les vecteurs stockés et les vecteurs de requête doivent être dans le même espace mathématique.
+- `K_RETRIEVE = 20` → on récupère les 20 meilleurs candidats de chaque méthode (sémantique + BM25) avant de fusionner.
+- `K_FINAL = 5` → après fusion, on envoie les 5 meilleurs chunks au LLM. Plus que l'ancien système (3 chunks) pour avoir plus de contexte.
+- `RRF_K = 60` → constante standard de la formule RRF. Une valeur plus haute lisse les différences de rang, une valeur plus basse les amplifie.
+
+```python
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)
+```
+
+- `temperature=0` → réponses déterministes, le modèle ne "brode" pas.
+- `num_ctx=4096` → fenêtre de contexte de 4096 tokens, suffisant pour 5 chunks + la question.
 
 **Pourquoi `llm` est créé en dehors de la fonction ?** Pour ne pas le recharger à chaque question. Le charger une fois au démarrage est plus efficace.
 
 ---
 
-### La fonction `ask_question(question)` ligne par ligne
+### Le cache BM25 (lignes 20–35)
 
 ```python
-    raw = vector_db.similarity_search_with_relevance_scores(question, k=5)
+_bm25_index: BM25Okapi | None = None
+_bm25_chunks: list[tuple[str, dict]] | None = None
 ```
-Récupère les 5 chunks les plus proches avec leur score de similarité (entre 0 et 1, 1 = identique).
+Variables globales qui stockent l'index BM25 entre les questions. L'index est construit la **première question seulement** (il faut lire tous les chunks de ChromaDB), puis réutilisé pour les suivantes.
 
 ```python
-    docs = [doc for doc, score in raw if score >= SCORE_THRESHOLD]
+def _build_bm25_index(vector_db: Chroma):
+    result = vector_db._collection.get(include=["documents", "metadatas"])
+    texts = result["documents"]
+    _bm25_index = BM25Okapi([t.lower().split() for t in texts])
 ```
-Filtre : ne garde que les chunks vraiment pertinents. Si aucun chunk ne dépasse le seuil, le système répond directement sans interroger le LLM — ce qui évite les hallucinations.
+
+- `vector_db._collection.get()` → récupère **tous** les chunks stockés dans ChromaDB (texte + métadonnées).
+- `t.lower().split()` → tokenisation simple : on met en minuscules et on découpe sur les espaces. Chaque chunk devient une liste de mots.
+- `BM25Okapi` → implémentation de BM25 de la librairie `rank_bm25`.
+
+---
+
+### La fonction `_merge()` — Fusion RRF (lignes 38–75)
 
 ```python
-    context_parts = []
-    for doc in docs:
-        source = doc.metadata.get("source", "source inconnue")
-        context_parts.append(f"Source : {source}\n{doc.page_content}")
-    context = "\n\n---\n\n".join(context_parts)
+def _merge(semantic, bm25_indices, bm25_chunks, n=K_FINAL):
 ```
-Formate les chunks retenus en un bloc de texte avec le nom du fichier source devant chacun. Les morceaux sont séparés par `---` pour que le LLM comprenne où commence chaque extrait.
+
+Cette fonction reçoit les deux listes de résultats et retourne les `n` meilleurs chunks fusionnés.
 
 ```python
-    prompt_template = PROMPT_PATH.read_text(encoding="utf-8")
-    prompt = prompt_template.format(question=question, context=context)
-    return llm.invoke(prompt)
+    for rank, (doc, _) in enumerate(semantic):
+        key = doc.page_content
+        scores[key] = scores.get(key, 0) + 1.0 / (RRF_K + rank + 1)
+        doc_map[key] = doc
 ```
-Lit le fichier `rag_prompt.txt`, injecte la question et le contexte, puis envoie à gemma.
+Pour chaque chunk sémantique, on ajoute `1/(60 + rang + 1)` à son score RRF. Le rang commence à 0 donc le premier chunk reçoit `1/61`, le deuxième `1/62`, etc.
+
+On utilise `page_content` comme clé de dictionnaire car un même chunk peut apparaître dans les deux listes (sémantique et BM25) — dans ce cas, les contributions s'additionnent.
+
+```python
+    for rank, idx in enumerate(bm25_indices):
+        text, meta = bm25_chunks[idx]
+        scores[text] = scores.get(text, 0) + 1.0 / (RRF_K + rank + 1)
+```
+Même chose pour les résultats BM25. `bm25_indices` contient les indices des chunks dans `bm25_chunks`, triés par score BM25 décroissant.
+
+```python
+    # Diversité : au plus 1 chunk par page source
+    seen_pages: set[tuple] = set()
+    for key, score in ranked:
+        page_id = (meta.get("source"), meta.get("page"))
+        if page_id not in seen_pages:
+            seen_pages.add(page_id)
+            top.append((key, score))
+        if len(top) == n:
+            break
+```
+Règle de diversité : si les 5 meilleurs chunks RRF viennent tous de la même page du même PDF, on n'enverrait qu'une seule vue du document au LLM. Cette règle force la diversité en sélectionnant au maximum 1 chunk par page.
+
+---
+
+### La fonction `ask_question()` (lignes 82–133)
+
+```python
+raw_semantic = vector_db.similarity_search_with_relevance_scores(question, k=K_RETRIEVE)
+```
+Retourne les 20 chunks sémantiquement les plus proches avec leur score de similarité cosinus (entre 0 et 1).
+
+```python
+bm25_scores = bm25.get_scores(question.lower().split())
+top_bm25 = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:K_RETRIEVE]
+```
+`get_scores()` retourne un score BM25 pour **chaque** chunk de la base. On trie ensuite les indices par score décroissant et on garde les 20 meilleurs.
+
+```python
+final_docs, rrf_ranking = _merge(raw_semantic, top_bm25, bm25_chunks)
+```
+La fusion RRF produit les 5 chunks finaux avec leurs scores.
+
+```python
+context = "\n\n---\n\n".join(
+    f"Source : {doc.metadata.get('source', '?')}\n{doc.page_content}"
+    for doc in final_docs
+)
+prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=question, context=context)
+return llm.invoke(prompt)
+```
+Les chunks sont formatés avec leur source, séparés par `---`, et injectés dans le template de prompt avant envoi au LLM.
 
 ---
 
 ## rag_prompt.txt — Les instructions pour l'IA
 
 ```
-Tu es un assistant qui répond uniquement à partir du contexte fourni.
+Tu es un assistant documentaire strict. Tu n'as AUCUNE connaissance propre : 
+tu lis uniquement le CONTEXTE ci-dessous et tu en extrais la réponse.
 
-Question utilisateur :
-{question}
+RÈGLE ABSOLUE : si l'information n'apparaît pas textuellement dans le CONTEXTE, 
+réponds exactement : "Je ne trouve pas cette information dans les documents fournis."
+N'invente rien, ne complète pas avec tes connaissances, ne déduis pas 
+au-delà de ce qui est écrit.
 
-Contexte extrait des documents :
+CONTEXTE :
 {context}
 
-Règles :
-- Réponds uniquement avec les informations présentes dans le contexte.
-- Si la réponse n'est pas dans le contexte, dis : "Je ne trouve pas cette information dans les documents fournis."
-- Réponds de manière claire, concise et professionnelle.
-- Cite les documents sources si possible.
+QUESTION : {question}
+
+RÉPONSE (uniquement à partir du CONTEXTE, sources citées entre parenthèses) :
 ```
 
-`{question}` et `{context}` sont des **espaces réservés** (placeholders). Python les remplace par les vraies valeurs avant d'envoyer le prompt au modèle.
+**Pourquoi cette formulation stricte ?** On dit au LLM qu'il n'a "AUCUNE connaissance propre" pour éviter qu'il mélange ce qu'il sait de son entraînement avec ce que les documents disent. Sans cette contrainte, un LLM comme gemma2:2b peut "compléter" une réponse incomplète avec des informations inventées (hallucination).
 
-**Pourquoi ce fichier est séparé du code ?** Pour pouvoir modifier les instructions sans toucher au code Python. Si on veut que l'IA réponde en anglais ou soit plus concise, on modifie juste ce fichier.
+**Pourquoi ce fichier est séparé du code ?** Pour pouvoir modifier les instructions sans toucher au code Python. Si on veut que l'IA réponde en anglais, soit plus concise, ou cite les numéros de page, on modifie juste ce fichier.
+
+`{question}` et `{context}` sont des **espaces réservés** (placeholders). Python les remplace par les vraies valeurs via `.format()` avant d'envoyer le prompt au modèle.

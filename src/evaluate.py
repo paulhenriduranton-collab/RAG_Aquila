@@ -188,9 +188,7 @@ def print_results(results: list[dict]):
 
 
 def main():
-    # Charge le dataset depuis data/questions.json
-    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
-    # Pour tester sur quelques questions seulement : ajouter [:4] après read_text(...)
+    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8")) 
 
     print("=== Évaluation RAG ===")
     print(f"LLM          : {GEN_MODEL}")

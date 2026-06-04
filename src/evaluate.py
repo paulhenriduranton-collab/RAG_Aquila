@@ -165,7 +165,7 @@ def print_results(results: list[dict]):
 
 
 def main():
-    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8")) 
+    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))[5:]
 
     print("=== Évaluation RAG ===")
     print(f"LLM          : {GEN_MODEL}")

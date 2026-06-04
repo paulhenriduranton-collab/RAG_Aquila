@@ -1,0 +1,416 @@
+
+Claude a terminé la réponse.
+ENS.pdf
+pdf
+
+
+SORBONNE.pdf
+pdf
+
+Bonjour claude j'ai créé une rag agentique en  me basant sur ces documents la, je voudrais que tu me génère un dataset synthétique avec des questions du niveau 1 à 3 pour évaluer notre modèle
+
+11:49
+Bonjour ! Je vais créer un dataset synthétique de questions-réponses basé sur ces deux brochures (ENS DMA et Sorbonne), avec trois niveaux de difficulté. Laissez-moi d'abord vérifier le document Sorbonne qui n'est pas visible dans le contexte.
+
+
+Check Sorbonne PDF
+Check Sorbonne PDF
+Le PDF Sorbonne est en binaire non lisible directement. Je vais lire son contenu via le skill approprié.
+
+
+Exécuté 3 commandes, consulté un fichier
+Exécuté 3 commandes, consulté un fichier
+J'ai maintenant suffisamment de contexte sur les deux documents. Je vais générer le dataset.
+
+
+Read more of Sorbonne document for M2 parcours info
+Read more of Sorbonne document for M2 parcours info
+J'ai maintenant une bonne connaissance des deux documents. Je vais créer le dataset synthétique.
+
+
+Fichier créé, a exécuté une commande, lu un fichier
+Fichier créé, a exécuté une commande, lu un fichier
+Le dataset est prêt. Voici un récap de ce qui a été généré :
+
+40 questions au total, structurées ainsi :
+
+Niveau 1 — Récupération factuelle simple (15 questions) Des questions directes à réponse unique, tirées littéralement des documents : dates, noms, chiffres, listes. Idéales pour mesurer si le RAG retrouve et cite correctement des fragments précis. Ex. : "Qui dirige le DMA ?", "Combien d'ECTS pour la L3 ?".
+
+Niveau 2 — Compréhension et synthèse intra-document (15 questions) Nécessitent de combiner plusieurs passages d'un même document : comprendre le fonctionnement du tutorat, les règles ABCD, le contenu d'un cours spécifique, les conditions d'une filière. Testent la capacité du modèle à agréger de l'information et à reformuler.
+
+Niveau 3 — Raisonnement, comparaison et application (10 questions) Exigent du raisonnement multi-étapes ou un recoupement entre les deux documents. Ex. : appliquer les règles ABCD à un scénario concret, comparer les philosophies pédagogiques ENS vs Sorbonne, ou analyser la cohérence des prérequis entre cours.
+
+Chaque entrée contient : id, niveau, source, question, reponse_attendue, contexte_source (pour la traçabilité des chunks), et type (pour une analyse fine des erreurs par catégorie).
+
+
+
+
+
+
+
+Claude est une IA et peut faire des erreurs. Veuillez vérifier les réponses.
+Dataset eval rag · JSON
+[
+  {
+    "id": "L1_ENS_001",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?",
+    "reponse_attendue": "La formation du DENS dure trois ans.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Présentation",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_ENS_002",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quels sont les quatre cours communs obligatoires de première année à l'ENS DMA ?",
+    "reponse_attendue": "Les quatre cours communs de L3 obligatoires sont : Algèbre 1, Analyse complexe, Intégration et probabilités, et Topologie et calcul différentiel.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Règles d'obtention – Première année",
+    "type": "factuel_liste"
+  },
+  {
+    "id": "L1_ENS_003",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Combien d'ECTS faut-il valider en première année (L3) à l'ENS DMA ?",
+    "reponse_attendue": "Il faut valider 60 ECTS pour la première année (L3).",
+    "contexte_source": "Brochure ENS DMA 2024-2025, tableau des règles d'obtention de première année",
+    "type": "factuel_chiffre"
+  },
+  {
+    "id": "L1_ENS_004",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Qui assure la direction des études du DMA à l'ENS en 2024-2025 ?",
+    "reponse_attendue": "La direction des études du DMA est assurée par Djalil Chafaï et Cyril Houdayer.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, page 3",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_ENS_005",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quelles sont les quatre filières proposées par le DMA de l'ENS ?",
+    "reponse_attendue": "Les quatre filières sont : la filière mathématiques, la filière mathématiques/informatique, la filière mathématiques/physique, et la filière mathématiques/biologie.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Organisation de la formation",
+    "type": "factuel_liste"
+  },
+  {
+    "id": "L1_ENS_006",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quand ont lieu les examens du premier semestre 2024-2025 à l'ENS DMA ?",
+    "reponse_attendue": "Les examens du premier semestre ont lieu du lundi 20 janvier au vendredi 24 janvier 2025.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Planning",
+    "type": "factuel_date"
+  },
+  {
+    "id": "L1_ENS_007",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quelle est la durée minimale du stage requis dans la scolarité ENS en mathématiques ?",
+    "reponse_attendue": "Le stage doit durer au moins 4 mois.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Stage",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_ENS_008",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Qui enseigne le cours d'Algèbre 1 (L3 S1) à l'ENS en 2024-2025 ?",
+    "reponse_attendue": "Le cours d'Algèbre 1 est enseigné par Ariane Mézard (SU) et Nataniel Marquis (ENS).",
+    "contexte_source": "Brochure ENS DMA 2024-2025, liste des cours de première année",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_ENS_009",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Quel est l'adresse du département de mathématiques et applications de l'ENS ?",
+    "reponse_attendue": "L'adresse est 45 rue d'Ulm, 75230 Paris Cedex 05.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, page de couverture et page 3",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_ENS_010",
+    "niveau": 1,
+    "source": "ENS",
+    "question": "Combien d'étudiants sont admis par an au DMA de l'ENS ?",
+    "reponse_attendue": "Environ une cinquantaine d'étudiants sont admis par an.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Présentation",
+    "type": "factuel_chiffre"
+  },
+  {
+    "id": "L1_SU_001",
+    "niveau": 1,
+    "source": "Sorbonne",
+    "question": "Combien de parcours de Master 2 en mathématiques propose Sorbonne Université ?",
+    "reponse_attendue": "Sorbonne Université propose 7 parcours de Master 2 : Mathématiques fondamentales, Probabilités et modèles aléatoires, Probabilités et Finance, Mathématiques de la modélisation, Ingénierie mathématique, Statistique Apprentissage et Algorithmes, et Agrégation de Mathématiques.",
+    "contexte_source": "Brochure Master Mathématiques et Applications Sorbonne Université 2025-2026, Table des matières",
+    "type": "factuel_liste"
+  },
+  {
+    "id": "L1_SU_002",
+    "niveau": 1,
+    "source": "Sorbonne",
+    "question": "Qui sont les responsables du Master 1 de mathématiques à Sorbonne Université ?",
+    "reponse_attendue": "Les responsables du Master 1 sont Laurent Boudin et Vincent Humilière.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.3 Informations pratiques",
+    "type": "factuel_simple"
+  },
+  {
+    "id": "L1_SU_003",
+    "niveau": 1,
+    "source": "Sorbonne",
+    "question": "Combien d'ECTS vaut l'UE obligatoire d'Orientation et insertion professionnelle (OIP) à Sorbonne ?",
+    "reponse_attendue": "L'UE d'OIP (UM4MAOIP) vaut 3 ECTS.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.4.2",
+    "type": "factuel_chiffre"
+  },
+  {
+    "id": "L1_SU_004",
+    "niveau": 1,
+    "source": "Sorbonne",
+    "question": "Combien d'heures d'enseignement comporte une UE de 9 ECTS au M1 de Sorbonne Université ?",
+    "reponse_attendue": "Une UE de 9 ECTS comporte 84 heures d'enseignement, soit 36 heures de cours et 48 heures de TD ou TP.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.5 Liste des UE",
+    "type": "factuel_chiffre"
+  },
+  {
+    "id": "L1_SU_005",
+    "niveau": 1,
+    "source": "Sorbonne",
+    "question": "Quelles langues peut-on choisir comme UE de langue au M1 de Sorbonne Université (enseignement en présence) ?",
+    "reponse_attendue": "Les langues disponibles sont : anglais, allemand, chinois, espagnol, russe et français langue étrangère (FLE).",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.2 Choix des unités d'enseignement du M1",
+    "type": "factuel_liste"
+  },
+  {
+    "id": "L2_ENS_001",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Quelles sont les conditions à remplir pour obtenir le DENS (Diplôme de l'ENS ès Mathématiques) en termes d'ECTS supplémentaires au-delà de la L3 et du Master ?",
+    "reponse_attendue": "Il faut valider 72 ECTS supplémentaires : au moins 24 ECTS de cours mathématiques, au moins 24 ECTS dans un ou plusieurs autres départements (dont 12 ECTS de cours scientifiques non-mathématiques), au moins 24 ECTS libres (incluant expériences et cours de langue), au moins 2 expériences d'ouverture, et la formation sur les grands enjeux.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Le diplôme de l'ENS majeure mathématiques",
+    "type": "synthese_conditions"
+  },
+  {
+    "id": "L2_ENS_002",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Comment fonctionne le système de tutorat à l'ENS DMA, et quel est le rôle du tuteur ?",
+    "reponse_attendue": "Chaque étudiant reçoit un tuteur issu du DMA, choisi aléatoirement en 1ère année et selon les préférences thématiques ensuite. Le tuteur aide à l'organisation de la scolarité, conseille sur les thèmes de travail et de lecture, et oriente. Un programme d'études annuel est co-signé par l'étudiant, le tuteur et le directeur des études.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Tutorat",
+    "type": "explication_fonctionnement"
+  },
+  {
+    "id": "L2_ENS_003",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Quels sont les cours avancés proposés en deuxième année (M1 S2) à l'ENS DMA, et comment sont-ils évalués ?",
+    "reponse_attendue": "Trois cours avancés sont proposés : Analyse rugueuse (Paul Gassiat), EDP - régularité elliptique et parabolique (Cyril Imbert), et Théorie géométrique des invariants (Julien Marché). Chacun comporte une partie cours (6 semaines, 21h, validée par examen) et une partie groupe de travail (21h, validée par exposé(s)). Les étudiants doivent en valider deux.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, sections Deuxième année et Cours avancés",
+    "type": "synthese_cours"
+  },
+  {
+    "id": "L2_ENS_004",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "En quoi consiste la filière mathématiques/biologie à l'ENS, et quels débouchés de M2 permet-elle ?",
+    "reponse_attendue": "La filière Maths/Biologie se déroule sur deux ans (L3 et M1), combinant mathématiques et cours de biologie/sciences cognitives. Elle vise à former des chercheurs capables d'exprimer des problèmes biologiques en langage mathématique. Elle ouvre sur un M2 de mathématiques de la modélisation, un M2 de mathématiques pour la biologie, ou un M1/M2 IMaLiS (parcours Écologie/Évolution, Neurosciences, ou Biologie fondamentale pour la Santé).",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Filière mathématiques/biologie",
+    "type": "explication_filiere"
+  },
+  {
+    "id": "L2_ENS_005",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Quelles sont les règles d'obtention du M1 (deuxième année) à l'ENS DMA en filière mathématiques ?",
+    "reponse_attendue": "Il faut valider 60 ECTS : 3 cours fondamentaux de M1 (parmi Algèbre 2, Analyse complexe, Analyse fonctionnelle, Géométrie différentielle, Logique, Processus stochastiques, Optimisation et transport optimal) pour 36 ECTS, 1 cours complémentaire de M1 pour 12 ECTS, et 1 groupe de travail pour 12 ECTS.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Règles d'obtention – Deuxième année",
+    "type": "synthese_conditions"
+  },
+  {
+    "id": "L2_ENS_006",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Que contient le mémoire de Diplôme exigé en troisième année à l'ENS DMA, et est-il obligatoire ?",
+    "reponse_attendue": "Le mémoire de Diplôme comprend un CV, l'ensemble des travaux écrits de la scolarité, et un texte nouveau de 10 à 20 pages appelé 'Introduction au domaine de recherche' (IDR). Une soutenance orale est obligatoire pour la validation du DENS.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Troisième année",
+    "type": "explication_fonctionnement"
+  },
+  {
+    "id": "L2_ENS_007",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Quel est le contenu du cours d'Analyse fonctionnelle (M1 S2) à l'ENS DMA ?",
+    "reponse_attendue": "Le cours porte sur l'analyse fonctionnelle abstraite et les espaces de fonctions pour l'étude des EDP. Il couvre : les espaces vectoriels topologiques localement convexes, les topologies faibles sur les espaces de Banach, les théorèmes de Hahn-Banach et Banach-Alaoglu, la théorie des distributions, la transformée de Fourier (avec applications aux EDP et au traitement du signal), et les espaces de Sobolev.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, fiche cours Analyse fonctionnelle",
+    "type": "contenu_cours"
+  },
+  {
+    "id": "L2_ENS_008",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Comment peut-on obtenir une mineure dans le cadre du DENS pour les promotions à partir de 2023 ?",
+    "reponse_attendue": "Pour les promotions à partir de 2023, un candidat ayant obtenu un minimum de 30 ECTS dans une discipline littéraire ou scientifique distincte de celle de son master 2 peut obtenir une spécialité secondaire (mineure), sous réserve de l'accord des directeurs des études des départements concernés.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Mineures et doubles majeures du DENS",
+    "type": "synthese_conditions"
+  },
+  {
+    "id": "L2_ENS_009",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Quels sont les prérequis et le contenu principal du cours 'Grande dimension' spécifique à la filière Maths-Physique ?",
+    "reponse_attendue": "Les prérequis sont intégration et probabilités, ainsi que physique statistique. Le cours porte sur les phénomènes probabilistes en grande dimension : loi des grands nombres, TCL, Monte-Carlo, concentration de la mesure, grandes déviations, universalité, matrices aléatoires (Wigner, Marchenko-Pastur), transitions de phase, et machine learning en grande dimension. Il est co-enseigné par un physicien (Giulio Biroli) et un mathématicien (Djalil Chafaï).",
+    "contexte_source": "Brochure ENS DMA 2024-2025, fiche cours Grande dimension",
+    "type": "contenu_cours"
+  },
+  {
+    "id": "L2_ENS_010",
+    "niveau": 2,
+    "source": "ENS",
+    "question": "Que couvre le cours d'Algèbre 1 (L3 S1) à l'ENS DMA ?",
+    "reponse_attendue": "Le cours d'Algèbre 1 est une introduction à la théorie des groupes et des modules. Il couvre : ensembles quotients (lemme de Zorn), généralités sur les groupes, groupes abéliens de type fini, le groupe symétrique, groupes et symétries (O(2), SO(3), quaternions), éléments de structure des groupes finis (Sylow), arithmétique des anneaux, modules sur les anneaux principaux, et représentations linéaires des groupes finis.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, fiche cours Algèbre 1",
+    "type": "contenu_cours"
+  },
+  {
+    "id": "L2_SU_001",
+    "niveau": 2,
+    "source": "Sorbonne",
+    "question": "Qu'est-ce que la règle ABCD au M1 de Sorbonne Université, et à quoi sert-elle ?",
+    "reponse_attendue": "La règle ABCD vise à éviter des parcours thématiquement trop étroits. Elle attribue des points à des cours selon 4 catégories : A=aléatoire, B=analyse, C=algèbre, D=informatique. La règle 1 stipule que dans chaque catégorie A, B, C, la somme des points ne doit pas dépasser 33. La règle 2 fixe un plafond de 18 points en catégorie D (extensible à 24 exceptionnellement).",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.6 Règle ABCD et incompatibilités",
+    "type": "explication_fonctionnement"
+  },
+  {
+    "id": "L2_SU_002",
+    "niveau": 2,
+    "source": "Sorbonne",
+    "question": "Quels sont les objectifs et le contenu principal du cours 'Probabilités approfondies' (UM4MA311) au M1 de Sorbonne ?",
+    "reponse_attendue": "L'objectif est de maîtriser les outils probabilistes fondamentaux : espérance conditionnelle, martingales à temps discret (filtrations, temps d'arrêt, convergence p.s., théorèmes d'arrêt), et chaînes de Markov à espace dénombrable (récurrence, transience, mesures invariantes, théorème ergodique). Ce cours prépare aux M2 en probabilités, statistique et à l'agrégation.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.7 Description des UE du S1, UM4MA311",
+    "type": "contenu_cours"
+  },
+  {
+    "id": "L2_SU_003",
+    "niveau": 2,
+    "source": "Sorbonne",
+    "question": "Quelles sont les incompatibilités d'UE au M1 de Sorbonne Université ?",
+    "reponse_attendue": "Il existe deux incompatibilités : on ne peut pas suivre à la fois UM4MA305 (Bases d'analyse fonctionnelle) et UM4MA205 (Espaces métriques, de Banach et de Hilbert), ni UM4MA308 (Analyse complexe avancée) et UM4MA208 (Analyse complexe et applications).",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.6",
+    "type": "synthese_conditions"
+  },
+  {
+    "id": "L2_SU_004",
+    "niveau": 2,
+    "source": "Sorbonne",
+    "question": "Quels sont les quatre parcours du M1 de Sorbonne Université ?",
+    "reponse_attendue": "Les quatre parcours du M1 sont : général, Calcul haute performance (HPC), Sciences des données avancées (SCDA), et Sciences des données pour l'ingénieur·e (SCDI).",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.3 Informations pratiques",
+    "type": "factuel_liste"
+  },
+  {
+    "id": "L2_SU_005",
+    "niveau": 2,
+    "source": "Sorbonne",
+    "question": "Quel est le rôle d'un directeur d'études (DE) au M1 de Sorbonne Université ?",
+    "reponse_attendue": "Le DE suit individuellement un groupe d'une quinzaine d'étudiants tout au long de l'année. Il échange régulièrement avec eux sur leurs résultats et difficultés, les conseille pour le choix de cours et d'orientation en M2. Il est aussi responsable de son groupe pour l'UE d'OIP.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.4.1",
+    "type": "explication_fonctionnement"
+  },
+  {
+    "id": "L3_ENS_001",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "Un étudiant de la filière Maths/Informatique à l'ENS veut terminer sa première année en un seul établissement. Quels sont tous les éléments qu'il doit valider pour obtenir à la fois la L3 de mathématiques et la L3 d'informatique, en dehors des 4 cours communs de L3 ?",
+    "reponse_attendue": "Pour la L3 d'informatique, il faut : 36 ECTS de cours d'informatique de niveau licence (parmi Algorithmique et programmation, Systèmes numériques, Langages de programmation et de compilation, Langages formels calculabilité et complexité, Structures et algorithmes aléatoires au S1 ; et Apprentissage statistique, Systèmes et réseaux, Sémantique et vérification, Informatique scientifique par la pratique, Théorie de l'information et codage, Bases de données, Lambda calcul et logique au S2). L'UE 'Initiation à la cryptologie' (12 ECTS) est obligatoire. Un projet supplémentaire de 3 ECTS est possible. Il faut aussi valider un stage (12 ECTS) et un exposé/mémoire (12 ECTS) bi-disciplinaires.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Filières pluridisciplinaires – Mathématiques/Informatique",
+    "type": "application_conditions_complexes"
+  },
+  {
+    "id": "L3_ENS_002",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "Comparez les objectifs pédagogiques et les approches des cours 'Analyse rugueuse' et 'EDP - régularité elliptique et parabolique' proposés comme cours avancés à l'ENS DMA. En quoi diffèrent-ils fondamentalement ?",
+    "reponse_attendue": "L'Analyse rugueuse (Gassiat) porte sur les méthodes analytiques pour traiter les fonctions à faible régularité dans un contexte stochastique. L'espace métrique naturel où la carte 'bruit→solution' est continue est l'idée centrale ; le cours se concentre sur les EDO (théorie des trajectoires rugueuses de Lyons), sans prérequis en analyse stochastique. La régularité elliptique/parabolique (Imbert) porte sur la régularité des solutions d'EDP non-linéaires (continuité, différentiabilité), à travers des exemples emblématiques (Navier-Stokes, équation de Landau) et des théories comme De Giorgi-Nash-Moser. L'un est probabiliste/analytique sur les EDO, l'autre est analytique sur les EDP.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, fiches cours avancés",
+    "type": "comparaison_synthese"
+  },
+  {
+    "id": "L3_ENS_003",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "Un étudiant souhaite obtenir une double majeure du DENS. Quelles sont exactement les conditions, et pourquoi est-ce qualifié d'exceptionnel dans la brochure ?",
+    "reponse_attendue": "Les conditions sont : un cursus complet dans une première discipline au sein d'un département de l'ENS, au moins deux années complètes dans la seconde discipline (L3-M1, M1-M2 ou L3-M2, équivalent à 120 ECTS), et l'accord des deux départements. C'est qualifié d'exceptionnel car il requiert de mener deux formations complètes de haut niveau simultanément, ce qui implique une charge de travail très importante et nécessite l'approbation conjointe des deux départements.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Doubles majeures du DENS",
+    "type": "analyse_critique"
+  },
+  {
+    "id": "L3_ENS_004",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "Dans la filière Maths/Physique à l'ENS, quels sont les cours de physique de niveau licence requis pour valider la L3 de physique, et quel est le volume de crédits associé ? Quel rôle joue le stage dans ce cursus ?",
+    "reponse_attendue": "Les cours de physique de niveau licence recommandés par la FIP sont : Physique statistique des systèmes en équilibre (9 ECTS, S1), Introduction à la mécanique quantique (9 ECTS, S1), Relativité et électromagnétisme (9 ECTS, S2), Hydrodynamique (9 ECTS, S2) et Physique du solide (9 ECTS, S2), soit 36 ECTS au total en deux cours par semestre. Le stage et l'exposé (24 ECTS) font également partie de la L3 de physique ; ce stage est co-encadré par des chercheurs des deux disciplines. En deuxième année, l'étudiant doit choisir entre les deux départements.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, section Filière mathématiques/physique",
+    "type": "synthese_complexe"
+  },
+  {
+    "id": "L3_ENS_005",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "Le cours 'Dimension reduction and manifold learning' (M2 S1) est-il accessible aux normaliens de deuxième année, et quel lien fait-il entre mathématiques théoriques et applications pratiques en data science ?",
+    "reponse_attendue": "Ce cours de niveau M2 S1 est valider optionnellement dans le cadre du DENS (9 ECTS) en troisième année, mais son statut de cours de M2 le rend accessible aux étudiants de 3e année du DENS qui s'inscrivent en M2. Il peut aussi être validé dans un M2. Il fait le lien en présentant des méthodes (PCA, kernel PCA, ISOMAP, UMAP, réseaux de neurones) qui réduisent la dimension tout en préservant des structures géométriques : cela ancre des concepts mathématiques (variétés, géométrie spectrale, probabilités) dans des applications concrètes comme la génomique, le traitement d'images ou les séries temporelles.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, fiche cours Dimension reduction and manifold learning",
+    "type": "analyse_liens_interdisciplinaires"
+  },
+  {
+    "id": "L3_ENS_006",
+    "niveau": 3,
+    "source": "ENS",
+    "question": "En quoi le cours 'Intégration et Probabilités' (L3 S1) de l'ENS constitue-t-il une base indispensable pour plusieurs autres cours du cursus ? Citez au moins trois cours qui en dépendent directement selon la brochure.",
+    "reponse_attendue": "Ce cours pose les fondements mesure-théoriques des probabilités (théorie de Lebesgue, espaces mesurés, loi des grands nombres, TCL) qui sont prérequis pour de nombreux cours. Les groupes de travail de M1 'Autour du modèle d'Ising' et 'Fatou, Julia et la dynamique holomorphe' citent explicitement ce cours comme prérequis. Le cours 'Grande dimension' (Maths-Physique, L3 S2) exige 'intégration et probabilités' en prérequis. Le cours 'Analyse rugueuse' (M1 S2) requiert de connaître la définition du mouvement brownien, ce qui suppose ce socle. Le cours de 'Processus stochastiques' (M1 S1) commence par des révisions sur les théorèmes limites vus dans ce cours.",
+    "contexte_source": "Brochure ENS DMA 2024-2025, diverses fiches cours",
+    "type": "analyse_prerequis_transversaux"
+  },
+  {
+    "id": "L3_COMP_001",
+    "niveau": 3,
+    "source": "ENS+Sorbonne",
+    "question": "Un étudiant admis à l'ENS DMA souhaitant se spécialiser en probabilités a-t-il intérêt à s'inscrire en M2 à Sorbonne Université ? Comparez les options disponibles dans les deux établissements.",
+    "reponse_attendue": "À l'ENS, la 3e année (M2) est à la charge de l'étudiant qui s'inscrit dans une université partenaire, dont Sorbonne Université. Sorbonne propose deux M2 directement orientés probabilités : 'Probabilités et modèles aléatoires' et 'Probabilités et Finance'. Ces deux parcours constituent des débouchés naturels pour un étudiant ENS ayant suivi les cours de Processus stochastiques, Systèmes de particules en interaction ou Analyse rugueuse. L'ENS ne propose pas elle-même de M2, mais ses cours avancés (Analyse rugueuse, etc.) constituent une préparation ciblée. L'articulation est cohérente : les cours de Sorbonne prolongent logiquement le M1 de l'ENS.",
+    "contexte_source": "Brochure ENS DMA 2024-2025 + Brochure Sorbonne 2025-2026",
+    "type": "comparaison_inter_etablissements"
+  },
+  {
+    "id": "L3_COMP_002",
+    "niveau": 3,
+    "source": "ENS+Sorbonne",
+    "question": "Comparez la philosophie de la formation en M1 entre l'ENS DMA et Sorbonne Université : sur quels points les deux approches divergent-elles fondamentalement ?",
+    "reponse_attendue": "L'ENS DMA propose une formation individuelle avec un tutorat personnalisé, une progression accélérée (le M1 est préparé dès la L3), des groupes de travail et cours avancés de niveau recherche, et un effectif très réduit (~50/an). Le cursus est très libre mais encadré par le tuteur. Sorbonne propose un M1 plus institutionnel avec directeurs d'études (DE) couvrant 15 étudiants, une règle ABCD pour éviter les parcours trop étroits, et 7 spécialités de M2 bien définies. L'ENS est davantage orientée vers la recherche dès le départ ; Sorbonne offre aussi des débouchés professionnels diversifiés (ingénierie, finance, statistique). Les deux s'articulent via des partenariats (les normaliens peuvent s'inscrire à Sorbonne en M2).",
+    "contexte_source": "Brochure ENS DMA 2024-2025 + Brochure Sorbonne 2025-2026",
+    "type": "comparaison_philosophique"
+  },
+  {
+    "id": "L3_SU_001",
+    "niveau": 3,
+    "source": "Sorbonne",
+    "question": "Dans le M1 de Sorbonne, un étudiant vise le parcours M2 'Ingénierie mathématique'. Quelles UE du second semestre du M1 lui sont recommandées selon la table 1.3, et comment devrait-il composer son contrat pédagogique en tenant compte de la règle ABCD ?",
+    "reponse_attendue": "Selon la table 1.3, les UE de S2 recommandées pour le parcours 'ing' comprennent notamment : Analyse fonctionnelle approfondie (B), Approximation des EDP elliptiques (B+D), Méthodes classiques pour les EDP (B), Fondements méthodes numériques (B+D), Calcul scientifique grands systèmes linéaires (D), Optimisation numérique et science des données (B), Programmation C++ (D), Systèmes dynamiques (B), Probabilités numériques (A+D), Analyse convexe (B). La règle ABCD impose de ne pas dépasser 33 points en B ni 18 en D. L'étudiant devrait donc équilibrer les UE orientées analyse/numérique (B) avec quelques UE D, sans saturer D au-delà de 18. Par exemple, prendre Méthodes EDP (9B), Approximation EDP (6B+3D), Probabilités numériques (3A+3D) donne B=15, D=6, A=3 : bien en dessous des plafonds.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, sections 1.5 et 1.6",
+    "type": "application_regles_complexes"
+  },
+  {
+    "id": "L3_SU_002",
+    "niveau": 3,
+    "source": "Sorbonne",
+    "question": "Le cours UM4MA306 'Fondements des méthodes numériques' (9 ECTS) à Sorbonne est décrit comme enseigné en anglais et donnant lieu à un projet TP avec soutenance. En quoi cette UE illustre-t-elle une tension entre approche théorique et pratique dans la formation mathématique ?",
+    "reponse_attendue": "Le cours est centré sur les grandes familles de méthodes numériques (différences finies, éléments finis), ancrant des concepts théoriques (espaces de Sobolev, théorie de Lax-Milgram) dans une pratique numérique (stabilité, consistance, ordre). Le projet TP avec soutenance individuelle force l'étudiant à mettre en œuvre des méthodes en Python, créant un pont entre abstraction mathématique et calcul effectif. L'enseignement en anglais prépare à un environnement international. Cette UE illustre bien la tension : elle exige des prérequis en calcul différentiel et EDO (théorie), mais elle ne peut être menée à bien sans une compétence en programmation Python – deux cultures parfois perçues comme distinctes en formation mathématique.",
+    "contexte_source": "Brochure Sorbonne 2025-2026, section 1.7, UM4MA306",
+    "type": "analyse_critique"
+  }
+]
+
+

@@ -173,18 +173,20 @@ def main():
     print(f"Dataset      : {DATASET_PATH.name} ({len(dataset)} questions)")
     print(f"Métriques    : Faithfulness, Answer Relevancy, Context Quality, Context Recall, Answer Correctness")
 
+    output_path = DATASET_PATH.parent / "results.json"
     results = []
-    for entry in dataset:
-        result = evaluate_question(entry)
-        if result:
-            results.append(result)
+    try:
+        for entry in dataset:
+            result = evaluate_question(entry)
+            if result:
+                results.append(result)
+                # Sauvegarde après chaque question — Ctrl+C ne perd rien
+                output_path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+    except KeyboardInterrupt:
+        print("\n\nInterrompu — résultats partiels sauvegardés.")
 
     if results:
         print_results(results)
-
-        # Sauvegarde des résultats dans un fichier JSON
-        output_path = DATASET_PATH.parent / "results.json"
-        output_path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"\nRésultats sauvegardés dans {output_path}")
 
 

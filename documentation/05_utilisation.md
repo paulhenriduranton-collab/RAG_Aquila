@@ -2,9 +2,8 @@
 
 ## Prérequis
 
-- **Python** 3.10 à 3.13 (pas 3.14)
+- **Python 3.14** (version utilisée dans ce projet)
 - **Ollama** installé et lancé (visible dans la barre des tâches)
-- **Docker Desktop** installé (pour Open WebUI)
 - Les deux modèles Ollama téléchargés :
   ```powershell
   ollama pull bge-m3
@@ -15,19 +14,13 @@
 
 ## Installation (à faire une seule fois)
 
-### 1. Activer l'environnement virtuel
-
-```powershell
-venv\Scripts\activate
-```
-
-Quand l'environnement est actif, tu vois `(venv)` au début de chaque ligne du terminal.
-
-### 2. Installer les dépendances
+### Installer les dépendances
 
 ```powershell
 pip install -r requirements.txt
 ```
+
+Le re-ranker CrossEncoder (~471 Mo) sera téléchargé automatiquement depuis HuggingFace au premier lancement.
 
 ---
 
@@ -46,11 +39,11 @@ python src/ingest.py
 Tu verras s'afficher :
 ```
 Chargement des documents...
-  ✓ ENS.pdf (1 doc(s))
-  ✓ SORBONNE.pdf (1 doc(s))
+  ✓ Brochure-2024-2025.pdf (1 doc(s))
+  ✓ Brochure Master2526_1.pdf (1 doc(s))
 
 2 document(s) chargé(s).
-708 chunk(s) créé(s).
+718 chunk(s) créé(s).
 Lot 1 / 15 (50 chunks)...
 ...
 Index créé dans vector_db/.
@@ -59,22 +52,18 @@ Index créé dans vector_db/.
 **Durée :** 15 à 30 minutes selon ta machine (calcul des embeddings bge-m3).
 **À ne refaire que si tu ajoutes ou modifies des documents.**
 
-### Étape 3a — Lancer l'interface Open WebUI (recommandé)
+### Étape 3 — Lancer l'interface Streamlit
 
-**Terminal 1 — démarrer le serveur RAG :**
 ```powershell
-uvicorn src.api:app --host 0.0.0.0 --port 8000
-```
-Attends le message `Application startup complete.`
-
-**Terminal 2 — démarrer Open WebUI :**
-```powershell
-docker compose up -d
+python -m streamlit run src/app.py --server.headless true --server.fileWatcherType none
 ```
 
-Ouvre **http://localhost:3000** dans ton navigateur. Sélectionne le modèle `aquila-rag` et pose ta question.
+Ouvre **http://localhost:8501** dans ton navigateur. Tape ta question et clique sur Envoyer.
 
-### Étape 3b — Mode terminal (pour déboguer)
+L'option `--server.headless true` est nécessaire car Python 3.14 a un comportement différent avec Streamlit.
+L'option `--server.fileWatcherType none` supprime les warnings de `torchvision`.
+
+### Mode terminal (pour déboguer)
 
 ```powershell
 python src/ask.py
@@ -82,68 +71,78 @@ python src/ask.py
 
 Ce mode affiche les logs détaillés de la recherche à chaque question :
 ```
-[DB] 708 chunks dans la base
+[DB] 718 chunks dans la base
 
+[Sémantique] Recherche des 20 plus proches voisins...
 [Sémantique] Top 5 :
-  #1  score=0.721  ENS.pdf  p.5
-      ↳ Calcul Différentiel I. Différentielles d'ordre supérieur...
+  #1  score=0.721  Brochure-2024-2025.pdf  p.?
+      ↳ Les quatre cours communs obligatoires sont...
 
-[BM25] Top 5 :
-  #1  bm25=16.03  ENS.pdf  p.5
-      ↳ Calcul Différentiel I. Différentielles d'ordre supérieur...
+[BM25] Top 5 résultats lexicaux :
+  #1  bm25=16.03  Brochure-2024-2025.pdf  p.?
+      ↳ Les quatre cours communs obligatoires sont...
 
-[Fusion] Top 5 après fusion :
-  score=1.2210  ENS.pdf  p.5
+[RRF] Top 10 après fusion sémantique + BM25 :
+  rrf=0.0300  Brochure-2024-2025.pdf  p.?
   ...
 
+[Reranker] Notation des 10 candidats...
+
+[Top 5 final] :
+  #1  Brochure-2024-2025.pdf  p.?
+      ↳ Les quatre cours communs obligatoires sont...
+
 Réponse :
-La différentielle d'ordre 2 est définie comme...
+Les quatre cours obligatoires sont Algèbre 1, Analyse complexe...
 ```
 
 Utilise **Ctrl+C** pour quitter.
 
 ---
 
-## Évaluation de la qualité du retrieval
+## Évaluation de la qualité
 
-### Générer le dataset de test (une fois)
-
-```powershell
-python evaluation/generate_dataset.py
-```
-
-Génère ~60 paires (question, chunk de référence) dans `evaluation/dataset.json`.
-
-**Ouvre ensuite le fichier** et supprime les questions de mauvaise qualité. Conserve 25 à 40 questions.
-
-### Mesurer les métriques
+### Lancer l'évaluation complète (40 questions)
 
 ```powershell
-# Avec les paramètres actuels
-python evaluation/eval_retrieval.py
-
-# Tester un changement de paramètre
-python evaluation/eval_retrieval.py --k-retrieve 30 --bm25-weight 0.3
+python src/evaluate.py
 ```
 
-Affiche Recall@1, @3, @5, @10 et MRR. Compare avant/après chaque modification du pipeline.
+Durée estimée : **30 à 60 minutes** (200 appels LLM au total).
+
+Les résultats sont sauvegardés dans `data/results.json` après **chaque question** — tu peux faire Ctrl+C à tout moment sans perdre les résultats déjà calculés.
+
+### Lancer sur quelques questions (test rapide)
+
+Ouvre `src/evaluate.py` ligne 168 et ajoute `[:4]` :
+
+```python
+dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))[:4]
+```
+
+Retire le `[:4]` pour relancer sur les 40 questions.
+
+### Interpréter les résultats
+
+```
+Faithfulness    → proche de 1.0 = pas d'hallucination
+Answer Relevancy → proche de 1.0 = réponse pertinente
+Context Quality  → proche de 1.0 = bons chunks récupérés
+Context Recall   → proche de 1.0 = toutes les infos nécessaires récupérées
+Answer Correct.  → proche de 1.0 = réponse factuellement correcte
+```
 
 ---
 
 ## Si tu ajoutes de nouveaux documents
 
 ```powershell
-# 1. Supprimer l'ancienne base (obligatoire)
+# 1. Supprimer l'ancienne base (obligatoire car les vecteurs seraient incohérents)
 Remove-Item -Recurse -Force vector_db
 
-# 2. Réindexer
+# 2. Réindexer avec les nouveaux documents
 python src/ingest.py
-
-# 3. Régénérer le dataset d'évaluation (optionnel)
-python evaluation/generate_dataset.py
 ```
-
-**Pourquoi supprimer `vector_db/` ?** Si tu gardes l'ancienne base et ajoutes de nouveaux chunks, les vecteurs coexistent mais le dataset d'évaluation devient incohérent (les chunk_ids ne correspondent plus).
 
 ---
 
@@ -161,12 +160,11 @@ ollama pull gemma2:2b
 
 ---
 
-## Arrêter les services
+## Récapitulatif des commandes
 
-```powershell
-# Arrêter Open WebUI
-docker compose down
-
-# Arrêter le serveur RAG
-# Ctrl+C dans le terminal uvicorn
-```
+| Action | Commande |
+|---|---|
+| Indexer les documents | `python src/ingest.py` |
+| Lancer l'interface web | `python -m streamlit run src/app.py --server.headless true --server.fileWatcherType none` |
+| Mode terminal (debug) | `python src/ask.py` |
+| Évaluer le pipeline | `python src/evaluate.py` |

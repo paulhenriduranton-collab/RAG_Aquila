@@ -1,103 +1,132 @@
 from pathlib import Path
 
-from langchain_chroma import Chroma  # base de données vectorielle
-from langchain_core.documents import Document  # objet texte + métadonnées
-from langchain_ollama import OllamaEmbeddings, OllamaLLM  # embedding et LLM via Ollama
-from rank_bm25 import BM25Okapi  # recherche par mots-clés
-from sentence_transformers import CrossEncoder  # re-ranker : note chaque paire (question, chunk)
+from langchain_chroma import Chroma  # base de données vectorielle qui stocke les embeddings sur disque
+from langchain_core.documents import Document  # objet LangChain : texte + métadonnées (source, page...)
+from langchain_ollama import OllamaEmbeddings, OllamaLLM  # connecteurs Ollama pour l'embedding et le LLM
+from rank_bm25 import BM25Okapi  # algorithme de recherche lexicale par mots-clés
+from sentence_transformers import CrossEncoder  # re-ranker : évalue chaque paire (question, chunk) ensemble
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
-VECTOR_DB_DIR = BASE_DIR / "vector_db"
-PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"
+# Chemins calculés dynamiquement depuis l'emplacement de ce fichier
+BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet (remonte 2 niveaux depuis src/)
+VECTOR_DB_DIR = BASE_DIR / "vector_db"             # base vectorielle Chroma sauvegardée sur disque
+PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envoyé au LLM
 
-EMBED_MODEL = "bge-m3"   # même modèle que dans ingest.py
-GEN_MODEL = "gemma2:2b"  # LLM qui génère la réponse finale
-RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue
-K_RETRIEVE = 20   # candidats récupérés par chaque méthode avant fusion
-K_RERANK = 10     # chunks passés au re-ranker après fusion RRF
-K_FINAL = 5       # chunks gardés après re-ranking, envoyés au LLM
-RRF_K = 60        # constante de la formule RRF (valeur standard)
+# Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma2:2b)
+EMBED_MODEL = "bge-m3"   # modèle d'embedding multilingue — DOIT être le même que dans ingest.py
+GEN_MODEL = "gemma2:2b"  # LLM qui génère la réponse finale à partir des chunks récupérés
+RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue (HuggingFace)
 
-# Modèles instanciés une fois au démarrage
-llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes
-reranker = CrossEncoder(RERANK_MODEL)  # chargé localement depuis HuggingFace (téléchargé au 1er lancement)
+# Paramètres du pipeline de retrieval
+K_RETRIEVE = 20   # nombre de candidats récupérés par chaque méthode (sémantique ET BM25) avant fusion
+K_RERANK = 10     # nombre de chunks passés au re-ranker après la fusion RRF
+K_FINAL = 5       # nombre de chunks gardés après re-ranking — ce sont eux qui vont au LLM
+RRF_K = 60        # constante de la formule RRF — valeur standard, ne pas changer sans raison
 
-# Cache global : l'index BM25 est coûteux à construire, on le garde en mémoire
+# Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
+reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
+
+# Variables globales pour le cache BM25 — l'index est coûteux à construire donc on le garde en mémoire
+# Il est reconstruit uniquement si la session redémarre (None = pas encore construit)
 _bm25_index: BM25Okapi | None = None
 _bm25_chunks: list[tuple[str, dict]] | None = None
 
 
 def _build_bm25_index(vector_db: Chroma, verbose: bool = True) -> tuple[BM25Okapi, list[tuple[str, dict]]]:
+    """Construit l'index BM25 à partir de tous les chunks stockés dans Chroma (une fois par session)."""
     global _bm25_index, _bm25_chunks
-    if _bm25_index is not None:  # déjà construit lors d'une question précédente
+    if _bm25_index is not None:  # si déjà construit lors d'une question précédente, on retourne le cache
         return _bm25_index, _bm25_chunks
 
     if verbose:
         print("[BM25] Construction de l'index lexical (une fois par session)...")
+
+    # Récupère tous les textes et métadonnées stockés dans la base Chroma
     result = vector_db._collection.get(include=["documents", "metadatas"])
-    texts = result["documents"]
-    metas = result["metadatas"]
-    _bm25_chunks = list(zip(texts, metas))
-    _bm25_index = BM25Okapi([t.lower().split() for t in texts])  # tokenisation simple en minuscules
+    texts = result["documents"]  # liste de tous les contenus textuels des chunks
+    metas = result["metadatas"]  # liste des métadonnées associées (source, page, etc.)
+
+    _bm25_chunks = list(zip(texts, metas))  # associe chaque texte à ses métadonnées pour pouvoir les retrouver
+    _bm25_index = BM25Okapi([t.lower().split() for t in texts])  # tokenise chaque chunk en minuscules pour BM25
+
     if verbose:
         print(f"[BM25] Index prêt ({len(texts)} chunks).\n")
     return _bm25_index, _bm25_chunks
 
 
 def _merge(
-    semantic: list[tuple[Document, float]],  # résultats sémantiques (doc + score cosinus)
-    bm25_indices: list[int],                  # indices BM25 triés par score
-    bm25_chunks: list[tuple[str, dict]],
-    n: int = K_RERANK,  # on récupère K_RERANK candidats pour le re-ranker
+    semantic: list[tuple[Document, float]],  # résultats de la recherche sémantique : (doc, score cosinus)
+    bm25_indices: list[int],                  # indices des meilleurs chunks BM25, triés par score décroissant
+    bm25_chunks: list[tuple[str, dict]],      # tous les chunks avec leurs métadonnées
+    n: int = K_RERANK,                        # nombre de chunks à retourner (K_RERANK = 10 par défaut)
 ) -> tuple[list[Document], list[tuple[str, float]]]:
-    """Reciprocal Rank Fusion : score = Σ 1/(RRF_K + rang), indépendant des valeurs brutes."""
-    scores: dict[str, float] = {}
-    doc_map: dict[str, Document] = {}
+    """
+    Reciprocal Rank Fusion (RRF) : combine les classements sémantique et BM25.
+    Formule : score(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
+    Avantage : indépendant des valeurs brutes des scores, ne regarde que les positions.
+    """
+    scores: dict[str, float] = {}   # accumule le score RRF pour chaque chunk (clé = contenu texte)
+    doc_map: dict[str, Document] = {}  # permet de retrouver l'objet Document depuis le contenu texte
 
-    # Chaque chunk reçoit un score basé sur sa position dans les résultats sémantiques
+    # Contribution sémantique : chaque chunk reçoit 1/(60 + rang+1) selon sa position dans la liste
     for rank, (doc, _) in enumerate(semantic):
         key = doc.page_content
         scores[key] = scores.get(key, 0) + 1.0 / (RRF_K + rank + 1)
         doc_map[key] = doc
 
-    # Même formule pour les résultats BM25 — les scores des deux méthodes s'additionnent
+    # Contribution BM25 : même formule — les scores des deux méthodes s'additionnent
+    # Un chunk bien classé dans les DEUX listes obtient un score cumulé élevé
     for rank, idx in enumerate(bm25_indices):
         text, meta = bm25_chunks[idx]
         scores[text] = scores.get(text, 0) + 1.0 / (RRF_K + rank + 1)
-        if text not in doc_map:
+        if text not in doc_map:  # ce chunk n'était pas dans les résultats sémantiques
             doc_map[text] = Document(page_content=text, metadata=meta)
 
+    # Trie tous les chunks par score RRF décroissant (les plus pertinents en premier)
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-    # Filtre de diversité : max 3 chunks par source pour éviter de saturer avec un seul document
+    # Filtre de diversité : max 3 chunks par document source
+    # Sans ce filtre, les 10 slots pourraient tous venir du même PDF
     source_count: dict[str, int] = {}
     top: list[tuple[str, float]] = []
     for key, score in ranked:
         source = doc_map[key].metadata.get("source", "?")
-        if source_count.get(source, 0) < 3:
+        if source_count.get(source, 0) < 3:  # on accepte ce chunk si la source n'a pas encore 3 chunks
             source_count[source] = source_count.get(source, 0) + 1
             top.append((key, score))
-        if len(top) == n:
+        if len(top) == n:  # on s'arrête quand on a assez de chunks diversifiés
             break
 
     return [doc_map[key] for key, _ in top], top
 
 
 def _rerank(question: str, docs: list[Document], n: int = K_FINAL) -> list[Document]:
-    # Le cross-encoder évalue chaque paire (question, chunk) ensemble — plus précis que l'embedding
+    """
+    Re-classe les chunks avec un CrossEncoder plus précis que l'embedding.
+    Contrairement à l'embedding (qui encode question et chunk séparément),
+    le cross-encoder lit les deux textes ensemble et comprend mieux la pertinence.
+    """
+    # Forme des paires (question, chunk) — le cross-encoder a besoin des deux en même temps
     pairs = [(question, doc.page_content) for doc in docs]
     scores = reranker.predict(pairs)  # retourne un score de pertinence pour chaque paire
     ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
-    return [doc for doc, _ in ranked[:n]]
+    return [doc for doc, _ in ranked[:n]]  # garde les n meilleurs
 
 
 def _fmt(text: str, length: int = 130) -> str:
-    # Tronque et met sur une ligne pour l'affichage console
+    """Utilitaire d'affichage : tronque le texte et le met sur une seule ligne pour les logs console."""
     return text[:length].replace("\n", " ")
 
 
 def retrieve(question: str, verbose: bool = True) -> list[Document]:
-    """Retourne les chunks finaux après sémantique + BM25 + RRF + re-ranking."""
+    """
+    Exécute le pipeline de retrieval complet sur une question :
+    sémantique → BM25 → RRF → re-ranking.
+
+    verbose=False désactive tous les logs (utile pour l'évaluation silencieuse).
+    Retourne la liste des K_FINAL chunks les plus pertinents.
+    """
+    # Initialise la connexion à la base vectorielle existante (créée par ingest.py)
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
 
@@ -105,6 +134,8 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
         print(f"\n[DB] {vector_db._collection.count()} chunks dans la base")
         print(f"\n[Sémantique] Recherche des {K_RETRIEVE} plus proches voisins...")
 
+    # ── 1. Recherche sémantique ───────────────────────────────────────────────
+    # Convertit la question en vecteur et cherche les chunks les plus proches (distance cosinus)
     raw_semantic = vector_db.similarity_search_with_relevance_scores(question, k=K_RETRIEVE)
 
     if verbose:
@@ -113,9 +144,11 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
             print(f"  #{i+1}  score={score:.3f}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
             print(f"        ↳ {_fmt(doc.page_content)}")
 
-    # ── 2. Recherche BM25 ────────────────────────────────────────────────────────────────────────
+    # ── 2. Recherche BM25 (lexicale) ─────────────────────────────────────────
+    # Complémentaire à la sémantique : trouve les chunks contenant exactement les mêmes mots
     bm25, bm25_chunks = _build_bm25_index(vector_db, verbose=verbose)
-    bm25_scores = bm25.get_scores(question.lower().split())
+    bm25_scores = bm25.get_scores(question.lower().split())  # score BM25 pour chaque chunk de la base
+    # Trie les indices par score décroissant et garde les K_RETRIEVE meilleurs
     top_bm25 = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:K_RETRIEVE]
 
     if verbose:
@@ -125,7 +158,8 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
             print(f"  #{i+1}  bm25={bm25_scores[idx]:.2f}  {meta.get('source','?')}  p.{meta.get('page','?')}")
             print(f"        ↳ {_fmt(text)}")
 
-    # ── 3. Fusion RRF ────────────────────────────────────────────────────────────────────────────
+    # ── 3. Fusion RRF ─────────────────────────────────────────────────────────
+    # Combine les deux classements (sémantique + BM25) en un seul classement hybride
     rrf_docs, rrf_ranking = _merge(raw_semantic, top_bm25, bm25_chunks)
 
     if verbose:
@@ -137,7 +171,8 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
     if not rrf_docs:
         return []
 
-    # ── 4. Re-ranking ────────────────────────────────────────────────────────────────────────────
+    # ── 4. Re-ranking ─────────────────────────────────────────────────────────
+    # Le cross-encoder reclasse les K_RERANK candidats RRF avec une lecture conjointe (question + chunk)
     final_docs = _rerank(question, rrf_docs)
 
     if verbose:
@@ -150,23 +185,30 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
 
 
 def ask_question(question: str, verbose: bool = True) -> tuple[str, list[Document]]:
-    """Retourne (réponse, chunks_utilisés)."""
+    """
+    Pipeline RAG complet : retrieval + génération.
+    Retourne un tuple (réponse_texte, chunks_utilisés).
+
+    verbose=False désactive tous les logs (utilisé par evaluate.py et app.py).
+    """
     final_docs = retrieve(question, verbose=verbose)
 
     if not final_docs:
         return "Je ne trouve pas cette information dans les documents fournis.", []
 
-    # Assemble le contexte à envoyer au LLM (chunks + leur source)
+    # Assemble le contexte : concatène les chunks avec leur source pour que le LLM sache d'où vient chaque info
     context = "\n\n---\n\n".join(
         f"Source : {doc.metadata.get('source', '?')}\n{doc.page_content}"
         for doc in final_docs
     )
 
+    # Charge le template de prompt et injecte la question + le contexte
     prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=question, context=context)
-    return llm.invoke(prompt), final_docs
+    return llm.invoke(prompt), final_docs  # retourne la réponse ET les chunks pour l'évaluation
 
 
 if __name__ == "__main__":
+    # Mode terminal : boucle interactive pour poser des questions et voir les logs de retrieval
     print("=== RAG — Mode terminal ===")
     print("Tapez votre question et appuyez sur Entrée. Ctrl+C pour quitter.\n")
     while True:
@@ -175,7 +217,7 @@ if __name__ == "__main__":
             if not question:
                 continue
             print("Recherche en cours...")
-            answer, _ = ask_question(question)
+            answer, _ = ask_question(question)  # on ignore les chunks retournés en mode terminal
             print(f"\nRéponse :\n{answer}")
             print("\n" + "-" * 60 + "\n")
         except ConnectionError:

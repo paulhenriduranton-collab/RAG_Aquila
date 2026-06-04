@@ -1,12 +1,12 @@
-# Documentation — Projet Aquila
+# Documentation — Projet RAG Aquila
 
 ## Table des matières
 
 | Fichier | Contenu |
 |---|---|
 | [01_presentation.md](01_presentation.md) | C'est quoi ce projet ? Différence avec ChatGPT, cas d'usage |
-| [02_les_outils.md](02_les_outils.md) | bge-m3, BM25, pymupdf4llm, gemma2:2b, ChromaDB, FastAPI, RAGAS |
-| [03_fonctionnement_detaille.md](03_fonctionnement_detaille.md) | Le flux complet — ingestion, question/réponse, API, évaluation |
+| [02_les_outils.md](02_les_outils.md) | bge-m3, BM25, RRF, re-ranker, gemma2:2b, ChromaDB, Streamlit |
+| [03_fonctionnement_detaille.md](03_fonctionnement_detaille.md) | Le flux complet — ingestion, retrieval hybride, re-ranking, évaluation |
 | [05_utilisation.md](05_utilisation.md) | Comment installer et lancer le projet |
 | [06_problemes_courants.md](06_problemes_courants.md) | Erreurs fréquentes et leurs solutions |
 
@@ -21,31 +21,32 @@
 
 | Composant | Choix | Raison |
 |---|---|---|
-| Extraction PDF | `pymupdf4llm` | Markdown structuré, espaces corrects autour des symboles mathématiques |
+| Extraction PDF | `pymupdf4llm` | Markdown structuré, préserve titres et symboles mathématiques |
 | Modèle d'embedding | `bge-m3` (Ollama) | Multilingue, fenêtre 8192 tokens, vocabulaire scientifique |
-| Recherche | Hybride sémantique + BM25 | Sémantique pour les concepts, BM25 pour les termes exacts |
-| Fusion | Score pondéré (sémantique + BM25 normalisé) | Simple, réglable via `BM25_WEIGHT` |
-| Modèle de génération | `gemma2:2b` (Ollama) | Rapide, tourne en local |
-| Chunks | 1000 caractères, overlap 200 | Assez grand pour contenir une définition mathématique complète |
-| Interface utilisateur | Open WebUI (Docker) + API FastAPI | Interface web type ChatGPT branchée sur le pipeline RAG local |
-| Évaluation retrieval | `evaluation/eval_retrieval.py` | Recall@K et MRR mesurés sur dataset synthétique |
-| Évaluation génération | RAGAS | Faithfulness, Answer Relevancy, Context Precision |
+| Recherche sémantique | ChromaDB + similarité cosinus | Trouve les passages conceptuellement proches |
+| Recherche lexicale | BM25 | Trouve les passages avec les mêmes mots exacts |
+| Fusion | RRF (Reciprocal Rank Fusion) | Combine les deux classements indépendamment des scores bruts |
+| Re-ranking | CrossEncoder `mmarco-mMiniLMv2` | Reclasse les 10 candidats RRF par pertinence réelle |
+| Modèle de génération | `gemma2:2b` (Ollama) | Rapide, tourne entièrement en local |
+| Chunks | 1000 caractères, overlap 200 | Assez grand pour une définition mathématique complète |
+| Interface utilisateur | Streamlit | Interface web simple, lancée en local |
+| Évaluation | 5 métriques LLM-based | Faithfulness, Answer Relevancy, Context Quality, Context Recall, Answer Correctness |
 
 ## Structure du projet
 
 ```
-Projet Aquila/
+RAG_Aquila/
 ├── src/
-│   ├── ingest.py          # Indexation des documents (à lancer une fois)
-│   ├── ask.py             # Pipeline RAG — terminal
-│   └── api.py             # Serveur FastAPI compatible OpenAI (pour Open WebUI)
-├── evaluation/
-│   ├── generate_dataset.py  # Génération du dataset synthétique
-│   └── eval_retrieval.py    # Calcul des métriques Recall@K et MRR
-├── documents/             # Tes fichiers PDF/DOCX/TXT
-├── vector_db/             # Base vectorielle ChromaDB (générée automatiquement)
+│   ├── ingest.py       # Indexation des documents (à lancer une fois)
+│   ├── ask.py          # Pipeline RAG complet (retrieval + génération)
+│   ├── app.py          # Interface web Streamlit
+│   └── evaluate.py     # Pipeline d'évaluation avec 5 métriques
+├── data/
+│   ├── questions.json  # Dataset de 40 questions avec réponses de référence
+│   └── results.json    # Résultats de la dernière évaluation
+├── documents/          # Tes fichiers PDF/DOCX/TXT à indexer
+├── vector_db/          # Base vectorielle ChromaDB (générée automatiquement)
 ├── prompts/
-│   └── rag_prompt.txt     # Instructions envoyées au LLM
-├── docker-compose.yml     # Lance Open WebUI
-└── requirements.txt       # Dépendances Python
+│   └── rag_prompt.txt  # Template du prompt envoyé au LLM
+└── requirements.txt    # Dépendances Python
 ```

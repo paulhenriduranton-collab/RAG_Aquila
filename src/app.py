@@ -1,11 +1,11 @@
 import sys
 from pathlib import Path
 
-import streamlit as st
+import streamlit as st  # framework pour créer une interface web en Python
 
-# Nécessaire pour importer ask.py depuis le même dossier
+# Ajoute src/ au chemin pour pouvoir importer ask.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ask import ask_question
+from ask import ask_question  # pipeline RAG complet (recherche + génération)
 
 st.title("RAG Aquila")
 
@@ -13,5 +13,5 @@ question = st.text_input("Votre question :")
 
 if st.button("Envoyer") and question:
     with st.spinner("Recherche en cours..."):
-        reponse = ask_question(question)
+        reponse, _ = ask_question(question)
     st.write(reponse)

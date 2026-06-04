@@ -1,15 +1,9 @@
 
-Claude a terminé la réponse.
-ENS.pdf
-pdf
 
-
-SORBONNE.pdf
-pdf
 
 Bonjour claude j'ai créé une rag agentique en  me basant sur ces documents la, je voudrais que tu me génère un dataset synthétique avec des questions du niveau 1 à 3 pour évaluer notre modèle
 
-11:49
+
 Bonjour ! Je vais créer un dataset synthétique de questions-réponses basé sur ces deux brochures (ENS DMA et Sorbonne), avec trois niveaux de difficulté. Laissez-moi d'abord vérifier le document Sorbonne qui n'est pas visible dans le contexte.
 
 

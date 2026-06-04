@@ -3,200 +3,208 @@
 ## Le flux complet
 
 ```
-PHASE 1 : INGESTION (une seule fois)
-─────────────────────────────────────────────────────────
-Fichiers PDF/TXT/DOCX
+PHASE 1 : INGESTION (une seule fois, ou après ajout de documents)
+──────────────────────────────────────────────────────────────────
+Fichiers PDF/TXT/DOCX  (documents/)
         │
         ▼
-   Extraction en Markdown structuré (pymupdf4llm)
-   → espaces corrects, titres conservés, tableaux en Markdown
+   Extraction en Markdown structuré  (pymupdf4llm)
+   → espaces corrects autour des symboles, titres conservés
         │
         ▼
-   Découpage en morceaux de 1000 caractères (RecursiveCharacterTextSplitter)
-   → chevauchement de 200 caractères entre morceaux consécutifs
-   → coupe d'abord sur les séparateurs Markdown (##, ###, \n\n, \n)
+   Découpage en chunks de 1000 caractères  (RecursiveCharacterTextSplitter)
+   → overlap de 200 caractères entre chunks consécutifs
+   → coupe en priorité sur les séparateurs Markdown (##, \n\n, \n)
         │
         ▼
-   Transformation en vecteurs de 1024 nombres (bge-m3 via Ollama)
+   Transformation en vecteurs de 1024 nombres  (bge-m3 via Ollama)
         │
         ▼
-   Sauvegarde dans la base vectorielle (ChromaDB → vector_db/chroma.sqlite3)
+   Sauvegarde  (ChromaDB → vector_db/chroma.sqlite3)
 
 
 PHASE 2 : QUESTION/RÉPONSE (à chaque question)
-─────────────────────────────────────────────────────────
-Ta question ("Qu'est-ce qu'une différentielle d'ordre 2 ?")
+──────────────────────────────────────────────────────────────────
+Question de l'utilisateur
         │
-        ├──────────────────────────────────────────────────┐
-        ▼                                                  ▼
-   Recherche SÉMANTIQUE (dense)                  Recherche LEXICALE (BM25)
-   → question transformée en vecteur              → question découpée en mots
-   → 20 chunks les plus proches (bge-m3)          → 20 chunks avec les mots exacts
-        │                                                  │
-        └──────────────────┬───────────────────────────────┘
+        ├─────────────────────────────────────────────┐
+        ▼                                             ▼
+   Recherche SÉMANTIQUE                      Recherche LEXICALE (BM25)
+   → question vectorisée par bge-m3           → question découpée en mots
+   → 20 chunks les plus proches               → 20 chunks avec les mots exacts
+        │                                             │
+        └──────────────────┬──────────────────────────┘
                            ▼
-                  Fusion RRF (Reciprocal Rank Fusion)
-                  → score = 1/(60+rang_sémantique) + 1/(60+rang_BM25)
-                  → top 5 chunks, 1 seul par page source
+                  Fusion des scores
+                  (sémantique + BM25 normalisé × BM25_WEIGHT)
+                  → filtre de diversité : 1 chunk max par page source
+                  → top 5 chunks sélectionnés  (K_FINAL = 5)
                            │
                            ▼
                   Construction du prompt
                   (question + 5 chunks + instructions strictes)
                            │
                            ▼
-                  Envoi à gemma2:2b (via Ollama)
+                  Génération  (gemma2:2b via Ollama, 4096 tokens)
                            │
-                           ▼
-                  Réponse affichée dans le terminal
+                  ┌────────┴────────┐
+                  ▼                 ▼
+            Terminal           API FastAPI (:8000)
+            (ask.py)                │
+                                    ▼
+                              Open WebUI (:3000)
+                              streaming token par token
+
+
+PHASE 3 : ÉVALUATION (à la demande, pour mesurer et améliorer)
+──────────────────────────────────────────────────────────────────
+python evaluation/generate_dataset.py
+→ génère ~60 paires (question, chunk_de_référence) depuis les chunks existants
+→ sauvegarde dans evaluation/dataset.json
+→ à nettoyer manuellement (garder 25-40 questions de qualité)
+
+python evaluation/eval_retrieval.py
+→ lance le retrieval sur chaque question du dataset
+→ vérifie si le chunk de référence est dans les top-K résultats
+→ calcule Recall@1, Recall@3, Recall@5, Recall@10, MRR
+→ affiche les questions non trouvées pour diagnostic
 ```
 
 ---
 
 ## Phase 1 — Ingestion en détail
 
-### Étape 1.1 : Extraction Markdown (pymupdf4llm)
+### Extraction Markdown (pymupdf4llm)
 
-On utilise `pymupdf4llm` plutôt que PyMuPDF brut car les PDFs de maths posent un problème spécifique : les symboles mathématiques se collent aux mots environnants lors de l'extraction.
+`pymupdf4llm` convertit chaque PDF en un document Markdown unique. Cela résout un problème spécifique aux PDFs de maths où PyMuPDF brut colle les symboles aux mots :
 
-**Avant (PyMuPDF brut) :**
 ```
+# PyMuPDF brut
 "SoientX⊂R d un ouvert etf:X→R m. d2fdx2"
-```
 
-**Après (pymupdf4llm) :**
-```
+# pymupdf4llm
 "Soient X ⊂ R^d un ouvert et f : X → R^m."
 ```
 
-pymupdf4llm produit un document Markdown pour le PDF entier, avec :
-- Les espaces correctement placés autour des symboles
-- Les titres de chapitres et sections conservés (`## Chapitre 3`)
-- Les tableaux convertis en Markdown `| col | col |`
+Les titres (`## Chapitre 3`) et la structure du document sont préservés, ce qui améliore la qualité du découpage en chunks.
 
-**Limite :** Les formules complexes (intégrales, fractions) restent en texte brut — pas en LaTeX. La reconnaissance de formules nécessiterait Nougat (Meta), incompatible avec Python 3.14.
+### Découpage (chunking)
 
-### Étape 1.2 : Le découpage (chunking)
+`RecursiveCharacterTextSplitter` coupe le texte dans cet ordre de priorité :
+1. Titres Markdown (`## `, `### `) — coupe entre sections
+2. Paragraphes (`\n\n`)
+3. Lignes (`\n`)
+4. Espaces (entre mots)
+5. Caractères (en dernier recours)
 
-**Pourquoi découper ?** Les modèles d'IA ont une limite de texte qu'ils peuvent traiter en une fois. On ne peut pas donner un PDF de 200 pages entier à l'IA.
+**chunk_size = 1000** — assez grand pour contenir une définition mathématique complète (600-900 caractères typiquement).
 
-**Comment fonctionne le découpage récursif ?**
-
-Le `RecursiveCharacterTextSplitter` essaie de couper aux endroits les plus naturels, dans cet ordre de priorité :
-1. Sur les **titres Markdown** (`## `, `### `) — coupe entre sections
-2. Sur les **paragraphes** (`\n\n`) — coupe entre blocs de texte
-3. Sur les **lignes** (`\n`)
-4. Sur les **espaces** (entre mots)
-5. En dernier recours, sur les **caractères**
-
-**Les paramètres utilisés :**
-- `chunk_size = 1000` → chaque morceau fait au maximum 1000 caractères
-- `chunk_overlap = 200` → les morceaux se chevauchent de 200 caractères
-
-**Pourquoi 1000 caractères pour des maths ?** Une définition mathématique complète avec son énoncé formel fait facilement 600-900 caractères. Avec 1000, on s'assure qu'une définition tient dans un seul chunk.
-
-**Pourquoi le chevauchement ?** Pour ne pas couper une idée en deux. Exemple :
+**chunk_overlap = 200** — les chunks se chevauchent pour éviter de couper une idée en deux :
 
 ```
 Chunk 1 : "...un espace vectoriel normé est dit complet si toute suite de
-            Cauchy converge. On appelle un tel espace un espace de [FIN]"
+           Cauchy converge. On appelle un tel espace un espace de [FIN]"
 
 Chunk 2 : "[DÉBUT] espace de Banach. Les espaces de Banach jouent un rôle
-            central en analyse fonctionnelle..."
+           central en analyse fonctionnelle..."
 ```
 
-Sans chevauchement, la définition serait coupée et aucun chunk ne serait complet.
+Sans chevauchement, la définition serait fragmentée entre deux chunks.
 
-### Étape 1.3 : Transformation en vecteurs (embeddings)
+### Embeddings et stockage
 
-Pour chaque chunk, `bge-m3` génère 1024 nombres. Cette liste de nombres s'appelle un **vecteur** ou **embedding**.
+`bge-m3` transforme chaque chunk en 1024 nombres. Ce calcul prend environ 1-2 secondes par chunk (pour ~700 chunks : 15-25 minutes). C'est pour ça qu'on le fait une seule fois et qu'on sauvegarde dans `vector_db/`.
 
-Ces nombres ne sont pas aléatoires : deux textes qui parlent du même sujet auront des vecteurs proches. C'est ce qui permet la recherche par sens.
-
-**Pourquoi bge-m3 ?** C'est le seul modèle disponible via Ollama qui combine :
-- Bonne compréhension du français et du vocabulaire scientifique
-- Fenêtre de contexte de 8192 tokens (compatible avec des chunks de 1000 caractères)
-
-**Temps de calcul :** Environ 1-2 secondes par chunk. Pour ~600 chunks → 10 à 20 minutes. C'est pour ça qu'on le fait une seule fois et qu'on sauvegarde le résultat dans `vector_db/`.
-
-### Étape 1.4 : Sauvegarde dans ChromaDB
-
-Les vecteurs sont sauvegardés dans `vector_db/chroma.sqlite3`. Ce fichier contient :
-- Le texte de chaque chunk
-- Son vecteur (1024 nombres)
-- Ses métadonnées (nom du fichier source)
+**Attention :** si tu changes de modèle d'embedding, la dimension des vecteurs change (768 pour nomic, 1024 pour bge-m3). ChromaDB refusera d'insérer des vecteurs de dimension différente de celle de la collection existante. Il faut supprimer `vector_db/` et tout recréer.
 
 ---
 
 ## Phase 2 — Question/Réponse en détail
 
-### Étape 2.1 : Deux recherches en parallèle
+### Les deux recherches parallèles
 
-Quand tu poses une question, le système lance **deux recherches simultanées** :
+**Recherche sémantique :**
+La question est vectorisée par bge-m3. ChromaDB calcule la similarité cosinus entre ce vecteur et les ~700 vecteurs stockés. Les 20 plus proches (`K_RETRIEVE = 20`) sont retournés avec leur score (0 à 1).
 
-**Recherche sémantique (dense) :**
-La question est transformée en vecteur avec bge-m3. ChromaDB calcule la similarité cosinus entre ce vecteur et les 600+ vecteurs stockés. Il retourne les **20 chunks** (`K_RETRIEVE = 20`) dont les vecteurs sont les plus proches.
+**Recherche BM25 :**
+La question est tokenisée en mots minuscules. BM25 score chaque chunk selon la fréquence et la rareté de ces mots dans la base. Les 20 meilleurs sont retournés.
 
-→ Bonne pour retrouver des concepts même avec des mots différents
+### Fusion des scores
 
-**Recherche lexicale BM25 :**
-La question est découpée en mots (`["différentielle", "ordre", "2"]`). BM25 calcule un score pour chaque chunk en fonction de la fréquence et de la rareté de ces mots dans la base. Il retourne les **20 chunks** avec les meilleurs scores lexicaux.
-
-→ Bonne pour retrouver les termes techniques exacts et les symboles
-
-### Étape 2.2 : Fusion RRF (Reciprocal Rank Fusion)
-
-Les deux listes de 20 résultats sont fusionnées en une seule via la formule :
+Les deux listes sont fusionnées par somme pondérée :
 
 ```
-score_RRF(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
+score_final = score_sémantique + (score_BM25_normalisé × BM25_WEIGHT)
 ```
 
-**Pourquoi cette formule ?**
-- Un chunk classé #1 en sémantique contribue 1/61 ≈ 0.0164
-- Un chunk classé #1 en BM25 contribue aussi 1/61 ≈ 0.0164
-- Un chunk présent dans les **deux** listes cumule les deux contributions → il remonte en tête
-- Un chunk absent d'une liste contribue 0 pour cette méthode
+`BM25_WEIGHT = 0.5` par défaut — les deux méthodes ont un poids similaire.
 
-**Règle de diversité :** Au maximum 1 chunk par page source, pour ne pas envoyer au LLM 5 chunks du même paragraphe.
+Un chunk présent dans les deux listes cumule les contributions des deux méthodes et remonte en tête du classement.
 
-**Résultat :** Les 5 meilleurs chunks (`K_FINAL = 5`) sont sélectionnés.
+Le filtre de diversité limite à **1 chunk par page source** pour éviter que les 5 slots soient saturés par des extraits du même paragraphe.
 
-### Étape 2.3 : Construction du prompt
+### Construction du prompt
 
-Le prompt final est lu depuis `prompts/rag_prompt.txt` et les variables `{question}` et `{context}` sont remplacées :
+Le prompt est lu depuis `prompts/rag_prompt.txt`. Les variables `{question}` et `{context}` sont remplacées :
 
 ```
-Tu es un assistant documentaire strict. Tu n'as AUCUNE connaissance propre...
+Tu es un assistant documentaire strict...
 
 CONTEXTE :
-Source : calcul_diff.pdf
+Source : ENS.pdf
 [chunk 1...]
 
 ---
 
-Source : calcul_diff.pdf
+Source : SORBONNE.pdf
 [chunk 2...]
 
 ---
-
 [etc. jusqu'à 5 chunks]
 
-QUESTION : Différentielle d'ordre 2
+QUESTION : Qu'est-ce qu'un espace de Banach ?
 ```
 
-### Étape 2.4 : Génération de la réponse
+Le modèle est explicitement interdit d'inventer ou d'utiliser ses connaissances propres.
 
-`gemma2:2b` reçoit ce prompt et génère une réponse. Il a une fenêtre de contexte de **4096 tokens** (`num_ctx=4096`), ce qui correspond à environ 3000 mots.
+---
 
-Le prompt est **strict** : le modèle est explicitement interdit d'inventer ou d'utiliser ses connaissances propres. S'il ne trouve pas l'information dans les 5 chunks, il répond : *"Je ne trouve pas cette information dans les documents fournis."*
+## Phase 3 — Évaluation en détail
+
+### Pourquoi évaluer ?
+
+Sans métriques, il est impossible de savoir si une modification du pipeline (chunk_size, BM25_WEIGHT, seuil sémantique) améliore ou détériore les résultats. L'évaluation permet de comparer objectivement avant/après.
+
+### Le dataset synthétique
+
+`generate_dataset.py` échantillonne des chunks depuis ChromaDB et demande au LLM de générer une question dont la réponse se trouve dans ce chunk. Le résultat est sauvegardé dans `evaluation/dataset.json`.
+
+Il faut ensuite nettoyer manuellement le dataset : supprimer les questions trop vagues ou incompréhensibles hors contexte. Conserver 25-40 questions de qualité.
+
+### Les métriques
+
+`eval_retrieval.py` exécute le retrieval sur chaque question et mesure :
+
+- **Recall@K** : le chunk de référence est-il parmi les K premiers résultats ?
+- **MRR** (Mean Reciprocal Rank) : à quelle position moyenne apparaît le bon chunk ?
+
+```
+Recall@5 < 40%  → problème sérieux de retrieval (chunking, embedding)
+Recall@5 > 65%  → retrieval solide, optimiser la génération
+MRR < 0.30      → bon chunk trouvé mais mal classé (tuner la fusion)
+```
+
+Pour tester un paramètre sans modifier le code :
+
+```powershell
+python evaluation/eval_retrieval.py --k-retrieve 30 --bm25-weight 0.3 --threshold 0.45
+```
 
 ---
 
 ## Ce qui se passe si tu ajoutes un nouveau document
 
-1. Tu mets ton nouveau fichier dans `documents/`
-2. Tu supprimes `vector_db/` (sinon l'ancien index persiste)
-3. Tu relances `python src/ingest.py`
-4. La prochaine question utilisera le nouveau document
-
-**Attention :** Si tu ne relances pas `ingest.py`, le nouveau document est ignoré.
+1. Copie le fichier dans `documents/`
+2. Supprime l'ancienne base : `Remove-Item -Recurse -Force vector_db`
+3. Relance `python src/ingest.py`
+4. Regénère le dataset d'évaluation si nécessaire : `python evaluation/generate_dataset.py`

@@ -1,13 +1,54 @@
 # 06 — Problèmes courants et solutions
 
+## `Collection expecting embedding with dimension 768, got 1024`
+
+**Cause :** La base `vector_db/` a été créée avec `nomic-embed-text` (768 dimensions), mais le code utilise maintenant `bge-m3` (1024 dimensions). Les deux sont incompatibles.
+
+**Solution :**
+```powershell
+Remove-Item -Recurse -Force vector_db
+python src/ingest.py
+```
+
+---
+
+## `model "bge-m3" not found, try pulling it first`
+
+**Cause :** Le modèle n'est pas encore téléchargé dans Ollama.
+
+**Solution :**
+```powershell
+ollama pull bge-m3
+```
+
+---
+
+## `uvicorn` n'est pas reconnu
+
+**Cause :** L'environnement virtuel n'est pas activé, ou uvicorn n'est pas installé.
+
+**Solution :**
+```powershell
+# Activer le venv
+venv\Scripts\activate
+
+# Vérifier que uvicorn est installé
+pip install "uvicorn[standard]"
+
+# Relancer
+uvicorn src.api:app --host 0.0.0.0 --port 8000
+```
+
+---
+
 ## L'IA répond "Je ne trouve pas cette information dans les documents fournis"
 
-**Cause 1 :** La définition ou le passage demandé n'est dans aucun des 5 chunks sélectionnés.
+**Cause 1 :** Le passage demandé n'est dans aucun des 5 chunks sélectionnés.
 
 **Solutions :**
-1. Regarde les logs `[Fusion] Top 5` — est-ce que les bons chunks sont sélectionnés ?
-2. Reformule ta question avec des mots présents dans les documents
-3. Si BM25 trouve les bons chunks mais sémantique non (visible dans les logs), c'est normal — la fusion RRF devrait quand même les faire remonter
+1. Lance `python src/ask.py` et regarde les logs `[Fusion] Top 5` — les bons chunks sont-ils sélectionnés ?
+2. Reformule la question avec des mots présents dans les documents
+3. Lance `python evaluation/eval_retrieval.py` pour mesurer objectivement le Recall@5
 
 **Cause 2 :** `ingest.py` n'a pas été relancé après l'ajout d'un document.
 
@@ -15,53 +56,9 @@
 
 ---
 
-## `the input length exceeds the context length` (erreur Ollama embedding)
-
-**Cause :** Un chunk dépasse la fenêtre de contexte du modèle d'embedding. `bge-m3` supporte 8192 tokens, donc cela ne devrait pas arriver avec `chunk_size=1000`. Si l'erreur apparaît, c'est probablement avec `mxbai-embed-large` (512 tokens seulement).
-
-**Solution :** Vérifier que `EMBED_MODEL = "bge-m3"` dans `ingest.py` et `ask.py`.
-
----
-
-## `ModuleNotFoundError: No module named 'pymupdf4llm'`
-
-**Solution :**
-```powershell
-pip install pymupdf4llm
-```
-
----
-
-## `ModuleNotFoundError: No module named 'rank_bm25'`
-
-**Solution :**
-```powershell
-pip install rank-bm25
-```
-
----
-
-## `ModuleNotFoundError: No module named 'langchain.text_splitter'`
-
-**Cause :** La librairie a changé de nom dans les versions récentes.
-
-**Solution :**
-```powershell
-pip install langchain-text-splitters
-```
-Et dans le code, remplace :
-```python
-# Ancien (ne fonctionne plus)
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-# Nouveau
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-```
-
----
-
 ## `ingest.py` se bloque sans afficher d'erreur
 
-**Cause probable :** Ollama plante ou sature en mémoire.
+**Cause probable :** Ollama plante ou sature en mémoire pendant le calcul des embeddings.
 
 **Solutions :**
 1. Vérifie qu'Ollama tourne : `ollama list`
@@ -83,45 +80,42 @@ python src/ingest.py
 
 ---
 
-## La recherche sémantique retourne des résultats du mauvais cours
+## Open WebUI affiche "Connexion impossible" ou pas de modèle disponible
 
-**Exemple :** Question sur le calcul différentiel → les scores sémantiques retournent des chunks de statistiques.
+**Cause :** Le serveur FastAPI n'est pas démarré, ou Docker ne trouve pas l'hôte.
 
-**Cause :** C'est une limitation connue des modèles d'embedding sur du texte mathématique. bge-m3 comprend le vocabulaire mathématique général mais peut se tromper de matière si les formules sont peu lisibles.
-
-**Ce qui compense :** La recherche BM25 trouvera les bons chunks par mots-clés exacts. La fusion RRF donnera la priorité aux chunks présents dans les deux listes. Regarde les logs `[Fusion]` — le résultat final devrait être correct même si `[Sémantique]` est bruité.
-
-**Solution durable :** Passer à Python 3.11 ou 3.12 et installer `marker-pdf` pour une extraction PDF avec reconnaissance de formules LaTeX.
+**Solutions :**
+1. Vérifie que le serveur RAG tourne : `uvicorn src.api:app --host 0.0.0.0 --port 8000`
+2. Teste directement l'API : ouvre `http://localhost:8000/v1/models` dans ton navigateur — tu dois voir `{"data":[{"id":"aquila-rag"...}]}`
+3. Si Open WebUI tourne dans Docker mais ne trouve pas le serveur : l'URL doit être `http://host.docker.internal:8000/v1` (pas `localhost`)
 
 ---
 
-## Le conflit git sur `chroma.sqlite3` (fichier rouge `AA`)
+## La recherche sémantique retourne des chunks du mauvais cours
 
-**Cause :** Les deux branches git ont chacune leur version du fichier binaire. Git ne peut pas fusionner des fichiers binaires automatiquement.
+**Cause :** Limitation connue des modèles d'embedding sur du texte mathématique. bge-m3 peut confondre des matières si les formules sont peu lisibles.
 
-**Solution :** `vector_db/` doit être dans `.gitignore` et ne jamais être versionné. C'est un fichier généré.
+**Ce qui compense :** BM25 retrouve les bons chunks par mots-clés exacts. La fusion donne la priorité aux chunks présents dans les deux listes. Vérifie les logs `[Fusion]` — le résultat final devrait être correct même si `[Sémantique]` est bruité.
 
+**Solution durable :** Mesure le Recall@5 avec `eval_retrieval.py`, puis expérimente : augmenter `K_RETRIEVE`, ajuster `BM25_WEIGHT`, ajouter un reranker `sentence-transformers`.
+
+---
+
+## Le conflit git sur `chroma.sqlite3`
+
+**Cause :** `vector_db/` est versionné dans git alors qu'il ne devrait pas l'être.
+
+**Solution :**
 ```powershell
 git rm -r --cached -f vector_db/
 ```
-Puis ajouter dans `.gitignore` :
-```
-vector_db/
-```
-
----
-
-## `pip install marker-pdf` échoue (Pillow, regex)
-
-**Cause :** Tu utilises Python 3.14, trop récent pour marker-pdf. Pillow 10.4.0 ne supporte pas Python 3.14.
-
-**Solution :** Utiliser `pymupdf4llm` à la place (déjà implémenté dans ce projet). Pour marker-pdf, il faut Python 3.11 ou 3.12.
+Puis vérifier que `vector_db/` est bien dans `.gitignore`.
 
 ---
 
 ## L'environnement virtuel n'est pas activé
 
-**Symptôme :** Les librairies ne sont pas trouvées, ou `(venv)` n'apparaît pas dans le terminal.
+**Symptôme :** `uvicorn`, `python`, ou les librairies ne sont pas trouvés. `(venv)` n'apparaît pas au début du terminal.
 
 **Solution :**
 ```powershell

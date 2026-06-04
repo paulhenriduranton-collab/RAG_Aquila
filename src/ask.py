@@ -69,14 +69,13 @@ def _merge(
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-    # Filtre de diversité : max 1 chunk par page source pour varier les extraits
-    seen_pages: set[tuple] = set()
+    # Filtre de diversité : max 3 chunks par source pour éviter de saturer avec un seul document
+    source_count: dict[str, int] = {}
     top: list[tuple[str, float]] = []
     for key, score in ranked:
-        meta = doc_map[key].metadata
-        page_id = (meta.get("source"), meta.get("page"))
-        if page_id not in seen_pages:
-            seen_pages.add(page_id)
+        source = doc_map[key].metadata.get("source", "?")
+        if source_count.get(source, 0) < 3:
+            source_count[source] = source_count.get(source, 0) + 1
             top.append((key, score))
         if len(top) == n:
             break

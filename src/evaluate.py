@@ -145,6 +145,8 @@ def evaluate_question(entry: dict) -> dict | None:
         "niveau": entry["niveau"],
         "type": entry["type"],
         "question": question,
+        "reponse_attendue": ground_truth,  # réponse de référence pour comparer
+        "reponse_llm": answer,             # réponse générée par le LLM
         "faithfulness": faithfulness,
         "answer_relevancy": relevancy,
         "context_quality": ctx_quality,
@@ -183,23 +185,36 @@ def print_results(results: list[dict]):
         print(f"  Niveau {niveau} ({len(sub)} questions) : "
               f"faith={sum(r['faithfulness'] for r in sub)/len(sub):.2f}  "
               f"relev={sum(r['answer_relevancy'] for r in sub)/len(sub):.2f}  "
+              f"ctx.q={sum(r['context_quality'] for r in sub)/len(sub):.2f}  "
               f"recall={sum(r['context_recall'] for r in sub)/len(sub):.2f}  "
               f"correct={sum(r['answer_correctness'] for r in sub)/len(sub):.2f}")
 
 
 def main():
-    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8")) 
+    dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
+
+    output_path = DATASET_PATH.parent / "results.json"
+
+    # Charge les résultats existants pour ne pas réévaluer les questions déjà traitées
+    if output_path.exists():
+        results = json.loads(output_path.read_text(encoding="utf-8"))
+        already_done = {r["id"] for r in results}  # ensemble des IDs déjà évalués
+    else:
+        results = []
+        already_done = set()
+
+    # Ne garde que les questions pas encore dans results.json
+    to_evaluate = [e for e in dataset if e["id"] not in already_done]
 
     print("=== Évaluation RAG ===")
     print(f"LLM          : {GEN_MODEL}")
     print(f"Embedding    : {EMBED_MODEL}")
-    print(f"Dataset      : {DATASET_PATH.name} ({len(dataset)} questions)")
+    print(f"Dataset      : {DATASET_PATH.name} ({len(dataset)} questions total)")
+    print(f"Déjà évalués : {len(already_done)} — À évaluer : {len(to_evaluate)}")
     print(f"Métriques    : Faithfulness, Answer Relevancy, Context Quality, Context Recall, Answer Correctness")
 
-    output_path = DATASET_PATH.parent / "results.json"
-    results = []
     try:
-        for entry in dataset:
+        for entry in to_evaluate:
             result = evaluate_question(entry)
             if result:
                 results.append(result)

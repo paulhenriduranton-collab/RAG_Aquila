@@ -174,7 +174,7 @@
     "id": "L2_ENS_005",
     "niveau": 2,
     "source": "ENS",
-    "question": "Quelles sont les règles d'obtention du M1 (deuxième année) à l'ENS DMA en filière mathématiques ?",
+    "question": "Quelles sont les règles d'obtention de la deuxième année (M1) à l'ENS DMA en filière mathématiques, en termes de cours fondamentaux et groupes de travail ?",
     "reponse_attendue": "Il faut valider 60 ECTS : 3 cours fondamentaux de M1 pour 36 ECTS, 1 cours complémentaire de M1 pour 12 ECTS, et 1 groupe de travail pour 12 ECTS.",
     "contexte_source": "Brochure ENS DMA 2024-2025, section Règles d'obtention – Deuxième année",
     "type": "synthese_conditions"

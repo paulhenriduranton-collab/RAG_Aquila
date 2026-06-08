@@ -1,7 +1,8 @@
 from pathlib import Path
 
+import ftfy          # répare les encodages cassés dans les textes extraits de PDF
 import pymupdf4llm  # convertit les PDF en Markdown structuré (meilleur que l'extraction brute PyMuPDF)
-from langchain_text_splitters import RecursiveCharacterTextSplitter  # découpe le texte en chunks
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma  # base de données vectorielle locale
 from langchain_ollama import OllamaEmbeddings  # génère les embeddings via Ollama
 from langchain_community.document_loaders import TextLoader, Docx2txtLoader  # loaders pour .txt et .docx
@@ -12,17 +13,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = BASE_DIR / "vector_db"             # dossier où Chroma sauvegarde la base vectorielle
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
+MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
     """
-    Convertit un PDF en Markdown via pymupdf4llm.
-    Avantage sur PyMuPDF brut : préserve la structure (titres, tableaux)
-    et espace correctement les symboles mathématiques.
+    Convertit un PDF en Markdown via pymupdf4llm, une page à la fois.
+    Chaque page devient un Document indépendant avec son numéro de page en métadonnée.
+    Avantage : un tableau qui tient sur une page ne sera jamais coupé entre deux chunks.
+    Les pages vides (couverture, pages blanches) sont ignorées.
     """
-    md_text = pymupdf4llm.to_markdown(str(pdf_path))
-    # Enveloppe le texte dans un Document LangChain avec le nom du fichier comme source
-    return [Document(page_content=md_text, metadata={"source": pdf_path.name})]
+    pages = pymupdf4llm.to_markdown(str(pdf_path), page_chunks=True)
+    documents = []
+    for page in pages:
+        text = ftfy.fix_text(page["text"])  # répare les accents cassés (ex: `a → à, ´e → é)
+        if not text.strip():  # ignore les pages sans contenu (couvertures, pages blanches)
+            continue
+        page_num = page["metadata"].get("page_number", 0)  # numéro de page 0-indexé (int) — la clé est "page_number", pas "page"
+        documents.append(Document(
+            page_content=text,
+            metadata={"source": pdf_path.name, "page": page_num + 1},  # +1 pour afficher en 1-indexé
+        ))
+    return documents
 
 
 def load_documents() -> list[Document]:
@@ -51,6 +63,73 @@ def load_documents() -> list[Document]:
     return documents
 
 
+def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) -> list[Document]:
+    """
+    Fusionne avec son voisin tout chunk trop court (ex: une simple ligne de calendrier
+    isolée sous son propre titre, du type "## Fin des cours \n Vendredi 17 janvier 2025").
+    Un chunk de 50-100 caractères est trop pauvre en mots pour être bien classé par la
+    recherche sémantique/BM25 — il se fait systématiquement déclasser par des chunks plus
+    longs et plus riches en mots-clés, même issus d'un autre document.
+    """
+    merged: list[Document] = []
+    buffer: Document | None = None
+    for chunk in chunks:
+        buffer = chunk if buffer is None else Document(
+            page_content=buffer.page_content + "\n\n" + chunk.page_content,
+            metadata=buffer.metadata,
+        )
+        if len(buffer.page_content) >= min_size:
+            merged.append(buffer)
+            buffer = None
+    if buffer is not None:  # reliquat final trop court : on le rattache au chunk précédent
+        if merged:
+            previous = merged.pop()
+            buffer = Document(
+                page_content=previous.page_content + "\n\n" + buffer.page_content,
+                metadata=previous.metadata,
+            )
+        merged.append(buffer)
+    return merged
+
+
+def _split_documents(documents: list[Document]) -> list[Document]:
+    """
+    Pipeline de découpage en trois étapes :
+    1. MarkdownHeaderTextSplitter — coupe sur les titres (##, ###) et met le chemin de titres
+       en métadonnée de chaque chunk. Cela permet à l'embedding de savoir dans quelle section
+       se trouve le chunk, évitant les confusions entre sections sémantiquement proches.
+    2. _merge_small_chunks — recolle les sections trop courtes (ex: lignes de calendrier sous
+       des petits titres) avec la suivante, pour éviter des micro-chunks trop pauvres en contexte.
+    3. RecursiveCharacterTextSplitter — coupe les sections encore trop longues en sous-chunks
+       de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
+    """
+    header_splitter = MarkdownHeaderTextSplitter(
+        headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
+        strip_headers=False,  # garde les titres dans le texte pour que l'embedding les voie
+    )
+    size_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+        separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
+    )
+
+    all_chunks = []
+    for doc in documents:
+        # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
+        header_chunks = header_splitter.split_text(doc.page_content)
+        for hc in header_chunks:
+            hc.metadata.update(doc.metadata)  # recopie source + page dans chaque section
+
+        # Étape 2 : fusionne les sections trop courtes avec leur voisine
+        merged_chunks = _merge_small_chunks(header_chunks)
+
+        # Étape 3 : découpe par taille si une section dépasse 1000 caractères
+        sub_chunks = size_splitter.split_documents(merged_chunks)
+        all_chunks.extend(sub_chunks)
+
+    return all_chunks
+
+
 def main():
     print("Chargement des documents...")
     documents = load_documents()
@@ -59,14 +138,7 @@ def main():
         return
     print(f"\n{len(documents)} document(s) chargé(s).")
 
-    # RecursiveCharacterTextSplitter respecte la structure Markdown :
-    # il coupe en priorité sur les titres (## / ###), puis les paragraphes, puis les lignes
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,    # taille maximale d'un chunk en caractères
-        chunk_overlap=200,  # chevauchement pour éviter de couper une idée entre deux chunks
-        separators=["\n## ", "\n### ", "\n\n", "\n", " ", ""],  # ordre de priorité des coupures
-    )
-    chunks = splitter.split_documents(documents)
+    chunks = _split_documents(documents)
     print(f"{len(chunks)} chunk(s) créé(s).")
 
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)

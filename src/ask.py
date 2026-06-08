@@ -118,11 +118,15 @@ def _fmt(text: str, length: int = 130) -> str:
     return text[:length].replace("\n", " ")
 
 
-def retrieve(question: str, verbose: bool = True) -> list[Document]:
+def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
     sémantique → BM25 → RRF → re-ranking.
 
+    sources : si fourni, restreint la recherche aux chunks dont la métadonnée "source"
+    (le nom du fichier, ex: "ENS.pdf") figure dans cette liste. Utilisé par le RAG
+    agentique (agent.py) pour cibler un document précis et éviter les confusions
+    inter-documents (ex: la durée de stage ENS vs Sorbonne).
     verbose=False désactive tous les logs (utile pour l'évaluation silencieuse).
     Retourne la liste des K_FINAL chunks les plus pertinents.
     """
@@ -130,13 +134,18 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
 
+    # Filtre Chroma natif sur la métadonnée "source" — None = pas de restriction (comportement inchangé)
+    chroma_filter = {"source": {"$in": sources}} if sources else None
+
     if verbose:
         print(f"\n[DB] {vector_db._collection.count()} chunks dans la base")
+        if sources:
+            print(f"[Filtre] Recherche restreinte aux source(s) : {', '.join(sources)}")
         print(f"\n[Sémantique] Recherche des {K_RETRIEVE} plus proches voisins...")
 
     # ── 1. Recherche sémantique ───────────────────────────────────────────────
     # Convertit la question en vecteur et cherche les chunks les plus proches (distance cosinus)
-    raw_semantic = vector_db.similarity_search_with_relevance_scores(question, k=K_RETRIEVE)
+    raw_semantic = vector_db.similarity_search_with_relevance_scores(question, k=K_RETRIEVE, filter=chroma_filter)
 
     if verbose:
         print("[Sémantique] Top 5 :")
@@ -148,8 +157,12 @@ def retrieve(question: str, verbose: bool = True) -> list[Document]:
     # Complémentaire à la sémantique : trouve les chunks contenant exactement les mêmes mots
     bm25, bm25_chunks = _build_bm25_index(vector_db, verbose=verbose)
     bm25_scores = bm25.get_scores(question.lower().split())  # score BM25 pour chaque chunk de la base
+    # Restreint les candidats aux sources demandées avant de trier (même filtre que côté sémantique)
+    candidate_indices = range(len(bm25_chunks))
+    if sources:
+        candidate_indices = [i for i in candidate_indices if bm25_chunks[i][1].get("source") in sources]
     # Trie les indices par score décroissant et garde les K_RETRIEVE meilleurs
-    top_bm25 = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:K_RETRIEVE]
+    top_bm25 = sorted(candidate_indices, key=lambda i: bm25_scores[i], reverse=True)[:K_RETRIEVE]
 
     if verbose:
         print("\n[BM25] Top 5 résultats lexicaux :")

@@ -4,7 +4,7 @@ import ftfy          # répare les encodages cassés dans les textes extraits de
 import pymupdf4llm  # convertit les PDF en Markdown structuré (meilleur que l'extraction brute PyMuPDF)
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma  # base de données vectorielle locale
-from langchain_ollama import OllamaEmbeddings  # génère les embeddings via Ollama
+from langchain_ollama import OllamaEmbeddings, OllamaLLM  # génère les embeddings et contextualise les chunks via Ollama
 from langchain_community.document_loaders import TextLoader, Docx2txtLoader  # loaders pour .txt et .docx
 from langchain_core.documents import Document  # objet LangChain : texte + métadonnées
 
@@ -13,7 +13,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = BASE_DIR / "vector_db"             # dossier où Chroma sauvegarde la base vectorielle
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
+CONTEXT_MODEL = "gemma2:2b"  # LLM utilisé pour générer une phrase de contexte par chunk (contextual retrieval)
 MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
+
+# Demande une phrase courte qui situe le chunk (établissement, section, sujet) à partir de la
+# page complète d'où il provient. Cette phrase est ensuite préfixée au chunk avant indexation :
+# un chunk isolé ("stage d'au moins 4 mois") ne dit pas de lui-même à quel établissement il
+# appartient — l'embedding et BM25 ne lisent jamais les métadonnées, seulement le texte indexé.
+CONTEXT_PROMPT = """Voici une page extraite d'un document :
+{page}
+
+Voici un passage de cette page qui sera indexé séparément pour la recherche :
+{chunk}
+
+En une phrase courte (15 mots maximum), situe ce passage : à quel établissement, quelle section ou quel sujet appartient-il ? Réponds uniquement par cette phrase, sans préambule ni guillemets."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
@@ -92,9 +105,27 @@ def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) 
     return merged
 
 
+def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM) -> list[Document]:
+    """
+    Demande au LLM, pour chaque chunk final, une phrase de contexte à partir de la page
+    d'origine, et la préfixe au texte avant indexation (technique de "contextual retrieval").
+    Contrairement aux métadonnées (chemin de titres, source), cette phrase fait partie du
+    texte indexé : l'embedding et BM25 la "voient" directement, ce qui aide à désambiguïser
+    un chunk qui, isolé, ne précise pas son établissement ou son sujet.
+    """
+    result = []
+    for chunk in chunks:
+        prompt = CONTEXT_PROMPT.format(page=page_text, chunk=chunk.page_content)
+        lines = llm.invoke(prompt).strip().splitlines()
+        context_line = lines[0].strip() if lines else ""
+        new_content = f"{context_line}\n\n{chunk.page_content}" if context_line else chunk.page_content
+        result.append(Document(page_content=new_content, metadata=chunk.metadata))
+    return result
+
+
 def _split_documents(documents: list[Document]) -> list[Document]:
     """
-    Pipeline de découpage en trois étapes :
+    Pipeline de découpage en quatre étapes :
     1. MarkdownHeaderTextSplitter — coupe sur les titres (##, ###) et met le chemin de titres
        en métadonnée de chaque chunk. Cela permet à l'embedding de savoir dans quelle section
        se trouve le chunk, évitant les confusions entre sections sémantiquement proches.
@@ -102,6 +133,9 @@ def _split_documents(documents: list[Document]) -> list[Document]:
        des petits titres) avec la suivante, pour éviter des micro-chunks trop pauvres en contexte.
     3. RecursiveCharacterTextSplitter — coupe les sections encore trop longues en sous-chunks
        de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
+    4. _contextualize_chunks — ajoute en tête de chaque chunk final une phrase de contexte
+       générée par le LLM à partir de sa page d'origine (établissement / section / sujet),
+       pour que la recherche dispose d'un signal explicite même sur un chunk isolé.
     """
     header_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
@@ -112,9 +146,11 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
     )
+    # num_predict bas : on ne veut qu'une phrase courte, pas une réponse longue (gagne du temps de génération)
+    context_llm = OllamaLLM(model=CONTEXT_MODEL, num_ctx=4096, temperature=0, num_predict=60)
 
     all_chunks = []
-    for doc in documents:
+    for i, doc in enumerate(documents):
         # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
         header_chunks = header_splitter.split_text(doc.page_content)
         for hc in header_chunks:
@@ -125,7 +161,13 @@ def _split_documents(documents: list[Document]) -> list[Document]:
 
         # Étape 3 : découpe par taille si une section dépasse 1000 caractères
         sub_chunks = size_splitter.split_documents(merged_chunks)
+
+        # Étape 4 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
+        sub_chunks = _contextualize_chunks(sub_chunks, doc.page_content, context_llm)
+
         all_chunks.extend(sub_chunks)
+        print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
+              f"→ {len(sub_chunks)} chunk(s) contextualisé(s)", flush=True)
 
     return all_chunks
 

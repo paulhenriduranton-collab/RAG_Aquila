@@ -1,0 +1,438 @@
+[
+  {
+    "id": "L1_ENS_001",
+    "question": "Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?",
+    "reponse_attendue": "La formation du DENS dure trois ans.",
+    "reponse_llm": "La formation du DENS dure trois ans. \n",
+    "duree_secondes": 215.8,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## **PRÉSENTATION** \n\n## OBJECTIFS \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLe Diplôme de l’ENS ès Mathématiques, DENS, assure une formation originale d’excellence de mathématicien·ne·s pur·e·s et appliqué·e·s, ayant acquis de solides connaissances dans d’autres disciplines (informatique, physique, biologie, …). Il s’agit d’une formation de trois ans à la recherche et par la recherche. Son atout majeur est un rythme plus rapide rendu possible par un encadrement renforcé, notamment grâce à un tutorat individuel. Plusieurs cursus sont possibles dont des cursus pluridisciplinaires."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_002",
+    "question": "Quels sont les quatre cours communs obligatoires de première année (L3) pour toutes les filières à l'ENS DMA ?",
+    "reponse_attendue": "Les quatre cours communs obligatoires sont : Algèbre 1, Analyse complexe, Intégration et probabilités, et Topologie et calcul différentiel (12 ECTS chacun, total 48 ECTS).",
+    "reponse_llm": "Les quatre cours communs obligatoires de première année (L3) pour toutes les filières à l'ENS DMA sont : Algèbre 1, Analyse complexe, Intégration et probabilités, Topologie et calcul différentiel. \n",
+    "duree_secondes": 176.5,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## REGLES D’OBTENTION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l’ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|** \n\n▪ \n\nPREMIERE ANNEE \n\nLa licence troisième année (L3) de mathématiques nécessite selon les filières : \n\n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>`o`<br>Algèbre 1<br>`o`<br>Analyse complexe<br>`o`<br>Intégration et probabilités<br>`o`<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>`o`<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>`o`<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d’interface math-biologie||\n|_Total_||60 ECTS|"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**|** _Remarque : Une expérience à l’étranger est requise pour la validation du DENS._ **|** \n\n- Le mémoire et l’exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année \n\n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d’un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie. \n\n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France). \n\n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_003",
+    "question": "Combien d'ECTS faut-il valider en première année (L3) à l'ENS DMA ?",
+    "reponse_attendue": "Il faut valider 60 ECTS pour la première année (L3).",
+    "reponse_llm": "48 ECTS \n",
+    "duree_secondes": 156.3,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**|** _Remarque : Une expérience à l’étranger est requise pour la validation du DENS._ **|** \n\n- Le mémoire et l’exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année \n\n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d’un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie. \n\n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France). \n\n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## REGLES D’OBTENTION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l’ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|** \n\n▪ \n\nPREMIERE ANNEE \n\nLa licence troisième année (L3) de mathématiques nécessite selon les filières : \n\n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>`o`<br>Algèbre 1<br>`o`<br>Analyse complexe<br>`o`<br>Intégration et probabilités<br>`o`<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>`o`<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>`o`<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d’interface math-biologie||\n|_Total_||60 ECTS|"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_004",
+    "question": "Qui assure la direction des études du DMA à l'ENS en 2024-2025 ?",
+    "reponse_attendue": "La direction des études du DMA est assurée par Djalil Chafaï et Cyril Houdayer.",
+    "reponse_llm": "Djalil Chafaï et Cyril Houdayer assurent la direction des études du DMA à l'ENS en 2024-2025. \n",
+    "duree_secondes": 105.5,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer \n\n**|** Secrétariat pédagogique : Yue Teng \n\n> 45 rue d’Ulm 75230 Paris Cedex 05 \n\n> 01 44 32 31 72 - education@dma.ens.fr https://www.math.ens.psl.eu/lenseignement \n\n**==> picture [76 x 76] intentionally omitted <==**\n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **3** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **4** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**|** _Remarque : Une expérience à l’étranger est requise pour la validation du DENS._ **|** \n\n- Le mémoire et l’exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année \n\n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d’un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie. \n\n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France). \n\n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_005",
+    "question": "Quelles sont les quatre filières proposées par le DMA de l'ENS ?",
+    "reponse_attendue": "Les quatre filières sont : la filière mathématiques, la filière mathématiques/informatique, la filière mathématiques/physique, et la filière mathématiques/biologie.",
+    "reponse_llm": "Les quatre filières proposées par le DMA de l'ENS sont : \n\n- la filière mathématiques \n- la filière mathématiques/informatique \n- la filière mathématiques/physique \n- la filière mathématiques/biologie \n",
+    "duree_secondes": 103.3,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## ORGANISATION DE LA FORMATION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes cursus sont individuels et mis au point au début de chaque année avec les tuteur·ice·s, le directeur des études ou de l’enseignement et les encadrant·e·s du département de mathématiques. De nombreuses déclinaisons de cursus sont possibles : \n\n- la filière mathématiques \n\n- la filière mathématiques/informatique \n\n- la filière mathématiques/physique \n\n- la filière mathématiques/biologie \n\nLes filières pluridisciplinaires permettent, sous réserve de confirmation par le jury compétent, la validation d’une seconde spécialité pour le diplôme de l’ENS. \n\nL'équipe d'encadrement pourra examiner toute proposition individuelle cohérente de cursus présentée par les étudiant·e·s et s'inscrivant dans l'esprit de la formation. De façon générale, les élèves doivent obtenir l’aval de leur tuteur·ice et des directeurs des études pour tous les choix concernant leur programme d’études."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_006",
+    "question": "Quand ont lieu les examens du premier semestre 2024-2025 à l'ENS DMA ?",
+    "reponse_attendue": "Les examens du premier semestre ont lieu du lundi 20 janvier au vendredi 24 janvier 2025.",
+    "reponse_llm": "Du lundi 20 janvier au vendredi 24 janvier 2025 \n",
+    "duree_secondes": 94.9,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## **Premier semestre :** \n\n**Pré-rentrée thématique « Analyse Harmonique » et « Combinatoire et surfaces »** Matinées du lundi 2 au vendredi 6 septembre 2024 \n\n## **Début des cours** \n\nPremière année : lundi 16 septembre 2024 Deuxième année : lundi 9 septembre 2024 \n\n## **Vacances** \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **12** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nVacances de la Toussaint : du samedi 26 octobre au dimanche 3 novembre 2024 Vacances de Noël : du samedi 21 décembre 2024 au dimanche 5 janvier 2025 \n\n## **Fin des cours** \n\nVendredi 17 janvier 2025 \n\n## **Examens du premier semestre** \n\nDu lundi 20 janvier au vendredi 24 janvier 2025 \n\n## **Réunion de présentation du second semestre** \n\nMercredi 15 janvier 2025 à 13h30, salle Cartan \n\n## **Deuxième semestre :** \n\n## **Début des cours** \n\nMardi 3 février 2025"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **9** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## **Premier semestre :** \n\nL’auto-organisation de groupes de travail est vivement recommandée. Elle peut être encadrée, si besoin, par un·e enseignant·e du DMA. \n\n## **Deuxième semestre :** \n\nLes cours suivants peuvent être validés dans le cadre du DENS (9 ECTS, 24h cours). Ils peuvent aussi souvent être validés dans le cadre d’un M2, voir le responsable pédagogique du M2 d’inscription pour les conditions pédagogiques. \n\n- Dynamique des équations des ondes semi-linéaires \n\n   - T. Duyckaerts USPN \n\n- Systèmes de particules en interaction \n\n      - C. Toninelli CNRS/PSL \n\n-"
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_001",
+    "question": "Quels sont les sept parcours de M2 proposés par le Master Mathématiques et Applications de Sorbonne Université ?",
+    "reponse_attendue": "Les sept parcours sont : agr (Agrégation de Mathématiques), fin (Probabilités et Finance), ing (Ingénierie mathématique), maf (Mathématiques fondamentales), mod (Mathématiques de la modélisation), pro (Probabilités et modèles aléatoires), sta (Statistique, apprentissage et algorithmes).",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis. \n",
+    "duree_secondes": 146.8,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## Deuxième année \n\nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l’avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l’étranger, dans une université ou une entreprise. \n\nTroisième année \n\nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L’inscription dans une université est entièrement de la responsabilité de l’élève. Avec le·a tuteur·ice, l’élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires… \n\ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d’un domaine de recherche. Ce mémoire fait l’objet d’une soutenance orale obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques. \n\n## ▪"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## INSCRIPTION A L’UNIVERSITE \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nAprès leur admission, les normalien·ne·s s’inscrivent auprès des universités partenaires via le secrétariat enseignement du département de mathématiques de l’ENS. Au cours de ces études, il est en particulier nécessaire d’obtenir les diplômes nationaux de licence et de master délivrés à partir des résultats obtenus aux différents modules d’enseignement selon les modalités suivantes : \n\n- Pour la troisième année de licence (L3) et la première année de master (M1), les cours, examens ont lieu au département de mathématiques de l’École Normale Supérieure et les résultats sont transmis aux universités partenaires ; \n\n- Pour la seconde année de master (M2), les étudiants s’inscrivent directement dans les universités partenaires qui délivrent les diplômes ; \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **10** SUR 78"
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_002",
+    "question": "Qui sont les responsables du Master 1 de mathématiques à Sorbonne Université en 2025-2026 ?",
+    "reponse_attendue": "Les responsables du Master 1 sont Laurent Boudin et Vincent Humilière.",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis.",
+    "duree_secondes": 19.9,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": []
+  },
+  {
+    "id": "L1_SU_003",
+    "question": "Combien d'ECTS vaut l'UE obligatoire d'Orientation et insertion professionnelle (OIP) au M1 de Sorbonne Université ?",
+    "reponse_attendue": "L'UE d'OIP (UM4MAOIP) vaut 3 ECTS. Elle est obligatoire au second semestre pour tous les étudiants, en présence comme à distance.",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis.",
+    "duree_secondes": 18.9,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": []
+  },
+  {
+    "id": "L1_SU_004",
+    "question": "Combien d'heures d'enseignement comporte une UE de 9 ECTS au M1 de Sorbonne Université, et comment ce volume est-il réparti ?",
+    "reponse_attendue": "Une UE de 9 ECTS comporte 84 heures d'enseignement : 36 heures de cours (en alternance 2 ou 4 heures par semaine sur 12 semaines) et 48 heures de TD ou TP (4 heures hebdomadaires sur 12 semaines).",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis.",
+    "duree_secondes": 20.1,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": []
+  },
+  {
+    "id": "L1_SU_005",
+    "question": "Quelles langues peut-on choisir comme UE de langue au M1 de Sorbonne Université pour les étudiants en présence ? Cette offre est-elle la même à distance ?",
+    "reponse_attendue": "Pour les étudiants en présence, les langues disponibles sont : anglais, allemand, chinois, espagnol, russe et français langue étrangère (FLE). Pour les étudiants à distance, seul l'anglais est proposé.",
+    "reponse_llm": "Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l’ENS (ECLA), ou par un séjour longue durée dans un pays non francophone. \nSource : ENS.pdf \n",
+    "duree_secondes": 112.8,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- (1) Comptabilisé pour le M1 si ne compte pas pour la L3 \n\n- (2) Cours accessible dès la 1[ère] année \n\n- (3) Cours recommandé pour la filière maths/biologie \n\n- (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **22** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nL’obtention de la deuxième année du DENS nécessite en plus du M1 de mathématiques :"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## Deuxième année \n\nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l’avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l’étranger, dans une université ou une entreprise. \n\nTroisième année \n\nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L’inscription dans une université est entièrement de la responsabilité de l’élève. Avec le·a tuteur·ice, l’élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires… \n\ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d’un domaine de recherche. Ce mémoire fait l’objet d’une soutenance orale obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques. \n\n## ▪"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## REGLES D’OBTENTION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l’ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|** \n\n▪ \n\nPREMIERE ANNEE \n\nLa licence troisième année (L3) de mathématiques nécessite selon les filières : \n\n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>`o`<br>Algèbre 1<br>`o`<br>Analyse complexe<br>`o`<br>Intégration et probabilités<br>`o`<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>`o`<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>`o`<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d’interface math-biologie||\n|_Total_||60 ECTS|"
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_006",
+    "question": "Avec quels établissements le M2 Probabilités et modèles aléatoires de Sorbonne Université est-il co-habilité ?",
+    "reponse_attendue": "Ce M2 est co-habilité avec l'École Normale Supérieure - Ulm et le CERMICS (École des Ponts ParisTech).",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis.",
+    "duree_secondes": 19.8,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": []
+  },
+  {
+    "id": "L2_ENS_001",
+    "question": "Quelles sont les conditions à remplir pour obtenir le DENS en termes d'ECTS supplémentaires au-delà de la L3 et du Master ?",
+    "reponse_attendue": "Au-delà des 180 ECTS de la L3 et du Master, il faut valider 72 ECTS supplémentaires répartis comme suit : au moins 24 ECTS de cours mathématiques ; au moins 24 ECTS dans un ou plusieurs autres départements (dont 12 ECTS de cours scientifiques non-mathématiques) ; au moins 24 ECTS libres incluant les expériences et cours de langue ; au moins 2 expériences d'ouverture ; la formation sur les grands enjeux. De plus, un cours de langue doit être validé chaque année d'inscription au DENS, et une expérience à l'étranger est requise.",
+    "reponse_llm": "Au minimum, il faut 72 ECTS supplémentaires au-delà des 180 ECTS de la L3 et du Master.  Ces 72 ECTS doivent être répartis comme suit:\n\n* Au moins 24 ECTS de cours mathématiques\n* Au moins 24 ECTS dans un ou plusieurs autres départements\n    * dont 12 ECTS de cours scientifiques non-mathématiques\n* Au moins 24 ECTS libres, dont ceux des expériences et des cours de langue\n* Au moins 2 expériences d’ouverture\n* La validation d’un cours de langue par année d’inscription au DENS. \n\n\n",
+    "duree_secondes": 113.4,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## Promotions antérieures à 2023 : \n\nUn candidat ayant obtenu un minimum de 24 ECTS dans une discipline scientifique distincte de celle du master 2 pourra obtenir une spécialité secondaire en sciences (ou mineure) sous réserve de l’accord des directeurs des études des départements concernés. \n\nUn candidat ayant obtenu un minimum de 48 ECTS dans une discipline littéraire pourra obtenir une spécialité secondaire en lettres sous réserve de l’accord des directeurs des études des départements concernés. \n\n- Doubles majeures du DENS \n\nLes doubles majeures du DENS sont délivrées à titre exceptionnel sous les conditions suivantes : \n\n- Un cursus complet dans une discipline (au sein d’un département de l’ENS) \n\n- Au moins deux années complètes dans la seconde discipline (L3-M1, M1-M2 ou L3-M2 équivalent à 120 ECTS) \n\n- Accord des deux départements"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## _**Filière mathématiques/biologie**_ \n\n- Les détails sont à vérifier auprès du responsable de filière M. Amaury Lambert (amaury.lambert@ens.psl.eu). \n\n▪ TROISIEME ANNEE \n\nL'obtention de la troisième année du DENS nécessite : \n\n- L'obtention de la seconde année du master de mathématique (M2) \n\n- La composition du _mémoire de Diplôme_ \n\n- Ce mémoire est formé d'un curriculum vitæ, de l'ensemble des travaux écrits réalisés lors de la scolarité, et d'un texte nouveau, entre 10 et 20 pages, appelé _Introduction au domaine de recherche (IDR),_ présentant de manière motivée le domaine de recherche dans lequel se placera le projet futur (thèse ou insertion professionnelle). Ce travail est présenté lors d’une soutenance orale, obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques (DENS). \n\n`o` La validation de cours supplémentaires _(facultatif)_ : \n\n- Cours de M2 des universités partenaires \n\n- Dynamique des équations des ondes semi-linéaires, Thomas Duyckaerts"
+      }
+    ]
+  },
+  {
+    "id": "L2_ENS_002",
+    "question": "Comment fonctionne le système de tutorat à l'ENS DMA et quel est le rôle du tuteur ?",
+    "reponse_attendue": "Chaque étudiant reçoit un tuteur membre du DMA, choisi aléatoirement en première année puis selon les préférences thématiques pour les années suivantes. Le tuteur aide l'étudiant à organiser sa scolarité, le conseille sur ses choix de thèmes de travail et de lecture, et constitue un appui pour son orientation. En début d'année, un programme d'études est co-signé par l'étudiant, le tuteur et le directeur des études, et transmis à la directrice des études sciences de l'ENS.",
+    "reponse_llm": "Le système de tutorat à l'ENS DMA est individualisé et supervisé par le directeur des études. Chaque année, un tuteur, membre du Département de Mathématiques et Applications de l'ENS, est affecté à chaque étudiant. Le choix du tuteur se fait en fonction des thèmes de préférence indiqués lors des journées d'entretien de fin d'année. \n",
+    "duree_secondes": 87.1,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "Le rôle des tuteur·ice·s est d'aider l'étudiant·e à l'organisation de sa scolarité, de le·a conseiller sur ses choix de thèmes de travail et de lecture, et d'être un appui crucial pour son orientation. Au début de chaque année, un programme d'études est mis au point par les étudiant·e·s, les tuteur·ice·s et le directeur des études du DMA, signé par ces parties et transmis à la directrice des études sciences de l’ENS. Ce programme régule les conditions de validations de l’année d’étude correspondante. Il est vivement recommandé d’aller voir régulièrement les tuteur·ice·s."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## TUTORAT \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nL'encadrement des étudiant·e·s en mathématiques est assuré par un système de tutorat individualisé, et supervisé par le directeur des études. Chaque année, un·e tuteur·ice, membre du Département de Mathématiques et Applications de l'ENS, est affecté·e à chaque étudiant. Choisi·e aléatoirement en première année, le choix sera fait, pour les autres années, en fonction des thèmes de préférence indiqués lors des journées d'entretien de fin d'année."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      }
+    ]
+  },
+  {
+    "id": "L2_ENS_003",
+    "question": "Quelles sont les conditions d'obtention de la troisième année du DENS, et en quoi consiste le mémoire de Diplôme ?",
+    "reponse_attendue": "L'obtention de la troisième année du DENS requiert : l'obtention du M2 de mathématiques ; la composition du mémoire de Diplôme, qui comprend un curriculum vitæ, l'ensemble des travaux écrits réalisés pendant la scolarité, et un texte nouveau de 10 à 20 pages appelé Introduction au domaine de recherche (IDR) présentant le domaine de recherche du projet futur (thèse ou insertion professionnelle) — ce mémoire fait l'objet d'une soutenance orale obligatoire. S'y ajoutent de manière facultative : des cours supplémentaires de M2, un groupe de travail auto-organisé, et un stage long. Une expérience à l'étranger au cours de la formation est requise pour la validation du DENS.",
+    "reponse_llm": "La troisième année du DENS nécessite l'obtention de la seconde année du master de mathématiques (M2), la composition d’un mémoire de diplôme et une soutenance orale obligatoire. \n\nLe mémoire de Diplôme est formé d'un curriculum vitæ, de l'ensemble des travaux écrits réalisés lors de la scolarité, et d'un texte nouveau, entre 10 et 20 pages, appelé _Introduction au domaine de recherche (IDR),_ présentant de manière motivée le domaine de recherche dans lequel se placera le projet futur (thèse ou insertion professionnelle). Ce travail est présenté lors d’une soutenance orale, obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques (DENS). \n",
+    "duree_secondes": 118.4,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## _**Filière mathématiques/biologie**_ \n\n- Les détails sont à vérifier auprès du responsable de filière M. Amaury Lambert (amaury.lambert@ens.psl.eu). \n\n▪ TROISIEME ANNEE \n\nL'obtention de la troisième année du DENS nécessite : \n\n- L'obtention de la seconde année du master de mathématique (M2) \n\n- La composition du _mémoire de Diplôme_ \n\n- Ce mémoire est formé d'un curriculum vitæ, de l'ensemble des travaux écrits réalisés lors de la scolarité, et d'un texte nouveau, entre 10 et 20 pages, appelé _Introduction au domaine de recherche (IDR),_ présentant de manière motivée le domaine de recherche dans lequel se placera le projet futur (thèse ou insertion professionnelle). Ce travail est présenté lors d’une soutenance orale, obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques (DENS). \n\n`o` La validation de cours supplémentaires _(facultatif)_ : \n\n- Cours de M2 des universités partenaires \n\n- Dynamique des équations des ondes semi-linéaires, Thomas Duyckaerts"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## Deuxième année \n\nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l’avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l’étranger, dans une université ou une entreprise. \n\nTroisième année \n\nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L’inscription dans une université est entièrement de la responsabilité de l’élève. Avec le·a tuteur·ice, l’élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires… \n\ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d’un domaine de recherche. Ce mémoire fait l’objet d’une soutenance orale obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques. \n\n## ▪"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      }
+    ]
+  },
+  {
+    "id": "L2_ENS_004",
+    "question": "Quelles sont les règles d'obtention du M1 (deuxième année) à l'ENS DMA en filière mathématiques ?",
+    "reponse_attendue": "Pour valider le M1 (60 ECTS), il faut : 3 cours fondamentaux de M1 parmi Algèbre 2, Analyse complexe, Analyse fonctionnelle, Géométrie différentielle, Logique, Processus stochastiques ou Optimisation et transport optimal (36 ECTS) ; 1 cours complémentaire de M1 parmi Analyse des EDP, Mathématiques des données, Spectre des surfaces hyperboliques aléatoires, Statistique, Systèmes dynamiques ou Topologie algébrique (12 ECTS) ; 1 groupe de travail (12 ECTS). Notes : Analyse complexe n'est comptabilisé pour le M1 que s'il ne compte pas pour la L3 ; plusieurs cours sont accessibles dès la 1ère année ; Processus stochastiques est recommandé pour la filière maths/biologie ; Spectre des surfaces hyperboliques aléatoires se tient au Collège de France.",
+    "reponse_llm": "L’obtention de la deuxième année du DENS nécessite en plus du M1 de mathématiques : \n--- \nSource: ENS.pdf \n  \n**- ORGANISATION DE LA FORMATION** \n\nLes cursus sont individuels et mis au point au début de chaque année avec les tuteur·ice·s, le directeur des études ou de l’enseignement et les encadrant·e·s du département de mathématiques. De nombreuses déclinaisons de cursus sont possibles : \n  - la filière mathématiques \n  - la filière mathématiques/informatique \n  - la filière mathématiques/physique \n  - la filière mathématiques/biologie \nLes filières pluridisciplinaires permettent, sous réserve de confirmation par le jury compétent, la validation d’une seconde spécialité pour le diplôme de l’ENS. \nL'équipe d'encadrement pourra examiner toute proposition individuelle cohérente de cursus présentée par les étudiant·e·s et s'inscrivant dans l'esprit de la formation. De façon générale, les élèves doivent obtenir l’aval de leur tuteur·ice et des directeurs des études pour tous les choix concernant leur programme d’études. \n  \n",
+    "duree_secondes": 123.0,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## LE DIPLOME DE L’ENS MAJEURE MATHEMATIQUES \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l’ENS (DENS) à l’issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites : \n\n- L’inscription au diplôme de l’ENS, obligatoire chaque année \n\n- La validation des trois années au DMA suivant les règles exposées dans cette brochure \n\n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master : \n\n   - Au moins 24 ECTS de cours mathématiques[1] \n\n   - Au moins 24 ECTS dans un ou plusieurs autres départements \n\n      - dont 12 ECTS de cours **scientifiques** non-mathématiques \n\n   - Au moins 24 ECTS libres dont ceux des expériences et des cours de langue \n\n   - Au moins 2 expériences d’ouverture \n\n   - La formation sur les grands enjeux \n\n- La validation d’un cours de langue par année d’inscription au DENS \n\n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- (1) Comptabilisé pour le M1 si ne compte pas pour la L3 \n\n- (2) Cours accessible dès la 1[ère] année \n\n- (3) Cours recommandé pour la filière maths/biologie \n\n- (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **22** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nL’obtention de la deuxième année du DENS nécessite en plus du M1 de mathématiques :"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## ORGANISATION DE LA FORMATION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes cursus sont individuels et mis au point au début de chaque année avec les tuteur·ice·s, le directeur des études ou de l’enseignement et les encadrant·e·s du département de mathématiques. De nombreuses déclinaisons de cursus sont possibles : \n\n- la filière mathématiques \n\n- la filière mathématiques/informatique \n\n- la filière mathématiques/physique \n\n- la filière mathématiques/biologie \n\nLes filières pluridisciplinaires permettent, sous réserve de confirmation par le jury compétent, la validation d’une seconde spécialité pour le diplôme de l’ENS. \n\nL'équipe d'encadrement pourra examiner toute proposition individuelle cohérente de cursus présentée par les étudiant·e·s et s'inscrivant dans l'esprit de la formation. De façon générale, les élèves doivent obtenir l’aval de leur tuteur·ice et des directeurs des études pour tous les choix concernant leur programme d’études."
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_001",
+    "question": "Qu'est-ce que la règle ABCD au M1 de Sorbonne Université et quels sont ses plafonds exacts, y compris la clause d'extension exceptionnelle ?",
+    "reponse_attendue": "La règle ABCD vise à éviter des parcours thématiquement trop étroits. Des points sont attribués aux cours dans quatre catégories : A = aléatoire, B = analyse, C = algèbre, D = informatique. Règle 1 : dans chacune des catégories A, B et C, la somme des points des cours choisis ne doit pas dépasser 33. Règle 2 : en catégorie D, la somme ne doit pas dépasser 18 ; cette limite peut être étendue exceptionnellement à 24 après avis favorable concerté entre le directeur d'études et les responsables pédagogiques du M1.",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis. \n",
+    "duree_secondes": 154.7,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## DEUXIEME ANNEE \n\nL’obtention de la première année de master (M1) requiert : \n\n**==> picture [477 x 335] intentionally omitted <==**\n\n**----- Start of picture text -----**<br>\n3 cours fondamentaux de M1 de mathématiques parmi :<br>o Algèbre 2<br>o Analyse complexe  [(1)]<br>o Analyse fonctionnelle  [(2)] 3 x 12 ECTS = 36 ECTS<br>o Géométrie différentielle  [(2)]<br>o Logique  [(2)]<br>o Processus stochastiques  [(3)]<br>o Optimisation et transport optimal  [(2)]<br>1 cours complémentaire de M1 de mathématiques parmi :<br>o Analyse des équations aux dérivées partielles<br>o Mathématiques des données<br>o Spectre des surfaces hyperboliques aléatoires  [(4)] 12 ECTS<br>o Statistique  [(2)]<br>o Systèmes dynamiques<br>o Topologie algébrique  [(2)]<br>Un groupe de travail 12 ECTS<br>Total 60 ECTS<br>**----- End of picture text -----**<br>\n\n\n- (1) Comptabilisé pour le M1 si ne compte pas pour la L3 \n\n- (2) Cours accessible dès la 1[ère] année"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## _**Filière mathématiques**_ \n\n- Un second cours de M1 complémentaire (peut être remplacé par la validation de 12 ECTS de cours de M2) \n\n- La validation de deux « cours avancés » (24 ECTS) \n\nChaque cours avancé est composé d’une partie cours sur 6 semaines, validée par un examen, puis d’une partie groupe de travail, validée par un ou plusieurs exposés. Les élèves valident deux « cours avancés » parmi : \n\nAnalyse rugueuse (probabilité et analyse) \n\nLa régularité elliptique et parabolique (analyse des ÉDP) \n\nThéorie géométrique des invariants \n\nLes cours avancés sont remplaçables par un stage long (4 mois minimum) ; un stage moins long, commençant au milieu du second semestre, permet d’être dispensé de la partie groupe de travail des cours avancés. \n\n**|** _Remarque : Une expérience à l’étranger est requise pour la validation du DENS._ **|** \n\n- Le mémoire et l’exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- (1) Comptabilisé pour le M1 si ne compte pas pour la L3 \n\n- (2) Cours accessible dès la 1[ère] année \n\n- (3) Cours recommandé pour la filière maths/biologie \n\n- (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **22** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nL’obtention de la deuxième année du DENS nécessite en plus du M1 de mathématiques :"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_002",
+    "question": "Quel est le rôle d'un directeur d'études (DE) au M1 de Sorbonne Université ?",
+    "reponse_attendue": "Le DE suit individuellement un groupe d'environ quinze étudiants de M1 tout au long de l'année. Après une prise de contact en septembre, il échange régulièrement avec eux sur leurs résultats et difficultés éventuelles, les conseille pour le choix de leurs cours et leur orientation en M2. Il est également responsable de son groupe pour l'UE d'OIP. Les redoublants ayant déjà validé l'OIP bénéficient néanmoins toujours d'un DE.",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis. \n",
+    "duree_secondes": 85.4,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "Le rôle des tuteur·ice·s est d'aider l'étudiant·e à l'organisation de sa scolarité, de le·a conseiller sur ses choix de thèmes de travail et de lecture, et d'être un appui crucial pour son orientation. Au début de chaque année, un programme d'études est mis au point par les étudiant·e·s, les tuteur·ice·s et le directeur des études du DMA, signé par ces parties et transmis à la directrice des études sciences de l’ENS. Ce programme régule les conditions de validations de l’année d’étude correspondante. Il est vivement recommandé d’aller voir régulièrement les tuteur·ice·s."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- (1) Comptabilisé pour le M1 si ne compte pas pour la L3 \n\n- (2) Cours accessible dès la 1[ère] année \n\n- (3) Cours recommandé pour la filière maths/biologie \n\n- (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **22** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nL’obtention de la deuxième année du DENS nécessite en plus du M1 de mathématiques :"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_003",
+    "question": "Comment est structurée l'année au M2 Ingénierie mathématique de Sorbonne Université, et quelles sont les quatre majeures disponibles ?",
+    "reponse_attendue": "L'année comprend trois blocs de cours à l'université (bloc de base 7 semaines, bloc fondamental 8 semaines, bloc de spécialisation 10 semaines), suivis d'un stage long en entreprise à partir d'avril (ou d'une alternance pour les apprentis). Les quatre majeures sont : IMPA (Ingénierie Mathématique Pour l'Aléatoire), IMPC (Ingénierie Mathématique Pour le Calcul scientifique), IFMA (Ingénierie Financière et Modèles Aléatoires), et SCDI (Sciences des Données pour l'Ingénieur, en partenariat avec l'ISUP).",
+    "reponse_llm": "La troisième année de la formation est consacrée à la deuxième année de master (M2). L’inscription dans une université est entièrement de la responsabilité de l’élève. Avec le·a tuteur·ice, l’élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires… \n",
+    "duree_secondes": 102.9,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## Deuxième année \n\nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l’avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l’étranger, dans une université ou une entreprise. \n\nTroisième année \n\nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L’inscription dans une université est entièrement de la responsabilité de l’élève. Avec le·a tuteur·ice, l’élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires… \n\ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d’un domaine de recherche. Ce mémoire fait l’objet d’une soutenance orale obligatoire pour la validation du diplôme de l’ENS avec mention ès Mathématiques. \n\n## ▪"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "**==> picture [10 x 10] intentionally omitted <==**\n\nPAGE **2** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l’École Normale Supérieure (DENS) ès Mathématiques. D’effectif sélectionné réduit (une cinquantaine d’étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu’une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l’Université Paris Cité, l’Université Paris-Dauphine – PSL, l’Université de Paris-Saclay, et l’Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master. \n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "## ORGANISATION DE LA FORMATION \n\n**==> picture [8 x 8] intentionally omitted <==**\n\nLes cursus sont individuels et mis au point au début de chaque année avec les tuteur·ice·s, le directeur des études ou de l’enseignement et les encadrant·e·s du département de mathématiques. De nombreuses déclinaisons de cursus sont possibles : \n\n- la filière mathématiques \n\n- la filière mathématiques/informatique \n\n- la filière mathématiques/physique \n\n- la filière mathématiques/biologie \n\nLes filières pluridisciplinaires permettent, sous réserve de confirmation par le jury compétent, la validation d’une seconde spécialité pour le diplôme de l’ENS. \n\nL'équipe d'encadrement pourra examiner toute proposition individuelle cohérente de cursus présentée par les étudiant·e·s et s'inscrivant dans l'esprit de la formation. De façon générale, les élèves doivent obtenir l’aval de leur tuteur·ice et des directeurs des études pour tous les choix concernant leur programme d’études."
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_004",
+    "question": "Quelles sont les trois majeures du M2 Probabilités et modèles aléatoires de Sorbonne Université, et quelle orientation professionnelle chacune cible-t-elle ?",
+    "reponse_attendue": "Les trois majeures sont : Théorie des Processus Stochastiques (orientée vers la recherche académique), Probabilités et Analyse (également orientée vers la recherche académique, co-organisée avec le parcours Mathématiques de la Modélisation), et Probabilités Appliquées (orientée vers une carrière industrielle, notamment via des stages et thèses CIFRE, ouverte aux profils ingénieurs).",
+    "reponse_llm": "Je ne trouve pas cette information dans les documents fournis. \n",
+    "duree_secondes": 150.9,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "| _Groupe de travail : Entropie - entre physique statistique, probabilités et EDPs_ (M1 S1) | ........... 59 | _Groupe de travail : Fatou, Julia, et les fondements de la dynamique holomorphe_ (M1 S1) | ........ 60 | _Groupe de travail : Géométrie spectrale et ergodicité quantique_ (M1 S1) | .................................. 61 | _Groupe de travail : Le polymère dirigé en milieu aléatoire_ (M1 S1) | ........................................... 62 | _Groupe de travail : Limites locales de cartes planaires et empilement de cercles_ (M1 S1) | ......... 63 | _Groupe de travail : Théorie cinétique et théorème de Lanford_ (M1 S1) | ...................................... 64 | _Groupe de travail : Théorie spectrale pour la mécanique quantique_ (M1 S1) | ............................. 65 | _Intégration et Probabilités_ (L3 S1) | ............................................................................................... 66 | _Logique_ (M1 S1)"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "`o` La validation de cours supplémentaires _(facultatif)_ : \n\n- Cours de M2 des universités partenaires \n\n- Dynamique des équations des ondes semi-linéaires, Thomas Duyckaerts \n\n- • Systèmes de particules en interaction, Cristina Toninelli \n\n- Dimension reduction and manifold learning, Eddie Aamari \n\n> `o` Un groupe de travail auto-organisé _(facultatif)._ \n\n- Un stage long à l'étranger, en province ou industriel _(facultatif)._ \n\n**|** _Remarque : une expérience à l’étranger au cours de la formation est requise pour la validation du Diplôme de l’ENS._ **|** \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **24** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": "?",
+        "content": "- Autour du modèle d’Ising \n\n- Congruence Ciseaux \n\nL. Rey PSL \n\nJ. Marché SU \n\n- Entropie : entre physique statistique, probabilités et EDPs      L.-P. Chaintron ENS \n\n- Fatou, Julia, et les fondements de la dynamique holomorphe  N. Tholozan CNRS \n\n- Géométrie spectrale et ergodicité quantique \n\n      - L. Benedetto ENS \n\n- \n\n- Limites locales de cartes planaires et empilement de cercles   A. Metz-Donnadieu ENS \n\n- Théorie cinétique et théorème de Lanford \n\n- Théorie spectrale pour la mécanique quantique \n\n- F. Fougères ENS \n\n- S. Perrin-Roussel ENS \n\nCours non mathématiques \n\nExemples de cours scientifiques non mathématiques disponibles dans la partie présentation des cours de la première année. \n\n**==> picture [384 x 9] intentionally omitted <==**\n\n**==> picture [10 x 11] intentionally omitted <==**\n\nPAGE **30** SUR 78 \n\n**- BROCHURE ENSEIGNEMENT 2024 2025** \n\n**==> picture [474 x 5] intentionally omitted <==**\n\n▪ TROISIEME ANNEE \n\nCours de mathématiques"
+      }
+    ]
+  }
+]

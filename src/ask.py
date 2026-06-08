@@ -59,11 +59,19 @@ def _merge(
     bm25_indices: list[int],                  # indices des meilleurs chunks BM25, triés par score décroissant
     bm25_chunks: list[tuple[str, dict]],      # tous les chunks avec leurs métadonnées
     n: int = K_RERANK,                        # nombre de chunks à retourner (K_RERANK = 10 par défaut)
+    max_per_source: int = 3,                  # plafond de chunks par source — voir note ci-dessous
 ) -> tuple[list[Document], list[tuple[str, float]]]:
     """
     Reciprocal Rank Fusion (RRF) : combine les classements sémantique et BM25.
     Formule : score(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
     Avantage : indépendant des valeurs brutes des scores, ne regarde que les positions.
+
+    max_per_source évite qu'un seul document monopolise les résultats lors d'une
+    recherche sur toute la base (plusieurs PDF). Quand retrieve() restreint déjà la
+    recherche à une ou plusieurs sources précises (cf. paramètre `sources`), tous les
+    candidats partagent la même source : le plafond ne ferait alors que tronquer la
+    liste fusionnée à `max_per_source` éléments avant même le re-ranking — c'est pour
+    ça que retrieve() le désactive (= n) dans ce cas.
     """
     scores: dict[str, float] = {}   # accumule le score RRF pour chaque chunk (clé = contenu texte)
     doc_map: dict[str, Document] = {}  # permet de retrouver l'objet Document depuis le contenu texte
@@ -85,13 +93,13 @@ def _merge(
     # Trie tous les chunks par score RRF décroissant (les plus pertinents en premier)
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-    # Filtre de diversité : max 3 chunks par document source
+    # Filtre de diversité : au plus `max_per_source` chunks par document source
     # Sans ce filtre, les 10 slots pourraient tous venir du même PDF
     source_count: dict[str, int] = {}
     top: list[tuple[str, float]] = []
     for key, score in ranked:
         source = doc_map[key].metadata.get("source", "?")
-        if source_count.get(source, 0) < 3:  # on accepte ce chunk si la source n'a pas encore 3 chunks
+        if source_count.get(source, 0) < max_per_source:  # on accepte ce chunk si la source n'a pas encore atteint le plafond
             source_count[source] = source_count.get(source, 0) + 1
             top.append((key, score))
         if len(top) == n:  # on s'arrête quand on a assez de chunks diversifiés
@@ -172,8 +180,14 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
             print(f"        ↳ {_fmt(text)}")
 
     # ── 3. Fusion RRF ─────────────────────────────────────────────────────────
-    # Combine les deux classements (sémantique + BM25) en un seul classement hybride
-    rrf_docs, rrf_ranking = _merge(raw_semantic, top_bm25, bm25_chunks)
+    # Combine les deux classements (sémantique + BM25) en un seul classement hybride.
+    # Si `sources` restreint déjà la recherche, tous les candidats partagent la même
+    # source : on désactive le plafond de diversité (max_per_source = K_RERANK, donc
+    # sans effet) pour ne pas tronquer la liste à 3 chunks avant le re-ranking.
+    rrf_docs, rrf_ranking = _merge(
+        raw_semantic, top_bm25, bm25_chunks,
+        max_per_source=K_RERANK if sources else 3,
+    )
 
     if verbose:
         print(f"\n[RRF] Top {K_RERANK} après fusion sémantique + BM25 :")

@@ -5,3 +5,9 @@ pycache/
 .env
 vector_db/
 test_embed.py
+
+# Résultats d'évaluation : générés localement par evaluate.py (dépendent de la machine,
+# du modèle installé, de l'horodatage...) — diffèrent forcément d'une personne à l'autre,
+# donc les versionner ne fait que provoquer des conflits de fusion à chaque push/pull.
+data/results.json
+data/results_*.json

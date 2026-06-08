@@ -114,7 +114,7 @@ Les résultats sont sauvegardés dans `data/results.json` après **chaque questi
 
 ### Lancer sur quelques questions (test rapide)
 
-Ouvre `src/evaluate.py` ligne 168 et ajoute `[:4]` :
+Ouvre `src/evaluate.py` ligne 194 et ajoute `[:4]` :
 
 ```python
 dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))[:4]

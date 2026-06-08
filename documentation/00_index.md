@@ -28,9 +28,9 @@
 | Fusion | RRF (Reciprocal Rank Fusion) | Combine les deux classements indépendamment des scores bruts |
 | Re-ranking | CrossEncoder `mmarco-mMiniLMv2` | Reclasse les 10 candidats RRF par pertinence réelle |
 | Modèle de génération | `gemma2:2b` (Ollama) | Rapide, tourne entièrement en local |
-| Chunks | 1000 caractères, overlap 200 | Assez grand pour une définition mathématique complète |
+| Chunks | Pipeline 3 étapes : titres → fusion micro-chunks → taille | Préserve la hiérarchie Markdown, évite les fragments courts, protège les tableaux |
 | Interface utilisateur | Streamlit | Interface web simple, lancée en local |
-| Évaluation | 5 métriques LLM-based | Faithfulness, Answer Relevancy, Context Quality, Context Recall, Answer Correctness |
+| Évaluation | 5 métriques LLM-judge custom (pas de dépendance RAGAS) | Faithfulness, Answer Relevancy, Context Quality, Context Recall, Answer Correctness |
 
 ## Structure du projet
 

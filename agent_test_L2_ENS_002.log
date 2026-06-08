@@ -1,0 +1,40 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 6188.01it/s]
+=== Question L2_ENS_002 ===
+Question : Comment fonctionne le système de tutorat à l'ENS DMA et quel est le rôle du tuteur ?
+Réponse attendue : Chaque étudiant reçoit un tuteur membre du DMA, choisi aléatoirement en première année puis selon les préférences thématiques pour les années suivantes. Le tuteur aide l'étudiant à organiser sa scolarité, le conseille sur ses choix de thèmes de travail et de lecture, et constitue un appui pour son orientation. En début d'année, un programme d'études est co-signé par l'étudiant, le tuteur et le directeur des études, et transmis à la directrice des études sciences de l'ENS.
+Source attendue : ENS (Brochure ENS DMA 2024-2025, Page 11)
+
+--- Lancement du RAG agentique ---
+[Agent] Source(s) ciblée(s) : ENS.pdf
+[Agent] Tentative(s) de retrieval : 1
+[Agent] Chunks jugés suffisants : oui
+
+=== RÉPONSE GÉNÉRÉE ===
+Le tutorat individualisé des étudiants en mathématiques de l'ENS est assuré par un système de tutorat individualisé, et supervisé par le directeur des études. Chaque année, un tuteur·ice, membre du Département de Mathématiques et Applications de l'ENS, est affecté·e à chaque étudiant. Choisi·e aléatoirement en première année, le choix sera fait, pour les autres années, en fonction des thèmes de préférence indiqués lors des journées d'entretien de fin d'année. 
+
+
+=== CHUNKS UTILISÉS (3) ===
+
+#1  source=ENS.pdf  page=12
+Ce passage décrit le rôle des tuteur·ice·s dans l'accompagnement des étudiants en mathématiques de l'ENS.
+
+Le rôle des tuteur·ice·s est d'aider l'étudiant·e à l'organisation de sa scolarité, de le·a conseiller sur ses choix de thèmes de travail et de lecture, et d'être un appui crucial pour son orientation. Au début de chaque année, un programme d'études est mis au point par les étudiant·e·s, les tuteur·ice·s et le directeur des études du DMA, signé par ces parties et transmis à la directrice des études sciences de l'ENS. Ce programme régule les conditions de validations de l'année d'étude cor
+
+#2  source=ENS.pdf  page=12
+Ce passage décrit le tutorat individualisé des étudiants en mathématiques de l'ENS.
+
+## TUTORAT  
+**==> picture [8 x 8] intentionally omitted <==**  
+L'encadrement des étudiant·e·s en mathématiques est assuré par un système de tutorat individualisé, et supervisé par le directeur des études. Chaque année, un·e tuteur·ice, membre du Département de Mathématiques et Applications de l'ENS, est affecté·e à chaque étudiant. Choisi·e aléatoirement en première année, le choix sera fait, pour les autres années, en fonction des thèmes de préférence indiqués lors des journées d'entretien de fin d'année.
+
+#3  source=ENS.pdf  page=10
+Ce passage décrit les conditions pour obtenir le Diplôme ès Mathématiques de l'ENS (DENS).
+
+## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  
+**==> picture [8 x 8] intentionally omitted <==**  
+Les normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  
+- L'inscription au diplôme de l'ENS, obligatoire chaque année  
+- La validation des trois années au DMA suivant les règles exposées dans cette brochure  
+- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  
+- Au moins 24 ECTS d

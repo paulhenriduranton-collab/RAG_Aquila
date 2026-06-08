@@ -1,0 +1,51 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights:  92%|█████████▏| 185/201 [00:00<00:00, 1827.23it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 1802.04it/s]
+=== Question L1_ENS_001 ===
+Question : Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?
+Réponse attendue : La formation du DENS dure trois ans.
+Source attendue : ENS (Brochure ENS DMA 2024-2025, Page 3 et page 8)
+
+--- Lancement du RAG agentique ---
+[Agent] Source(s) ciblée(s) : ENS.pdf
+[Agent] Tentative(s) de retrieval : 2
+[Agent] Chunks jugés suffisants : non
+
+=== RÉPONSE GÉNÉRÉE ===
+Je ne trouve pas cette information dans les documents fournis. 
+
+
+=== CHUNKS UTILISÉS (3) ===
+
+#1  source=ENS.pdf  page=10
+Ce passage concerne la formation et les exigences du Diplôme d'Enseignement des Mathématiques de l'ENS.
+
+- La formation sur les grands enjeux  
+- La validation d'un cours de langue par année d'inscription au DENS  
+> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  
+**==> picture [384 x 9] intentionally omitted <==**  
+**==> picture [10 x 10] intentionally omitted <==**  
+PAGE **9** SUR 78
+
+#2  source=ENS.pdf  page=25
+Ce passage décrit les conditions d'obtention de la troisième année du DENS en mathématiques/biologie.
+
+## _**Filière mathématiques/biologie**_  
+- Les détails sont à vérifier auprès du responsable de filière M. Amaury Lambert (amaury.lambert@ens.psl.eu).  
+▪ TROISIEME ANNEE  
+L'obtention de la troisième année du DENS nécessite :  
+- L'obtention de la seconde année du master de mathématique (M2)  
+- La composition du _mémoire de Diplôme_  
+- Ce mémoire est formé d'un curriculum vitæ, de l'ensemble des travaux écrits réalisés lors de la scolarité, et d'un texte nouveau, entre 10 et 20 pages, app
+
+#3  source=ENS.pdf  page=20
+Ce passage décrit les exigences d'obtention de la première année du DENS à l'ENS.
+
+## _**Filière mathématiques**_  
+- Un cours fondamental de M1 de mathématiques (s'il ne compte pas pour la L3) parmi : Algèbre 2  
+Analyse complexe Analyse fonctionnelle Géométrie différentielle  
+Logique Optimisation et transport optimal  
+- Un groupe de lecture parmi :  
+Arbres, marches et graphes aléatoires, Igor Kortchemski CNRS  
+Des équations différentielles à la géométrie, la correspondance de Riemann-Hilbert, Thomas Serafini SU  
+Graphes expanseurs, Julien Marché SU  
+Introduction à la modélisation mathé

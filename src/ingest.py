@@ -26,7 +26,7 @@ CONTEXT_PROMPT = """Voici une page extraite d'un document :
 Voici un passage de cette page qui sera indexé séparément pour la recherche :
 {chunk}
 
-En une phrase courte (15 mots maximum), situe ce passage : à quel établissement, quelle section ou quel sujet appartient-il ? Réponds uniquement par cette phrase, sans préambule ni guillemets."""
+Écris une phrase complète (15 mots maximum) qui situe ce passage. La phrase doit mentionner l'établissement (Sorbonne Université ou ENS), le niveau (Master 1 ou Master 2) et le sujet précis du passage. Réponds uniquement par cette phrase, sans préambule ni guillemets."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
@@ -123,9 +123,29 @@ def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM
     return result
 
 
+MIN_CONTENT_SIZE = 30  # taille minimale du contenu utile d'un chunk (hors phrase de contexte LLM)
+TOC_DOT_RATIO = 0.3   # proportion minimale de lignes avec points de suspension pour détecter une TdM
+
+
+def _is_toc_page(text: str) -> bool:
+    """
+    Détecte une page de table des matières en comptant les lignes contenant des points de
+    suspension ('. . .' ou '...'), caractéristiques des entrées de TdM type
+    '1.1  Objectifs . . . . . . . . . . 7'. Ces pages n'apportent aucune information
+    récupérable par la recherche : elles listent uniquement des numéros de pages.
+    """
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return False
+    dot_lines = sum(1 for l in lines if ". . ." in l or "..." in l)
+    return dot_lines / len(lines) > TOC_DOT_RATIO
+
+
 def _split_documents(documents: list[Document]) -> list[Document]:
     """
-    Pipeline de découpage en quatre étapes :
+    Pipeline de découpage en cinq étapes :
+    0. Filtre les pages de table des matières (points de suspension > 30 % des lignes) —
+       ces pages ne contiennent que des numéros de pages et polluent la recherche.
     1. MarkdownHeaderTextSplitter — coupe sur les titres (##, ###) et met le chemin de titres
        en métadonnée de chaque chunk. Cela permet à l'embedding de savoir dans quelle section
        se trouve le chunk, évitant les confusions entre sections sémantiquement proches.
@@ -133,7 +153,9 @@ def _split_documents(documents: list[Document]) -> list[Document]:
        des petits titres) avec la suivante, pour éviter des micro-chunks trop pauvres en contexte.
     3. RecursiveCharacterTextSplitter — coupe les sections encore trop longues en sous-chunks
        de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
-    4. _contextualize_chunks — ajoute en tête de chaque chunk final une phrase de contexte
+    4. Filtre les chunks dont le contenu utile est trop court (< MIN_CONTENT_SIZE) — évite
+       d'envoyer au LLM des chunks ne contenant qu'un numéro de page ou un symbole isolé.
+    5. _contextualize_chunks — ajoute en tête de chaque chunk final une phrase de contexte
        générée par le LLM à partir de sa page d'origine (établissement / section / sujet),
        pour que la recherche dispose d'un signal explicite même sur un chunk isolé.
     """
@@ -151,6 +173,12 @@ def _split_documents(documents: list[Document]) -> list[Document]:
 
     all_chunks = []
     for i, doc in enumerate(documents):
+        # Étape 0 : ignore les pages de table des matières
+        if _is_toc_page(doc.page_content):
+            print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
+                  f"→ table des matières ignorée", flush=True)
+            continue
+
         # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
         header_chunks = header_splitter.split_text(doc.page_content)
         for hc in header_chunks:
@@ -162,7 +190,13 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         # Étape 3 : découpe par taille si une section dépasse 1000 caractères
         sub_chunks = size_splitter.split_documents(merged_chunks)
 
-        # Étape 4 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
+        # Étape 4 : filtre les chunks dont le contenu utile est trop court
+        sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
+
+        if not sub_chunks:
+            continue
+
+        # Étape 5 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
         sub_chunks = _contextualize_chunks(sub_chunks, doc.page_content, context_llm)
 
         all_chunks.extend(sub_chunks)

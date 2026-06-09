@@ -59,7 +59,7 @@ def _merge(
     bm25_indices: list[int],                  # indices des meilleurs chunks BM25, triés par score décroissant
     bm25_chunks: list[tuple[str, dict]],      # tous les chunks avec leurs métadonnées
     n: int = K_RERANK,                        # nombre de chunks à retourner (K_RERANK = 10 par défaut)
-    max_per_source: int = 3,                  # plafond de chunks par source — voir note ci-dessous
+    max_per_source: int = 5,                  # plafond de chunks par source — voir note ci-dessous
 ) -> tuple[list[Document], list[tuple[str, float]]]:
     """
     Reciprocal Rank Fusion (RRF) : combine les classements sémantique et BM25.
@@ -67,10 +67,11 @@ def _merge(
     Avantage : indépendant des valeurs brutes des scores, ne regarde que les positions.
 
     max_per_source évite qu'un seul document monopolise les résultats lors d'une
-    recherche sur toute la base (plusieurs PDF). Quand retrieve() restreint déjà la
-    recherche à une ou plusieurs sources précises (cf. paramètre `sources`), tous les
-    candidats partagent la même source : le plafond ne ferait alors que tronquer la
-    liste fusionnée à `max_per_source` éléments avant même le re-ranking — c'est pour
+    recherche sur toute la base (plusieurs PDF). Avec 2 sources et n=10, un plafond
+    de 5 permet d'atteindre les 10 chunks voulus (5+5). Quand retrieve() restreint
+    déjà la recherche à une ou plusieurs sources précises (cf. paramètre `sources`),
+    tous les candidats partagent la même source : le plafond ne ferait alors que
+    tronquer la liste à `max_per_source` éléments avant le re-ranking — c'est pour
     ça que retrieve() le désactive (= n) dans ce cas.
     """
     scores: dict[str, float] = {}   # accumule le score RRF pour chaque chunk (clé = contenu texte)

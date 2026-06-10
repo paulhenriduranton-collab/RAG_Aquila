@@ -8,7 +8,7 @@ from sentence_transformers import CrossEncoder  # re-ranker : évalue chaque pai
 
 # Chemins calculés dynamiquement depuis l'emplacement de ce fichier
 BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet (remonte 2 niveaux depuis src/)
-VECTOR_DB_DIR = BASE_DIR / "vector_db"             # base vectorielle Chroma sauvegardée sur disque
+VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envoyé au LLM
 
 # Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma2:2b)

@@ -3,7 +3,7 @@ venv/
 pycache/
 *.pyc
 .env
-vector_db/
+# vector_db/  # décommenté : la base est versionnée pour Colab
 test_embed.py
 
 # Résultats d'évaluation : générés localement par evaluate.py (dépendent de la machine,

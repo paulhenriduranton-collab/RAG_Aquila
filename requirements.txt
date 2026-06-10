@@ -6,6 +6,7 @@ chromadb
 pypdf
 pymupdf4llm
 docx2txt
+ftfy
 requests
 rank_bm25
 sentence-transformers

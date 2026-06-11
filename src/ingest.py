@@ -20,13 +20,15 @@ MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk es
 # page complète d'où il provient. Cette phrase est ensuite préfixée au chunk avant indexation :
 # un chunk isolé ("stage d'au moins 4 mois") ne dit pas de lui-même à quel établissement il
 # appartient — l'embedding et BM25 ne lisent jamais les métadonnées, seulement le texte indexé.
-CONTEXT_PROMPT = """Voici une page extraite d'un document :
+CONTEXT_PROMPT = """Ce passage provient du fichier {source}.
+
+Voici la page complète d'où il est extrait :
 {page}
 
-Voici un passage de cette page qui sera indexé séparément pour la recherche :
+Voici le passage qui sera indexé séparément pour la recherche :
 {chunk}
 
-Écris une phrase complète (15 mots maximum) qui situe ce passage. La phrase doit mentionner l'établissement (Sorbonne Université ou ENS), le niveau (Master 1 ou Master 2) et le sujet précis du passage. Réponds uniquement par cette phrase, sans préambule ni guillemets."""
+Écris une phrase complète (15 mots maximum) qui situe ce passage. La phrase doit mentionner l'établissement indiqué dans le nom de fichier, le niveau (Master 1 ou Master 2) et le sujet précis du passage. Réponds uniquement par cette phrase, sans préambule ni guillemets."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
@@ -115,7 +117,8 @@ def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM
     """
     result = []
     for chunk in chunks:
-        prompt = CONTEXT_PROMPT.format(page=page_text, chunk=chunk.page_content)
+        source = chunk.metadata.get("source", "document inconnu")  # nom du fichier PDF d'origine
+        prompt = CONTEXT_PROMPT.format(source=source, page=page_text, chunk=chunk.page_content)
         lines = llm.invoke(prompt).strip().splitlines()
         context_line = lines[0].strip() if lines else ""
         new_content = f"{context_line}\n\n{chunk.page_content}" if context_line else chunk.page_content

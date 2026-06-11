@@ -11,10 +11,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet (remonte 2
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envoyé au LLM
 
-# Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma4:12b / gemma2:2b)
+# Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma4:12b)
 EMBED_MODEL = "bge-m3"    # modèle d'embedding multilingue — DOIT être le même que dans ingest.py
-GEN_MODEL = "gemma4:12b"  # LLM qui génère la réponse finale à partir des chunks récupérés
-HYDE_MODEL = "gemma2:2b"  # LLM léger pour HyDE — génère une réponse fictive, pas besoin du 12b
+GEN_MODEL = "gemma4:12b"  # LLM utilisé pour HyDE et la génération finale
 RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue (HuggingFace)
 
 # Paramètres du pipeline de retrieval
@@ -24,8 +23,7 @@ K_FINAL = 5       # nombre de chunks gardés après re-ranking — ce sont eux q
 RRF_K = 60        # constante de la formule RRF — valeur standard, ne pas changer sans raison
 
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
-llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)        # temperature=0 = réponses déterministes (pas d'aléatoire)
-hyde_llm = OllamaLLM(model=HYDE_MODEL, num_ctx=2048, temperature=0)  # modèle léger — HyDE n'a pas besoin d'un grand contexte
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
 reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
 
 # Variables globales pour le cache BM25 — l'index est coûteux à construire donc on le garde en mémoire
@@ -140,7 +138,7 @@ Réponds directement, sans introduction ni guillemets."""
 
 def _hyde(question: str) -> str:
     """Génère une réponse hypothétique (HyDE) pour améliorer la recherche sémantique."""
-    return hyde_llm.invoke(HYDE_PROMPT.format(question=question)).strip()
+    return llm.invoke(HYDE_PROMPT.format(question=question)).strip()
 
 
 def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True) -> list[Document]:

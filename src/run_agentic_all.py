@@ -5,7 +5,10 @@ import sys
 import time
 from pathlib import Path
 
-sys.stdout.reconfigure(encoding="utf-8")
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # nécessaire sur Windows, pas disponible dans Jupyter
+except AttributeError:
+    pass
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agent import ask_question_agentic
 

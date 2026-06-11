@@ -1,0 +1,317 @@
+[
+  {
+    "id": "L1_ENS_001",
+    "question": "Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?",
+    "reponse_attendue": "La formation du DENS dure trois ans.",
+    "reponse_llm": "La formation du Diplôme de l'ENS ès Mathématiques (DENS) dure trois ans. \n",
+    "duree_secondes": 9.2,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 9,
+        "content": "Sorbonne Université - Master 2 - Formation en mathématiques pure et appliquée\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**\n\n## **PRÉSENTATION**\n\n## OBJECTIFS  \nLe Diplôme de l'ENS ès Mathématiques, DENS, assure une formation originale d'excellence de mathématicien·ne·s pur·e·s et appliqué·e·s, ayant acquis de solides connaissances dans d'autres disciplines (informatique, physique, biologie, …). Il s'agit d'une formation de trois ans à la recherche et par la recherche. Son atout majeur est un rythme plus rapide rendu possible par un encadrement renforcé, notamment grâce à un tutorat individuel. Plusieurs cursus sont possibles dont des cursus pluridisciplinaires."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 4,
+        "content": "Sorbonne Université, Master 1, Théorie des nombres.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** Ld  \nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l'École Normale Supérieure (DENS) ès Mathématiques. D'effectif sélectionné réduit (une cinquantaine d'étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu'une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l'Université Paris Cité, l'Université Paris-Dauphine – PSL, l'Université de Paris-Saclay, et l'Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master.  \n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer  \n**|** Secrétariat pédagogique : Yue Teng  \n> 45 rue d'Ulm 75230 Paris Cedex 05"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, sujet \"Candidature au diplôme de l'ENS\".\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \nDes possibilités de sortie en cours de formation vers les filières universitaires peuvent être aménagées en accord avec les universités partenaires.\n\n## CANDIDATURE 2024-2025  \nLe recrutement au diplôme de l'ENS ès Mathématiques (DENS) s'effectue par une sélection rigoureuse, sur dossier et entretien. Il est ouvert aux étudiant·e·s ayant validé les deux ou trois premières années de la licence ou d'un diplôme étranger équivalent.  \nToutes les informations se trouvent sur les sites suivants :  \n- Site enseignement des mathématiques : https://www.math.ens.psl.eu/lenseignement  \n- Site de l'ÉNS : https://www.ens.psl.eu/une-formation-d-exception/admission-concours"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 25,
+        "content": "Sorbonne Université, Master 2, Théorie des systèmes dynamiques.\n\n## TROISIEME ANNEE  \nL'obtention de la troisième année du DENS nécessite :  \n- L'obtention de la seconde année du master de mathématique (M2)  \n- La composition du _mémoire de Diplôme_  \n- Ce mémoire est formé d'un curriculum vitæ, de l'ensemble des travaux écrits réalisés lors de la scolarité, et d'un texte nouveau, entre 10 et 20 pages, appelé _Introduction au domaine de recherche (IDR),_ présentant de manière motivée le domaine de recherche dans lequel se placera le projet futur (thèse ou insertion professionnelle). Ce travail est présenté lors d'une soutenance orale, obligatoire pour la validation du diplôme de l'ENS avec mention ès Mathématiques (DENS).  \n`o` La validation de cours supplémentaires _(facultatif)_ :  \n- Cours de M2 des universités partenaires  \n- Dynamique des équations des ondes semi-linéaires, Thomas Duyckaerts  \n- • Systèmes de particules en interaction, Cristina Toninelli  \n- Dimension reduction and manifold learning, Eddie Aamari"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_002",
+    "question": "Quels sont les quatre cours communs obligatoires de première année (L3) pour toutes les filières à l'ENS DMA ?",
+    "reponse_attendue": "Les quatre cours communs obligatoires sont : Algèbre 1, Analyse complexe, Intégration et probabilités, et Topologie et calcul différentiel (12 ECTS chacun, total 48 ECTS).",
+    "reponse_llm": "Les quatre cours communs obligatoires de première année (L3) pour toutes les filières à l'ENS DMA sont : \n* Algèbre 1\n* Analyse complexe\n* Intégration et probabilités\n* Topologie et calcul différentiel \n",
+    "duree_secondes": 12.5,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 19,
+        "content": "Sorbonne Université - Master 1 - Initiation à la cryptologie\n\n## REGLES D'OBTENTION  \n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l'ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|**  \n▪  \nPREMIERE ANNEE  \nLa licence troisième année (L3) de mathématiques nécessite selon les filières :  \n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>o<br>Algèbre 1<br>o<br>Analyse complexe<br>o<br>Intégration et probabilités<br>o<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>o<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>o<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d'interface math-biologie||"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "Sorbonne Université, Master 2, cours spécial \"théorie de Yang-Mills plane\" proposé par Thibaut Lemoine (Collège de France).\n\n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année  \n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d'un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie.  \n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France).  \n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**  \ni— PAGE **23** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 20,
+        "content": "Sorbonne Université, Master 1, cours de mathématiques.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|  \nL'obtention de la première année du DENS nécessite, outre la L3 de mathématiques :"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 20,
+        "content": "Sorbonne Université, Master 1, cours de mathématiques Fondamentales.\n\n## _**Filières pluridisciplinaires**_\n\n## _**Mathématiques/Physique**_  \nLes élèves s'inscrivent en L3 de mathématiques et en L3 de physique. L'obtention de la première année nécessite, en plus de la L3 de mathématiques, l'obtention de la L3 de physique :  \n- Des cours de physique de niveau licence recommandés par la FIP équivalents à deux cours par semestre pour un total de 36 ECTS  \n- Physique statistique des systèmes en équilibre (9 ECTS, 1[er] semestre)  \n- Introduction à la mécanique quantique (9 ECTS, 1[er] semestre)  \ni— PAGE **19** SUR 78 >"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_003",
+    "question": "Combien d'ECTS faut-il valider en première année (L3) à l'ENS DMA ?",
+    "reponse_attendue": "Il faut valider 60 ECTS pour la première année (L3).",
+    "reponse_llm": "Il faut valider un minimum de 6 ECTS en première année (L3) à l'ENS DMA. \n",
+    "duree_secondes": 42.8,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 19,
+        "content": "Sorbonne Université - Master 1 - Initiation à la cryptologie\n\n## REGLES D'OBTENTION  \n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l'ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|**  \n▪  \nPREMIERE ANNEE  \nLa licence troisième année (L3) de mathématiques nécessite selon les filières :  \n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>o<br>Algèbre 1<br>o<br>Analyse complexe<br>o<br>Intégration et probabilités<br>o<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>o<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>o<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d'interface math-biologie||"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 20,
+        "content": "Sorbonne Université, Master 1, cours de mathématiques.\n\n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 21,
+        "content": "Sorbonne Université - Master 2 - Mathématiques/Informatique\n\n## _**Mathématiques/Informatique**_  \nLes élèves s'inscrivent en L3 de mathématiques. L'obtention de la première année demande, en plus de la L3 de mathématiques, l'obtention de la L3 d'informatique :  \n- Des cours d'informatique de niveau licence équivalents à 36 ECTS parmi :  \n_Semestre 1 :_  \nAlgorithmique et programmation (9 ECTS) Systèmes numériques (9 ECTS) Langages de programmation et de compilation (9 ECTS) Langages formels, calculabilité et complexité (9 ECTS)  \nStructures et algorithmes aléatoires (9 ECTS)  \n_Semestre 2 :_  \nApprentissage statistique (9 ECTS) Systèmes et réseaux (9 ECTS) Sémantique et application à la vérification de programmes (9 ECTS) Informatique scientifique par la pratique (9 ECTS) Initiation à la cryptologie ( **Obligatoire** , 12 ECTS) Théorie de l'information et codage (9 ECTS) Bases de données (9 ECTS)  \nLambda calcul et logique informatique (6 ECTS, à l'ENS de Paris Saclay)"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 20,
+        "content": "Sorbonne Université, Master 1, cours de mathématiques Fondamentales.\n\n## _**Filières pluridisciplinaires**_\n\n## _**Mathématiques/Physique**_  \nLes élèves s'inscrivent en L3 de mathématiques et en L3 de physique. L'obtention de la première année nécessite, en plus de la L3 de mathématiques, l'obtention de la L3 de physique :  \n- Des cours de physique de niveau licence recommandés par la FIP équivalents à deux cours par semestre pour un total de 36 ECTS  \n- Physique statistique des systèmes en équilibre (9 ECTS, 1[er] semestre)  \n- Introduction à la mécanique quantique (9 ECTS, 1[er] semestre)  \ni— PAGE **19** SUR 78 >"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_004",
+    "question": "Qui assure la direction des études du DMA à l'ENS en 2024-2025 ?",
+    "reponse_attendue": "La direction des études du DMA est assurée par Djalil Chafaï et Cyril Houdayer.",
+    "reponse_llm": "Djalil Chafaï et Cyril Houdayer assurent la direction des études du DMA à l'ENS en 2024-2025. \n",
+    "duree_secondes": 38.0,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 4,
+        "content": "Sorbonne Université, Master 1, Théorie des nombres.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** Ld  \nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l'École Normale Supérieure (DENS) ès Mathématiques. D'effectif sélectionné réduit (une cinquantaine d'étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu'une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l'Université Paris Cité, l'Université Paris-Dauphine – PSL, l'Université de Paris-Saclay, et l'Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master.  \n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer  \n**|** Secrétariat pédagogique : Yue Teng  \n> 45 rue d'Ulm 75230 Paris Cedex 05"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 2,
+        "content": "Sorbonne Université - Master 2 - Enseignement\n\n## **DÉPARTEMENT DE MATHÉMATIQUES ET APPLICATIONS**\n\n## Lo **DIRECTION DES ÉTUDES**\n\n## 2024-2025\n\n## Brochure\n\n## Enseignement  \n45 rue d'Ulm 75230 Paris Cedex 05 | 01 44 32 31 72 | education@dma.ens.fr"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 9,
+        "content": "Sorbonne Université - Master 2 - Formation en mathématiques pure et appliquée\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**\n\n## **PRÉSENTATION**\n\n## OBJECTIFS  \nLe Diplôme de l'ENS ès Mathématiques, DENS, assure une formation originale d'excellence de mathématicien·ne·s pur·e·s et appliqué·e·s, ayant acquis de solides connaissances dans d'autres disciplines (informatique, physique, biologie, …). Il s'agit d'une formation de trois ans à la recherche et par la recherche. Son atout majeur est un rythme plus rapide rendu possible par un encadrement renforcé, notamment grâce à un tutorat individuel. Plusieurs cursus sont possibles dont des cursus pluridisciplinaires."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 4,
+        "content": "Sorbonne Université, Master 1, Théorie des nombres.\n\n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer  \n**|** Secrétariat pédagogique : Yue Teng  \n> 45 rue d'Ulm 75230 Paris Cedex 05  \n> 01 44 32 31 72 - education@dma.ens.f ~~_~~ r https://www.math.ens.psl.eu/lenseignement  \nPAGE **3** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, sujet \"Candidature au diplôme de l'ENS\".\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \nDes possibilités de sortie en cours de formation vers les filières universitaires peuvent être aménagées en accord avec les universités partenaires.\n\n## CANDIDATURE 2024-2025  \nLe recrutement au diplôme de l'ENS ès Mathématiques (DENS) s'effectue par une sélection rigoureuse, sur dossier et entretien. Il est ouvert aux étudiant·e·s ayant validé les deux ou trois premières années de la licence ou d'un diplôme étranger équivalent.  \nToutes les informations se trouvent sur les sites suivants :  \n- Site enseignement des mathématiques : https://www.math.ens.psl.eu/lenseignement  \n- Site de l'ÉNS : https://www.ens.psl.eu/une-formation-d-exception/admission-concours"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_005",
+    "question": "Quelles sont les quatre filières proposées par le DMA de l'ENS ?",
+    "reponse_attendue": "Les quatre filières sont : la filière mathématiques, la filière mathématiques/informatique, la filière mathématiques/physique, et la filière mathématiques/biologie.",
+    "reponse_llm": "Les quatre filières proposées par le DMA de l'ENS sont :  \n- la filière mathématiques \n- la filière mathématiques/informatique \n- la filière mathématiques/physique \n- la filière mathématiques/biologie \n",
+    "duree_secondes": 44.1,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "Sorbonne Université, Master 2, cours spécial \"théorie de Yang-Mills plane\" proposé par Thibaut Lemoine (Collège de France).\n\n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année  \n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d'un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie.  \n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France).  \n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**  \ni— PAGE **23** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 32,
+        "content": "Sorbonne Université, Master 2, Dynamique des équations des ondes semi-linéaires.\n\n## ENSEIGNEMENTS HORS DEPARTEMENT  \nLe DMA offre également un ensemble de cours de mathématiques dans d'autres départements de l'ENS.  \n- Mathématiques pour littéraires  \n- Statistique pour économistes  \n- Mathématiques pour économistes  \n- Probabilités discrètes pour physicien·ne·s  \n- F. Fougères ENS  \nM. Malvy ENS  \n- O. Rameh ENS  \n- C. Toninelli CNRS/PSL  \nPAGE **31** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 9,
+        "content": "Sorbonne Université - Master 2 - Formation en mathématiques pure et appliquée\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**\n\n## **PRÉSENTATION**\n\n## OBJECTIFS  \nLe Diplôme de l'ENS ès Mathématiques, DENS, assure une formation originale d'excellence de mathématicien·ne·s pur·e·s et appliqué·e·s, ayant acquis de solides connaissances dans d'autres disciplines (informatique, physique, biologie, …). Il s'agit d'une formation de trois ans à la recherche et par la recherche. Son atout majeur est un rythme plus rapide rendu possible par un encadrement renforcé, notamment grâce à un tutorat individuel. Plusieurs cursus sont possibles dont des cursus pluridisciplinaires."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 15,
+        "content": "Sorbonne Université - Master 1 - Filiales de Mathématiques et de leurs interdisciplinarités.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** Ld\n\n## **ENSEIGNEMENT**\n\n## ORGANISATION DE LA FORMATION  \nLes cursus sont individuels et mis au point au début de chaque année avec les tuteur·ice·s, le directeur des études ou de l'enseignement et les encadrant·e·s du département de mathématiques. De nombreuses déclinaisons de cursus sont possibles :  \n- la filière mathématiques  \n- la filière mathématiques/informatique  \n- la filière mathématiques/physique  \n- la filière mathématiques/biologie  \nLes filières pluridisciplinaires permettent, sous réserve de confirmation par le jury compétent, la validation d'une seconde spécialité pour le diplôme de l'ENS.  \nL'équipe d'encadrement pourra examiner toute proposition individuelle cohérente de cursus présentée par les étudiant·e·s et s'inscrivant dans l'esprit de la formation. De façon générale, les élèves doivent obtenir l'aval de leur tuteur·ice et des directeurs des études pour tous les choix concernant leur programme d'études.  \nPAGE **14** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 16,
+        "content": "Sorbonne Université, Master 1, filières pluridisciplinaires. Ces formations permettent aux étudiant·e·s de poursuivre une double formation ou de repousser d'une année le choix entre deux disciplines.\n\n## ▪\n\n## FILIERES PLURIDISCIPLINAIRES  \nCes cursus exigeants sont une spécificité de l'ENS. Organisées conjointement entre le département de mathématiques et les départements de physique, d'informatique ou de biologie, ces formations permettent :  \n- aux étudiant·e·s motivé·e·s de poursuivre une double formation ;  \n- aux étudiant·e·s encore indécis·e·s de repousser d'une année le choix entre deux disciplines.  \nPAGE **15** SUR 78 >"
+      }
+    ]
+  },
+  {
+    "id": "L1_ENS_006",
+    "question": "Quand ont lieu les examens du premier semestre 2024-2025 à l'ENS DMA ?",
+    "reponse_attendue": "Les examens du premier semestre ont lieu du lundi 20 janvier au vendredi 24 janvier 2025.",
+    "reponse_llm": "Du lundi 20 janvier au vendredi 24 janvier 2025. \n",
+    "duree_secondes": 39.6,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 14,
+        "content": "Sorbonne Université - Master 2 - Exposés de mathématiques de première année\n\n## **Deuxième semestre :**\n\n## **Début des cours**  \nMardi 3 février 2025\n\n## **Vacances**  \nVacances d'hiver : du samedi 22 février au dimanche 2 mars 2025 Vacances de printemps : du samedi 19 avril au dimanche 27 avril 2025\n\n## **Fin des cours**  \nVendredi 23 mai 2025\n\n## **Examens du second semestre**  \nDu lundi 2 juin au vendredi 6 juin 2025\n\n## **Exposés de mathématiques de première année**  \nDu mardi 10 juin au vendredi 13 juin 2025\n\n## **Commissions des études 2024-2025**  \n1ère session (première et deuxième années) : vendredi 20 juin 2025 2ère session (première et deuxième années) : vendredi 19 septembre 2025  \ni PAGE **13** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 14,
+        "content": "Sorbonne Université - Master 1 - Exposés de mathématiques de première année\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**\n\n## |  \nVacances de la Toussaint : du samedi 26 octobre au dimanche 3 novembre 2024 Vacances de Noël : du samedi 21 décembre 2024 au dimanche 5 janvier 2025\n\n## **Fin des cours**  \nVendredi 17 janvier 2025\n\n## **Examens du premier semestre**  \nDu lundi 20 janvier au vendredi 24 janvier 2025\n\n## **Réunion de présentation du second semestre**  \nMercredi 15 janvier 2025 à 13h30, salle Cartan"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 32,
+        "content": "Sorbonne Université, Master 1, cours de dynamique des équations des ondes semi-linéaires.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n▪ TROISIEME ANNEE  \nCours de mathématiques\n\n## **Premier semestre :**  \nL'auto-organisation de groupes de travail est vivement recommandée. Elle peut être encadrée, si besoin, par un·e enseignant·e du DMA.\n\n## **Deuxième semestre :**  \nLes cours suivants peuvent être validés dans le cadre du DENS (9 ECTS, 24h cours). Ils peuvent aussi souvent être validés dans le cadre d'un M2, voir le responsable pédagogique du M2 d'inscription pour les conditions pédagogiques.  \n- Dynamique des équations des ondes semi-linéaires  \n- T. Duyckaerts USPN  \n- Systèmes de particules en interaction  \n- C. Toninelli CNRS/PSL  \n-"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 4,
+        "content": "Sorbonne Université, Master 1, Théorie des nombres.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** Ld  \nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l'École Normale Supérieure (DENS) ès Mathématiques. D'effectif sélectionné réduit (une cinquantaine d'étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu'une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l'Université Paris Cité, l'Université Paris-Dauphine – PSL, l'Université de Paris-Saclay, et l'Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master.  \n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer  \n**|** Secrétariat pédagogique : Yue Teng  \n> 45 rue d'Ulm 75230 Paris Cedex 05"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 26,
+        "content": "Sorbonne Université, Master 1, Logique.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|  \na COURS DE L'ANNEE SCOLAIRE 2024-2025  \n▪ PREMIERE ANNEE  \nCours mathématiques – cours des cursus mixtes"
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_001",
+    "question": "Quels sont les sept parcours de M2 proposés par le Master Mathématiques et Applications de Sorbonne Université ?",
+    "reponse_attendue": "Les sept parcours sont : agr (Agrégation de Mathématiques), fin (Probabilités et Finance), ing (Ingénierie mathématique), maf (Mathématiques fondamentales), mod (Mathématiques de la modélisation), pro (Probabilités et modèles aléatoires), sta (Statistique, apprentissage et algorithmes).",
+    "reponse_llm": "Les sept parcours de M2 proposés par le Master Mathématiques et Applications de Sorbonne Université sont : \n* M2 MS2A (voir ce chapitre)\n* les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre). \n",
+    "duree_secondes": 74.4,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf, SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\nAu niveau M2, l'acceptation dans un des parcours propos´es dans le master Math´ematiques et Applications se fait sur dossier. Les ´etudiants du parcours Science des donn´ees ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associ´es au parcours Science des donn´ees, `a savoir le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (voir ce chapitre). Cependant, les r`egles sp´ecifiques `a l'ISUP s'appliquent au parcours SCDI, qui offre aux ´etudiants qui le suivent en M1 la garantie de pouvoir poursuivre en M2 Ing´enierie math´ematique, majeure SCDI (anciennement ISup parcours Data Sciences, voir ce chapitre), qui est la deuxi`eme et derni`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLes enseignements sont presque int´egralement d´elivr´es en fran¸cais, bien que du mat´eriel de cours en anglais soit disponible au niveau M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Sorbonne Université, Master 2, Statistique, Apprentissage et Algorithmes\n\n## **7.1 Objectifs et description**  \nLe parcours Statistique, Apprentissage et Algorithmes (MS2A) est n´e en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes, avec la volont´e de mettre `a disposition des ´etudiant _·_ e _·_ s un parcours de M2 permettant une grande libert´e dans la d´efinition d'un profil personnalis´e alliant les aspects th´eoriques et num´eriques de la statistique et de l'apprentissage automatique.  \nLe MS2A est une formation pluridisciplinaire en math´ematiques appliqu´ees et en informatique, centr´ee sur la statistique, la science des donn´ees et l'intelligence artificielle. Il propose un vaste choix de cours permettant d'acqu´erir un profil unique et personnalis´e, allant de la statistique math´ematique `a l'apprentissage profond, en passant par les math´ematiques de l'apprentissage statistique. La formation dispens´ee est `a la fois :"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\n## **9.4 M1 Sciences des donn´ees avanc´ees (SCDA)**  \nLes ´etudiant _·_ e _·_ s du parcours SCDA sont des ´etudiant _·_ e _·_ s du M1 du master Math´ematiques et Applications (voir ce chapitre) qui suivent un ensemble d'UE s´electionn´ees pour leur fournir un bagage math´ematique solide et les outils informatiques n´ecessaires pour la science des donn´ees. Les ´etudiants de ce parcours peuvent rejoindre le parcours g´en´eral du M1.  \nCe parcours `a la coloration th´eorique pr´epare particuli`erement au M2 parcours MS2A (voir ce chapitre). Il ouvre aussi la possibilit´e de rejoindre au niveau M2 l'une des majeures du M2 Ing´enierie math´ematique (voir ce chapitre)."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_002",
+    "question": "Qui sont les responsables du Master 1 de mathématiques à Sorbonne Université en 2025-2026 ?",
+    "reponse_attendue": "Les responsables du Master 1 sont Laurent Boudin et Vincent Humilière.",
+    "reponse_llm": "Laurent Boudin et Vincent Humili`ere sont les responsables du Master 1.  \n",
+    "duree_secondes": 63.3,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 9,
+        "content": "Sorbonne Université, Master 1, orientation et insertion professionnelle.\n\n## **1.3 Informations pratiques**  \nLaurent Boudin[5] et Vincent Humili`ere[6] sont les responsables du Master 1. Ils en coordonnent l'organisation et dirigent l'´equipe p´edagogique charg´ee de la mise en place des enseignements.  \nSur le site web du Master[7] , on trouvera des pages d´edi´ees `a chacun des quatre parcours du M1 : g´en´eral, Calcul haute performance (HPC), Sciences des donn´ees avanc´e (SCDA), Sciences des donn´ees pour l'ing´enieur·e (SCDI). Des informations importantes sont ´egalement communiqu´ees par le biais du site de vie du M1 sur Moodle 2025[8] (le site n'est actif qu'en fin de l'ann´ee universitaire pr´ec´edente), et accessible uniquement au public inscrit administrativement en premi`ere ann´ee de master.  \nDes renseignements pratiques sur les inscriptions et le calendrier (page 131) du Master 1 sont disponibles au chapitre 11."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 97,
+        "content": "Sorbonne Université, Master 2, UE \"Ingénierie Mathématique\".\n\n## **6.6 Responsables et sites**  \n**Responsable du parcours :** Vincent Lemaire `https://m2ingmath.math.upmc.fr/`\n\n## **Responsables des majeures :**  \n- majeure IMPA : Cindy Guichard  \n```\nhttps://m2ingmath.math.upmc.fr/impa/\n```  \n- majeure IMPC : Cindy Guichard `https://m2ingmath.math.upmc.fr/impc/`  \n- majeure IFMA : Vincent Lemaire et Lokmane Abbas-Turki `https://m2ingmath.math.upmc.fr/ifma/`  \n- majeure SCDI : Olivier Wintenberger `https://m2ingmath.math.upmc.fr/scdi/`  \n- Informations compl´ementaires sur le site de l'ISUP  \n**Secr´etariat :** Francelise Hardoyal  \nfrancelise.hardoyal@sorbonne-universite.fr  \n- Campus Jussieu, 15-14, 2e ´etage, bureau 206, t´el. 01 44 27 51 14  \n- **Responsable p´edagogique pour les apprenti·e·s :** Nathalie Obert-Ben Taieb nobert@cfa-sciences.fr, secretariat@cfa-sciences.fr CFA des Sciences, t´el. 01 44 27 71 40  \n96"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 132,
+        "content": "Sorbonne Université, Master 1, calendrier prévisionnel des cours et examens.\n\n## **Calendrier prévisionnel du Master 1 de mathématiques Sorbonne Université – 2025-2026**  \n_**Jours fériés pendant les périodes d'enseignement et d'examens** :_  \n_Mardi 11 novembre 2025 (et pont du lundi 10 novembre 2025) Lundi 6 avril 2026 Jeudi 14 mai 2026 (et pont du vendredi 15 mai 2026, à confirmer)_ _**Forum Entreprises & Math** : Mardi 7 octobre 2025(tous les enseignements de la journée sont décalés)_ _**Atrium des métiers** : Jeudi 16 octobre 2025 (les enseignements ont lieu normalement)_ _**Ateliers OIP** : Jeudi 12 février 2026 (atelier professionnel), Mardi 31 mars 2026 (atelier M2) (une partie des enseignements de ces journées sont décalés)_ _**Les plannings semestriels par UE tiendront compte du rattrapage des jours fériés et du décalage des enseignements pour le FEM et l'OIP.**_  \n|**Réunion de rentrée du M1**|Lundi 1erseptembre 2025 – 9h30-12h, amphi 15|Lundi 1erseptembre 2025 – 9h30-12h, amphi 15|\n|---|---|---|"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 132,
+        "content": "Sorbonne Université, Master 1, calendrier prévisionnel du Master 1 de mathématiques Sorbonne Université.\n\n|**Réunion de rentrée du M1**|Lundi 1erseptembre 2025 – 9h30-12h, amphi 15|Lundi 1erseptembre 2025 – 9h30-12h, amphi 15|\n|---|---|---|\n|**Réunion d'informaton complémentaire**|Lundi 8 septembre 2025 – 10h45-12h45, amphi 44||\n|**Présentaton des parcours de M2**|Lundi 15 décembre 2025 – 14h-17h30, 15.25.104||\n|**1er SEMESTRE**||**2ème SEMESTRE**|\n|**Cours**||**Cours**|\n|Lundi 1erseptembre au vendredi 5 décembre 2025||Lundi 12 janvier au vendredi 10 avril 2026|\n|(sauf exceptons défnies dans les plannings par|UE)|(sauf exceptons défnies dans les plannings par UE)|\n|**TD/TP/OIP**||**TD/TP**|\n|Lundi 8 septembre au vendredi 12 décembre 2025||Lundi 19 janvier au vendredi 17 avril 2026|\n|(sauf exceptons défnies dans les plannings par|UE)|(sauf exceptons défnies dans les plannings par UE)|\n|**_Interrupton des enseignements_**||**_Interrupton des enseignements_**|\n|_Semaine du 27 octobre 2025_||_Semaine du 2 mars 2026_|"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 132,
+        "content": "Sorbonne Université, Master 1, calendrier prévisionnel du Master 1 de mathématiques.\n\n|**_Interrupton des enseignements_**||**_Interrupton des enseignements_**|\n|_Semaine du 27 octobre 2025_||_Semaine du 2 mars 2026_|\n|**Examens du Semestre 1 - 1èresession**||**Examens du Semestre 2 - 1ère session**|\n|Lundi 5 janvier au vendredi 9 janvier 2026||Lundi 11 mai au vendredi 22 mai 2026|\n|**Examens du Semestre 1 - 2ème session**||**Examens du Semestre 2 - 2ème session**|\n|Lundi 1erjuin au vendredi 5 juin 2026||Mercredi 10 juin au vendredi 19 juin 2026|  \n**Les dates précises des sessions d'examen seront à confirmer pendant l'année universitaire 2025-2026.**  \n131"
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_003",
+    "question": "Combien d'ECTS vaut l'UE obligatoire d'Orientation et insertion professionnelle (OIP) au M1 de Sorbonne Université ?",
+    "reponse_attendue": "L'UE d'OIP (UM4MAOIP) vaut 3 ECTS. Elle est obligatoire au second semestre pour tous les étudiants, en présence comme à distance.",
+    "reponse_llm": "3 ECTS \n",
+    "duree_secondes": 56.8,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "Sorbonne Université, Master 1, UE Orientation et Insertion Professionnelle (OIP).\n\nAu second semestre (S2), l'UE d'Orientation et insertion professionnelle (OIP) de 3 ECTS est obligatoire en pr´esence comme `a distance. Pour compl´eter `a 30 ECTS, chaque ´etudiant-e peut choisir  \n- trois UE de 9 ECTS,  \n> 1. `https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/ enseignement-des-langues/anglais-en-master`  \n> 2. `https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/ enseignement-des-langues/autres-langues-que-langlais-allemand`  \n> 3. `https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/ enseignement-des-langues/francais-langue-etrangere-fle`  \n> 4. `https://sciences.sorbonne-universite.fr/formation-sciences/offre-de-formation/ enseignement-des-langues`  \n7"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 1, UE Orientation et insertion professionnelle UM4MAOIP.\n\n## **1.4.2 UE obligatoire UM4MAOIP (3 ECTS)**  \nTous les ´etudiants doivent obligatoirement s'inscrire `a l'UE d'Orientation et insertion professionnelle UM4MAOIP (3 ECTS), au **second** semestre, si elle n'a pas d´ej`a ´et´e pr´ec´edemment valid´ee. Tout au long du **premier** semestre, ils sont invit´es `a r´efl´echir `a leur orientation et `a leur projet professionnel `a l'occasion de diff´erentes rencontres avec le milieu professionnel (conf´erences m´etiers, Forum Entreprises & Math´ematiques, Atrium des m´etiers). Leur participation active `a ces ´ev´enements les aidera `a r´ealiser les deux expos´es-dossiers n´ecessaires pour valider l'UE d'OIP. Ces travaux seront ´evalu´es par les DE."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université / Master 1 / UE \"Liste des UE\"\n\n## **9.5.3 Annexe : description des UE sp´ecifiques `a l'ISUP**\n\n## **4ACOIP Orientation et Insertion professionnelle - OIP (3 ECTS)**  \n**Responsable :** Nathalie Obert-Ben Ta¨ıeb  \nL'UE se place dans le contexte de la r´ealit´e du m´etier de Data Scientist ou du charg´e d'´etudes statistiques et des attentes des professionnels du secteur industriel, ou de tout secteur, priv´e comme public traitant des donn´ees massives. Lors de cette UE seront abord´es :  \n- La d´efinition du (ou des) projet(s) professionnel(s) afin de mieux r´ediger son CV et une lettre de motivation plus percutante.  \n- La mise en place de son r´eseau, l'utilisation de LinkedIn, et la meilleure fa¸con de tenir `a jour ses candidatures. Quelques conseils utiles sur l'utilisation de l'IA G´en´erative au profit de sa recherche d'entreprise.  \n- Les diff´erentes formes d'entretien et les meilleures conditions pour s'y pr´eparer."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "Sorbonne Université, Master 1, Sciences des données pour l'ingénieur(e).\n\n## **Semestre 2**  \n- 4MA076 Bases de l'apprentissage statistique (9 ECTS) ou  \n- 4MA379 Statistique computationnelle et machine learning (9 ECTS) ;  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS) ou  \n- 4MA257 Analyse convexe (6 ECTS) ou  \n- 4MA256 Programmation en C++ (6 ECTS) ;  \n- Deux UE au choix parmi :  \n- 4MA245 Travail d'´etude et de recherche (TER) (6 ECTS) ou  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS) ou  \n- 4MA273 Statistique avanc´ee, grande dimension et donn´ees massives (6 ECTS) ;  \n- 4MAOIP Orientation et Insertion professionnelle (OIP) (3 ECTS).  \nSe reporter au chapitre du M1 (ici) pour la description de ces UE.  \nPour s'inscrire `a l'UE TER, il est n´ecessaire d'avoir valid´e le premier semestre d'une part, et d'autre part, toutes les UE math´ematiques du premier semestre **sans compensation** .  \nPour les **Semestres 3 et 4** (niveau M2) se r´ef´erer aux chapitres des parcours de M2 correspondant."
+      }
+    ]
+  }
+]

@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
-CONTEXT_MODEL = "gemma2:2b"  # LLM léger pour générer une phrase de contexte par chunk (contextual retrieval)
+CONTEXT_MODEL = "gemma4:12b"  # LLM pour générer une phrase de contexte par chunk (contextual retrieval)
 MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
 
 # Demande une phrase courte qui situe le chunk (établissement, section, sujet) à partir de la
@@ -32,7 +32,11 @@ Voici la page complète d'où il est extrait :
 Voici le passage qui sera indexé séparément pour la recherche :
 {chunk}
 
-Écris une phrase complète (15 mots maximum) qui situe ce passage. La phrase doit mentionner l'établissement indiqué dans le nom de fichier, le niveau (Master 1 ou Master 2) et le sujet précis du passage. Réponds uniquement par cette phrase, sans préambule ni guillemets."""
+Écris une phrase complète (15 mots maximum) qui situe ce passage.
+Règles strictes :
+- Commence obligatoirement par le nom de l'établissement extrait du nom de fichier (ex: "ENS.pdf" → commence par "À l'ENS", "Sorbonne.pdf" → commence par "À Sorbonne Université"). N'utilise jamais le nom d'un autre établissement.
+- Mentionne le niveau (Master 1 ou Master 2) et le sujet précis du passage.
+Réponds uniquement par cette phrase, sans préambule ni guillemets."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:

@@ -51,6 +51,7 @@ class AgentState(TypedDict):
     current_query: str          # la requête de recherche ACTUELLE (peut être reformulée en boucle)
     sources: list[str] | None   # source(s) identifiée(s) par identify_sources, ou None = chercher partout
     docs: list[Document]        # derniers chunks récupérés par retrieve_node
+    first_docs: list[Document]  # chunks du tout premier retrieval (avant toute reformulation)
     sufficient: bool            # verdict du dernier passage dans grade_documents
     attempts: int               # nombre de retrievals déjà effectués — sert à plafonner la boucle
     answer: str                 # réponse finale produite par generate_node
@@ -87,7 +88,10 @@ def identify_sources(state: AgentState) -> dict:
 def retrieve_node(state: AgentState) -> dict:
     """Lance le pipeline de retrieval existant (sémantique + BM25 + RRF + reranking), filtré sur les sources identifiées."""
     docs = retrieve(state["current_query"], sources=state["sources"], verbose=False)
-    return {"docs": docs, "attempts": state["attempts"] + 1}
+    update = {"docs": docs, "attempts": state["attempts"] + 1}
+    if state["attempts"] == 0:  # premier retrieval (requête originale, avant toute reformulation)
+        update["first_docs"] = docs
+    return update
 
 
 def grade_documents(state: AgentState) -> dict:
@@ -108,8 +112,15 @@ def rewrite_query(state: AgentState) -> dict:
 
 
 def generate_node(state: AgentState) -> dict:
-    """Génère la réponse finale à partir des derniers chunks récupérés (même logique que ask_question)."""
-    docs = state["docs"]
+    """
+    Génère la réponse finale à partir des chunks récupérés (même logique que ask_question).
+    Si la reformulation n'a pas permis d'obtenir un verdict "suffisant", on revient aux
+    chunks du tout premier retrieval plutôt que d'utiliser ceux de la requête reformulée :
+    en pratique la reformulation dérive parfois vers une requête moins pertinente
+    (mauvaise source, voire 0 chunk), alors que la requête d'origine retrouvait déjà
+    les bons passages.
+    """
+    docs = state["docs"] if state["sufficient"] else (state["first_docs"] or state["docs"])
     if not docs:
         return {"answer": "Je ne trouve pas cette information dans les documents fournis."}
     context = "\n\n---\n\n".join(
@@ -172,6 +183,7 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "current_query": question,
         "sources": None,
         "docs": [],
+        "first_docs": [],
         "sufficient": False,
         "attempts": 0,
         "answer": "",

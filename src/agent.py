@@ -19,8 +19,13 @@ SOURCE_PROMPT = """Voici la liste des documents disponibles dans la base : {sour
 Voici la question posée : {question}
 
 Quel(s) document(s) de cette liste sont nécessaires pour répondre à cette question ?
-- Si la question concerne clairement un seul document, écris son nom de fichier exact.
-- Si la question compare plusieurs documents, ou si tu ne peux pas déterminer lequel est concerné, écris "TOUS".
+- Si la question mentionne explicitement un établissement (ex: ENS, Sorbonne Université) ou un diplôme propre à un établissement (ex: DENS), choisis le document de cet établissement.
+- Si la question compare plusieurs établissements, ou ne mentionne aucun établissement et pourrait concerner n'importe lequel, écris "TOUS".
+
+Exemples :
+Question : "Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?" → ENS.pdf
+Question : "Combien d'ECTS faut-il valider en Master 2 à Sorbonne Université ?" → SORBONNE.pdf
+Question : "Quelles sont les différences entre les stages de l'ENS et de Sorbonne Université ?" → TOUS
 
 Réponds uniquement par le(s) nom(s) de fichier(s) exact(s) séparés par une virgule, ou par "TOUS"."""
 

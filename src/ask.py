@@ -13,7 +13,7 @@ PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envo
 
 # Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma2:2b)
 EMBED_MODEL = "bge-m3"   # modèle d'embedding multilingue — DOIT être le même que dans ingest.py
-GEN_MODEL = "gemma3:4b"  # LLM qui génère la réponse finale à partir des chunks récupérés
+GEN_MODEL = "gemma4"  # LLM qui génère la réponse finale à partir des chunks récupérés
 RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue (HuggingFace)
 
 # Paramètres du pipeline de retrieval

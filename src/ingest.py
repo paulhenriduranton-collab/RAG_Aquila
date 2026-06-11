@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
-CONTEXT_MODEL = "gemma2:2b"  # LLM utilisé pour générer une phrase de contexte par chunk (contextual retrieval)
+CONTEXT_MODEL = "gemma4"  # LLM utilisé pour générer une phrase de contexte par chunk (contextual retrieval)
 MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
 
 # Demande une phrase courte qui situe le chunk (établissement, section, sujet) à partir de la

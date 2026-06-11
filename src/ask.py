@@ -13,7 +13,7 @@ PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envo
 
 # Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma2:2b)
 EMBED_MODEL = "bge-m3"   # modèle d'embedding multilingue — DOIT être le même que dans ingest.py
-GEN_MODEL = "gemma2:2b"  # LLM qui génère la réponse finale à partir des chunks récupérés
+GEN_MODEL = "gemma3:4b"  # LLM qui génère la réponse finale à partir des chunks récupérés
 RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue (HuggingFace)
 
 # Paramètres du pipeline de retrieval
@@ -127,6 +127,20 @@ def _fmt(text: str, length: int = 130) -> str:
     return text[:length].replace("\n", " ")
 
 
+# Prompt HyDE : demande au LLM une réponse fictive stylistiquement proche des brochures indexées,
+# ce qui rapproche l'embedding de requête de l'espace des chunks-réponses (meilleure similarité cosinus).
+HYDE_PROMPT = """Tu es un extrait de brochure universitaire. Réponds à cette question en 2-3 phrases courtes et factuelles, comme si tu étais le passage d'une brochure qui y répond directement :
+
+{question}
+
+Réponds directement, sans introduction ni guillemets."""
+
+
+def _hyde(question: str) -> str:
+    """Génère une réponse hypothétique (HyDE) pour améliorer la recherche sémantique."""
+    return llm.invoke(HYDE_PROMPT.format(question=question)).strip()
+
+
 def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
@@ -150,11 +164,17 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
         print(f"\n[DB] {vector_db._collection.count()} chunks dans la base")
         if sources:
             print(f"[Filtre] Recherche restreinte aux source(s) : {', '.join(sources)}")
-        print(f"\n[Sémantique] Recherche des {K_RETRIEVE} plus proches voisins...")
+        print(f"\n[HyDE] Génération de la réponse hypothétique...")
 
-    # ── 1. Recherche sémantique ───────────────────────────────────────────────
-    # Convertit la question en vecteur et cherche les chunks les plus proches (distance cosinus)
-    raw_semantic = vector_db.similarity_search_with_relevance_scores(question, k=K_RETRIEVE, filter=chroma_filter)
+    # ── 1. Recherche sémantique (HyDE) ────────────────────────────────────────
+    # On embed une réponse fictive plutôt que la question brute : une réponse est stylistiquement
+    # plus proche des chunks indexés qu'une question, ce qui améliore la similarité cosinus.
+    # BM25 (étape 2) continue d'utiliser la question originale pour les correspondances exactes.
+    hyde_query = _hyde(question)
+    if verbose:
+        print(f"[HyDE] Réponse fictive : {_fmt(hyde_query)}")
+        print(f"\n[Sémantique] Recherche des {K_RETRIEVE} plus proches voisins...")
+    raw_semantic = vector_db.similarity_search_with_relevance_scores(hyde_query, k=K_RETRIEVE, filter=chroma_filter)
 
     if verbose:
         print("[Sémantique] Top 5 :")

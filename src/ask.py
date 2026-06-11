@@ -1,3 +1,6 @@
+import os
+import subprocess
+import time
 from pathlib import Path
 
 from langchain_chroma import Chroma  # base de données vectorielle qui stocke les embeddings sur disque
@@ -25,6 +28,30 @@ RRF_K = 60        # constante de la formule RRF — valeur standard, ne pas chan
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
 reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
+
+def _restart_ollama():
+    """Tue et relance Ollama depuis /tmp — contournement du crash llama-server sur Colab."""
+    os.system("pkill -f ollama 2>/dev/null; pkill -f llama-server 2>/dev/null")
+    time.sleep(2)
+    subprocess.Popen(
+        ["ollama", "serve"],
+        cwd="/tmp",
+        stdout=open("/tmp/ollama.log", "w"),
+        stderr=subprocess.STDOUT,
+    )
+    time.sleep(5)
+
+
+def _invoke_with_retry(prompt: str, retries: int = 3) -> str:
+    """Réessaie l'appel LLM en redémarrant Ollama entre chaque tentative en cas de crash llama-server."""
+    for attempt in range(retries):
+        try:
+            return llm.invoke(prompt)
+        except Exception as e:
+            print(f"    ! Erreur Ollama ({e}) — redémarrage et nouvelle tentative ({attempt + 1}/{retries})...", flush=True)
+            _restart_ollama()
+    return llm.invoke(prompt)
+
 
 # Variables globales pour le cache BM25 — l'index est coûteux à construire donc on le garde en mémoire
 # Il est reconstruit uniquement si la session redémarre (None = pas encore construit)
@@ -138,7 +165,7 @@ Réponds directement, sans introduction ni guillemets."""
 
 def _hyde(question: str) -> str:
     """Génère une réponse hypothétique (HyDE) pour améliorer la recherche sémantique."""
-    return llm.invoke(HYDE_PROMPT.format(question=question)).strip()
+    return _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 
 
 def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True) -> list[Document]:
@@ -252,7 +279,7 @@ def ask_question(question: str, verbose: bool = True) -> tuple[str, list[Documen
 
     # Charge le template de prompt et injecte la question + le contexte
     prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=question, context=context)
-    return llm.invoke(prompt), final_docs  # retourne la réponse ET les chunks pour l'évaluation
+    return _invoke_with_retry(prompt), final_docs  # retourne la réponse ET les chunks pour l'évaluation
 
 
 if __name__ == "__main__":

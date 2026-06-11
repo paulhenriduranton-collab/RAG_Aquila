@@ -1,3 +1,7 @@
+import os
+import pickle
+import subprocess
+import time
 from pathlib import Path
 
 import ftfy          # répare les encodages cassés dans les textes extraits de PDF
@@ -107,6 +111,34 @@ def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) 
     return merged
 
 
+def _restart_ollama():
+    """
+    Tue et relance le serveur Ollama depuis /tmp (même contournement que sur Colab) :
+    llama-server peut crasher en cours de route ("completion error ... EOF") sur les longs
+    runs de contextualisation, sans qu'Ollama ne le redémarre tout seul.
+    """
+    os.system("pkill -f ollama 2>/dev/null; pkill -f llama-server 2>/dev/null")
+    time.sleep(2)
+    subprocess.Popen(
+        ["ollama", "serve"],
+        cwd="/tmp",
+        stdout=open("/tmp/ollama.log", "w"),
+        stderr=subprocess.STDOUT,
+    )
+    time.sleep(5)
+
+
+def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
+    """Réessaie l'appel LLM en redémarrant Ollama entre chaque tentative en cas de crash de llama-server."""
+    for attempt in range(retries):
+        try:
+            return llm.invoke(prompt)
+        except Exception as e:
+            print(f"    ! Erreur Ollama ({e}) — redémarrage et nouvelle tentative ({attempt + 1}/{retries})...", flush=True)
+            _restart_ollama()
+    return llm.invoke(prompt)
+
+
 def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM) -> list[Document]:
     """
     Demande au LLM, pour chaque chunk final, une phrase de contexte à partir de la page
@@ -119,7 +151,7 @@ def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM
     for chunk in chunks:
         source = chunk.metadata.get("source", "document inconnu")  # nom du fichier PDF d'origine
         prompt = CONTEXT_PROMPT.format(source=source, page=page_text, chunk=chunk.page_content)
-        lines = llm.invoke(prompt).strip().splitlines()
+        lines = _invoke_with_retry(llm, prompt).strip().splitlines()
         context_line = lines[0].strip() if lines else ""
         new_content = f"{context_line}\n\n{chunk.page_content}" if context_line else chunk.page_content
         result.append(Document(page_content=new_content, metadata=chunk.metadata))
@@ -174,37 +206,52 @@ def _split_documents(documents: list[Document]) -> list[Document]:
     # num_predict bas : on ne veut qu'une phrase courte, pas une réponse longue (gagne du temps de génération)
     context_llm = OllamaLLM(model=CONTEXT_MODEL, num_ctx=4096, temperature=0, num_predict=60)
 
+    # Reprise sur crash : si un run précédent a été interrompu (ex: crash llama-server),
+    # on repart des chunks déjà contextualisés au lieu de tout refaire depuis le début.
+    checkpoint_path = VECTOR_DB_DIR.parent / "ingest_checkpoint.pkl"
     all_chunks = []
+    start_index = 0
+    if checkpoint_path.exists():
+        with open(checkpoint_path, "rb") as f:
+            checkpoint = pickle.load(f)
+        all_chunks = checkpoint["chunks"]
+        start_index = checkpoint["next_index"]
+        print(f"  Reprise du checkpoint : {len(all_chunks)} chunk(s) déjà prêts, "
+              f"document {start_index + 1}/{len(documents)}.", flush=True)
+
     for i, doc in enumerate(documents):
+        if i < start_index:
+            continue
+
         # Étape 0 : ignore les pages de table des matières
         if _is_toc_page(doc.page_content):
             print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
                   f"→ table des matières ignorée", flush=True)
-            continue
+        else:
+            # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
+            header_chunks = header_splitter.split_text(doc.page_content)
+            for hc in header_chunks:
+                hc.metadata.update(doc.metadata)  # recopie source + page dans chaque section
 
-        # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
-        header_chunks = header_splitter.split_text(doc.page_content)
-        for hc in header_chunks:
-            hc.metadata.update(doc.metadata)  # recopie source + page dans chaque section
+            # Étape 2 : fusionne les sections trop courtes avec leur voisine
+            merged_chunks = _merge_small_chunks(header_chunks)
 
-        # Étape 2 : fusionne les sections trop courtes avec leur voisine
-        merged_chunks = _merge_small_chunks(header_chunks)
+            # Étape 3 : découpe par taille si une section dépasse 1000 caractères
+            sub_chunks = size_splitter.split_documents(merged_chunks)
 
-        # Étape 3 : découpe par taille si une section dépasse 1000 caractères
-        sub_chunks = size_splitter.split_documents(merged_chunks)
+            # Étape 4 : filtre les chunks dont le contenu utile est trop court
+            sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
 
-        # Étape 4 : filtre les chunks dont le contenu utile est trop court
-        sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
+            if sub_chunks:
+                # Étape 5 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
+                sub_chunks = _contextualize_chunks(sub_chunks, doc.page_content, context_llm)
+                all_chunks.extend(sub_chunks)
+                print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
+                      f"→ {len(sub_chunks)} chunk(s) contextualisé(s)", flush=True)
 
-        if not sub_chunks:
-            continue
-
-        # Étape 5 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
-        sub_chunks = _contextualize_chunks(sub_chunks, doc.page_content, context_llm)
-
-        all_chunks.extend(sub_chunks)
-        print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
-              f"→ {len(sub_chunks)} chunk(s) contextualisé(s)", flush=True)
+        # Checkpoint : sauvegarde la progression pour pouvoir reprendre après un crash llama-server
+        with open(checkpoint_path, "wb") as f:
+            pickle.dump({"chunks": all_chunks, "next_index": i + 1}, f)
 
     return all_chunks
 
@@ -233,6 +280,10 @@ def main():
             # Lots suivants : ajoute les nouveaux documents à la base existante
             db.add_documents(batch)
     print("Index créé dans vector_db/.")
+
+    checkpoint_path = VECTOR_DB_DIR.parent / "ingest_checkpoint.pkl"
+    if checkpoint_path.exists():
+        checkpoint_path.unlink()
 
 
 if __name__ == "__main__":

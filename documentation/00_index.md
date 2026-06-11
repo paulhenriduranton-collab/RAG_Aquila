@@ -9,6 +9,7 @@
 | [03_fonctionnement_detaille.md](03_fonctionnement_detaille.md) | Le flux complet — ingestion, retrieval hybride, re-ranking, évaluation |
 | [05_utilisation.md](05_utilisation.md) | Comment installer et lancer le projet |
 | [06_problemes_courants.md](06_problemes_courants.md) | Erreurs fréquentes et leurs solutions |
+| [07_open_webui.md](07_open_webui.md) | Lancer le RAG agentique dans une interface de chat Open WebUI |
 
 ## Par où commencer ?
 

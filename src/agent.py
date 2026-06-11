@@ -4,7 +4,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, llm, PROMPT_PATH, BASE_DIR
+from ask import retrieve, llm, _invoke_with_retry, PROMPT_PATH, BASE_DIR
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -77,7 +77,7 @@ def identify_sources(state: AgentState) -> dict:
     """
     available = _available_sources()
     prompt = SOURCE_PROMPT.format(sources=", ".join(available), question=state["question"])
-    raw = llm.invoke(prompt).strip()
+    raw = _invoke_with_retry(prompt).strip()
 
     if "tous" in raw.lower():
         identified = None
@@ -105,14 +105,14 @@ def grade_documents(state: AgentState) -> dict:
         return {"sufficient": False}
     context = "\n\n---\n\n".join(doc.page_content for doc in state["docs"])
     prompt = GRADE_PROMPT.format(question=state["question"], context=context)
-    raw = llm.invoke(prompt).strip().lower()
+    raw = _invoke_with_retry(prompt).strip().lower()
     return {"sufficient": raw.startswith("oui")}
 
 
 def rewrite_query(state: AgentState) -> dict:
     """Demande au LLM de reformuler la requête de recherche pour tenter de mieux retrouver l'information."""
     prompt = REWRITE_PROMPT.format(question=state["question"], query=state["current_query"])
-    new_query = llm.invoke(prompt).strip()
+    new_query = _invoke_with_retry(prompt).strip()
     return {"current_query": new_query}
 
 
@@ -133,7 +133,7 @@ def generate_node(state: AgentState) -> dict:
         for doc in docs
     )
     prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=state["question"], context=context)
-    return {"answer": llm.invoke(prompt)}
+    return {"answer": _invoke_with_retry(prompt)}
 
 
 def _route_after_grading(state: AgentState) -> str:

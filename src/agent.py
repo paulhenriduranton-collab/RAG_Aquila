@@ -4,7 +4,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, llm, _invoke_with_retry, PROMPT_PATH, BASE_DIR
+from ask import retrieve, _rerank, llm, _invoke_with_retry, PROMPT_PATH, BASE_DIR, K_FINAL
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -12,7 +12,7 @@ DOCUMENTS_DIR = BASE_DIR / "documents"
 
 # Nombre max de reformulations de requête avant de générer quand même avec ce qu'on a.
 # 1 = au pire 2 tentatives de retrieval (~2x plus de temps que le RAG classique en cas de boucle).
-MAX_ATTEMPTS = 1
+MAX_ATTEMPTS = 2
 
 SOURCE_PROMPT = """Voici la liste des documents disponibles dans la base : {sources}
 
@@ -38,15 +38,20 @@ Extraits récupérés :
 {context}
 
 Ces extraits contiennent-ils l'information nécessaire pour répondre correctement à la question ?
-Réponds uniquement par OUI ou NON."""
+- Si oui, réponds uniquement : OUI
+- Si non, réponds : NON — [explique en 1 phrase ce qui manque précisément dans les extraits]
+
+Exemples de réponse NON :
+NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale
+NON — aucun extrait ne précise les conditions géographiques requises"""
 
 REWRITE_PROMPT = """La recherche suivante n'a pas permis de retrouver une information suffisante pour répondre à la question.
 
 Question originale : {question}
 Requête de recherche utilisée jusqu'ici : {query}
+Ce qui manque selon l'analyse des extraits : {verdict}
 
-Propose une autre formulation de requête de recherche (synonymes, mots-clés différents, reformulation),
-qui pourrait mieux retrouver l'information dans les documents.
+Propose une requête de recherche ciblée sur ce qui manque (synonymes, mots-clés différents, reformulation).
 
 Réponds uniquement par la nouvelle requête, sans explication ni guillemets."""
 
@@ -55,9 +60,9 @@ class AgentState(TypedDict):
     question: str               # la question originale, ne change jamais
     current_query: str          # la requête de recherche ACTUELLE (peut être reformulée en boucle)
     sources: list[str] | None   # source(s) identifiée(s) par identify_sources, ou None = chercher partout
-    docs: list[Document]        # derniers chunks récupérés par retrieve_node
-    first_docs: list[Document]  # chunks du tout premier retrieval (avant toute reformulation)
+    docs: list[Document]        # pool cumulatif de tous les chunks récupérés (tous retrievals confondus)
     sufficient: bool            # verdict du dernier passage dans grade_documents
+    grade_verdict: str          # verdict complet du grade (ex: "NON — durée du stage absente")
     attempts: int               # nombre de retrievals déjà effectués — sert à plafonner la boucle
     answer: str                 # réponse finale produite par generate_node
 
@@ -91,46 +96,46 @@ def identify_sources(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
-    """Lance le pipeline de retrieval existant (sémantique + BM25 + RRF + reranking), filtré sur les sources identifiées."""
-    docs = retrieve(state["current_query"], sources=state["sources"], verbose=False)
-    update = {"docs": docs, "attempts": state["attempts"] + 1}
-    if state["attempts"] == 0:  # premier retrieval (requête originale, avant toute reformulation)
-        update["first_docs"] = docs
-    return update
+    """Lance le retrieval, accumule les chunks, puis re-rank le pool pour garder les K_FINAL meilleurs."""
+    new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False)
+    # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
+    existing_contents = {d.page_content for d in state["docs"]}
+    merged = state["docs"] + [d for d in new_docs if d.page_content not in existing_contents]
+    # Re-rank le pool complet sur la question originale pour garder les K_FINAL meilleurs
+    # (évite de dépasser le contexte du LLM quand le pool grandit après plusieurs retrievals)
+    final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
+    return {"docs": final, "attempts": state["attempts"] + 1}
 
 
 def grade_documents(state: AgentState) -> dict:
-    """Demande au LLM si les chunks récupérés suffisent pour répondre à la question d'origine."""
+    """Demande au LLM si les chunks accumulés suffisent, et ce qui manque précisément si non."""
     if not state["docs"]:
-        return {"sufficient": False}
+        return {"sufficient": False, "grade_verdict": "NON — aucun extrait récupéré"}
     context = "\n\n---\n\n".join(doc.page_content for doc in state["docs"])
     prompt = GRADE_PROMPT.format(question=state["question"], context=context)
-    raw = _invoke_with_retry(prompt).strip().lower()
-    return {"sufficient": raw.startswith("oui")}
+    raw = _invoke_with_retry(prompt).strip()
+    sufficient = raw.lower().startswith("oui")
+    return {"sufficient": sufficient, "grade_verdict": raw}
 
 
 def rewrite_query(state: AgentState) -> dict:
-    """Demande au LLM de reformuler la requête de recherche pour tenter de mieux retrouver l'information."""
-    prompt = REWRITE_PROMPT.format(question=state["question"], query=state["current_query"])
+    """Reformule la requête en ciblant précisément ce qui manque selon le verdict du grade."""
+    prompt = REWRITE_PROMPT.format(
+        question=state["question"],
+        query=state["current_query"],
+        verdict=state["grade_verdict"],   # transmet ce qui manque pour une reformulation ciblée
+    )
     new_query = _invoke_with_retry(prompt).strip()
     return {"current_query": new_query}
 
 
 def generate_node(state: AgentState) -> dict:
-    """
-    Génère la réponse finale à partir des chunks récupérés (même logique que ask_question).
-    Si la reformulation n'a pas permis d'obtenir un verdict "suffisant", on revient aux
-    chunks du tout premier retrieval plutôt que d'utiliser ceux de la requête reformulée :
-    en pratique la reformulation dérive parfois vers une requête moins pertinente
-    (mauvaise source, voire 0 chunk), alors que la requête d'origine retrouvait déjà
-    les bons passages.
-    """
-    docs = state["docs"] if state["sufficient"] else (state["first_docs"] or state["docs"])
-    if not docs:
+    """Génère la réponse finale à partir du pool cumulatif de tous les chunks récupérés."""
+    if not state["docs"]:
         return {"answer": "Je ne trouve pas cette information dans les documents fournis."}
     context = "\n\n---\n\n".join(
         f"Source : {doc.metadata.get('source', '?')}\n{doc.page_content}"
-        for doc in docs
+        for doc in state["docs"]
     )
     prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=state["question"], context=context)
     return {"answer": _invoke_with_retry(prompt)}
@@ -188,8 +193,8 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "current_query": question,
         "sources": None,
         "docs": [],
-        "first_docs": [],
         "sufficient": False,
+        "grade_verdict": "",
         "attempts": 0,
         "answer": "",
     })

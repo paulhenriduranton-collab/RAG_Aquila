@@ -1,6 +1,8 @@
 import os
+import re
 import subprocess
 import time
+import unicodedata
 from pathlib import Path
 
 from langchain_chroma import Chroma  # base de données vectorielle qui stocke les embeddings sur disque
@@ -17,7 +19,7 @@ PROMPT_PATH = BASE_DIR / "prompts" / "rag_prompt.txt"  # template du prompt envo
 # Modèles utilisés — doivent être disponibles dans Ollama (ollama pull bge-m3 / gemma4:12b)
 EMBED_MODEL = "bge-m3"    # modèle d'embedding multilingue — DOIT être le même que dans ingest.py
 GEN_MODEL = "gemma4:12b"  # LLM utilisé pour HyDE et la génération finale
-RERANK_MODEL = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"  # cross-encoder multilingue (HuggingFace)
+RERANK_MODEL = "BAAI/bge-reranker-v2-m3"  # cross-encoder multilingue — cohérent avec bge-m3 (même labo)
 
 # Paramètres du pipeline de retrieval
 K_RETRIEVE = 20   # nombre de candidats récupérés par chaque méthode (sémantique ET BM25) avant fusion
@@ -59,6 +61,15 @@ _bm25_index: BM25Okapi | None = None
 _bm25_chunks: list[tuple[str, dict]] | None = None
 
 
+def _tokenize(text: str) -> list[str]:
+    """Normalise le texte avant tokenisation BM25 : accents, écriture inclusive, ponctuation."""
+    text = text.lower()
+    text = re.sub(r"[·•]", "", text)                              # retire les points médians (étudiant·e·s → étudiantes)
+    text = unicodedata.normalize("NFD", text)                      # décompose les caractères accentués
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")  # supprime les diacritiques (accents)
+    return re.findall(r"\b\w{2,}\b", text)                         # tokens de 2+ caractères, sans ponctuation
+
+
 def _build_bm25_index(vector_db: Chroma, verbose: bool = True) -> tuple[BM25Okapi, list[tuple[str, dict]]]:
     """Construit l'index BM25 à partir de tous les chunks stockés dans Chroma (une fois par session)."""
     global _bm25_index, _bm25_chunks
@@ -74,7 +85,7 @@ def _build_bm25_index(vector_db: Chroma, verbose: bool = True) -> tuple[BM25Okap
     metas = result["metadatas"]  # liste des métadonnées associées (source, page, etc.)
 
     _bm25_chunks = list(zip(texts, metas))  # associe chaque texte à ses métadonnées pour pouvoir les retrouver
-    _bm25_index = BM25Okapi([t.lower().split() for t in texts])  # tokenise chaque chunk en minuscules pour BM25
+    _bm25_index = BM25Okapi([_tokenize(t) for t in texts])  # tokenise chaque chunk avec normalisation française
 
     if verbose:
         print(f"[BM25] Index prêt ({len(texts)} chunks).\n")
@@ -212,7 +223,7 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     # ── 2. Recherche BM25 (lexicale) ─────────────────────────────────────────
     # Complémentaire à la sémantique : trouve les chunks contenant exactement les mêmes mots
     bm25, bm25_chunks = _build_bm25_index(vector_db, verbose=verbose)
-    bm25_scores = bm25.get_scores(question.lower().split())  # score BM25 pour chaque chunk de la base
+    bm25_scores = bm25.get_scores(_tokenize(question))  # normalise la question avec la même fonction que les chunks
     # Restreint les candidats aux sources demandées avant de trier (même filtre que côté sémantique)
     candidate_indices = range(len(bm25_chunks))
     if sources:

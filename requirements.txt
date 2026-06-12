@@ -13,3 +13,5 @@ sentence-transformers
 streamlit
 fastapi
 uvicorn
+ragas
+datasets

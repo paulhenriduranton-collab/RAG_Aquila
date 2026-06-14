@@ -383,5 +383,705 @@
         "content": "Sorbonne Université, Master 2, Probabilités et Finance\n\n- Mesures de risque et extrˆemes (18 C, A. Alfonsi & L. Abbas-Turki).  \nLe but de ce cours est de pr´esenter les outils de mesure des risques concernant la salle de march´e et la gestion du \"book\" (portefeuille d'actifs) pour une ´echelle de temps courte (1 `a 10 jours). Les principaux th`emes th´eoriques seront : la th´eorie des valeurs extrˆemes, la repr´esentation multidimensionnelle des risques via les copules, les mesures de risques mon´etaires et leurs diverses interpr´etations ainsi que la pr´esentation par des intervenants de march´e de leur impl´ementation pratique, les normes r´eglementaires concernant le risque de march´e `a court terme, la VaR et son impl´ementation, la gestion du risque de mod`ele et le calcul de r´eserves sur les books de produits d´eriv´es.  \nCette ECUE constitue la premi`ere partie – th´eorique – du cours de risques. La seconde partie, plus pratique et assur´ee par des professionnels, est propos´ee en cours d'option (Ouverture professionnelle)."
       }
     ]
+  },
+  {
+    "id": "L2_ENS_007",
+    "question": "Quel est le programme provisoire détaillé du cours d'Algèbre 1 (L3 S1) de l'ENS DMA, et qui sont ses enseignants ?",
+    "reponse_attendue": "Le cours d'Algèbre 1 (L3 S1), enseigné par Ariane Mézard et Nataniel Marquis, est une introduction à la théorie des groupes et des modules. Son programme provisoire comprend neuf grandes parties : I. Ensembles quotients ; II. Généralités sur les groupes ; III. Groupes abéliens de type fini ; IV. Le groupe symétrique et son dévissage ; V. Groupes et symétries ; VI. Éléments de structure des groupes finis ; VII. Arithmétique des anneaux ; VIII. Modules sur les anneaux principaux ; IX. Représentations linéaires des groupes finis.",
+    "reponse_llm": "Le cours d'Algèbre 1 (L3 S1) est enseigné par Ariane Mézard et Nataniel Marquis (ENS.pdf). Son programme provisoire détaillé est le suivant :\n\n- **I. Ensembles quotients** : Partitions, fibres et relations d'équivalences, passage au quotient ; Sections, axiome du choix et représentants ; Lemme de Zorn (ENS.pdf).\n- **II. Généralités sur les groupes** : Exemples de groupes ; Morphismes et isomorphismes ; Groupes cycliques ; Théorème de Lagrange ; Groupe multiplicatif d'un corps et (Z/nZ)* ; - Groupes quotients (ENS.pdf).",
+    "duree_secondes": 475.9,
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 33,
+        "content": "**- BROCHURE ENSEIGNEMENT 2024 2025** LY\n\n## **PROGRAMME DES COURS DE L'ANNÉE 2024-2025**  \n**|** _Algèbre 1_ **(L3 S1) |**  \n(Ariane Mézard et Nataniel Marquis)  \nCe cours d'algèbre est une introduction à la théorie des groupes et des modules.\n\n## **Programme provisoire** :  \n- `I.` Ensembles quotients  \n- Partitions, fibres et relations d'équivalences, passage au quotient  \n- Sections, axiome du choix et représentants  \n- Lemme de Zorn  \n- `II.` Généralités sur les groupes  \n- Exemples de groupes  \n- Morphismes et isomorphismes  \n- Groupes cycliques  \n- Théorème de Lagrange  \n- Groupe multiplicatif d'un corps et (Z/nZ)^*  \n- − Groupes quotients  \nPAGE **32** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 33,
+        "content": "Sorbonne Université, Master 1, Algèbre 1 (L3 S1)\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** LY\n\n## **PROGRAMME DES COURS DE L'ANNÉE 2024-2025**  \n**|** _Algèbre 1_ **(L3 S1) |**  \n(Ariane Mézard et Nataniel Marquis)  \nCe cours d'algèbre est une introduction à la théorie des groupes et des modules.\n\n## **Programme provisoire** :  \n- `I.` Ensembles quotients  \n- Partitions, fibres et relations d'équivalences, passage au quotient  \n- Sections, axiome du choix et représentants  \n- Lemme de Zorn  \n- `II.` Généralités sur les groupes  \n- Exemples de groupes  \n- Morphismes et isomorphismes  \n- Groupes cycliques  \n- Théorème de Lagrange  \n- Groupe multiplicatif d'un corps et (Z/nZ)^*  \n- − Groupes quotients  \nPAGE **32** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 33,
+        "content": "Ce passage présente le programme d'Algèbre 1 pour la session 2024-2025 au sein de l'ENS Ly.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** LY\n\n## **PROGRAMME DES COURS DE L'ANNÉE 2024-2025**  \n**|** _Algèbre 1_ **(L3 S1) |**  \n(Ariane Mézard et Nataniel Marquis)  \nCe cours d'algèbre est une introduction à la théorie des groupes et des modules.\n\n## **Programme provisoire** :  \n- `I.` Ensembles quotients  \n- Partitions, fibres et relations d'équivalences, passage au quotient  \n- Sections, axiome du choix et représentants  \n- Lemme de Zorn  \n- `II.` Généralités sur les groupes  \n- Exemples de groupes  \n- Morphismes et isomorphismes  \n- Groupes cycliques  \n- Théorème de Lagrange  \n- Groupe multiplicatif d'un corps et (Z/nZ)^*  \n- − Groupes quotients  \nPAGE **32** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 36,
+        "content": "Ce passage provient d'un document sur l'enseignement de l'algèbre commutative à la M1 de l'ENS.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|\n\n## **|** _Algèbre 2_ **(M1 S1) |** (Vlerë Mehmeti et Clément Chivet)  \nLe but de ce cours est d'introduire les bases de l'algèbre commutative, dont les objets principaux sont rencontrés dans de nombreux domaines mathématiques. Le cours se concentrera sur la théorie des extensions de corps et des propriétés des anneaux commutatifs. Les thèmes abordés seront :  \n- Extensions de corps (en commençant par quelques rappels de base sur les anneaux)  \n- Théorie de Galois et applications  \n- Anneaux commutatifs  \n- modules, produit tensoriel, localisations  \n- anneaux factoriels, euclidiens, principaux  \n- Nullstellensatz et normalisation de Noether  \n- anneaux de valuations, dimension de Krull  \n- spectre d'un anneau et quelques propriétés géométriques"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 12,
+        "content": "Le rôle des tuteur·ice·s est d'aider l'étudiant·e à l'organisation de sa scolarité, de le·a conseiller sur ses choix de thèmes de travail et de lecture, et d'être un appui crucial pour son orientation. Au début de chaque année, un programme d'études est mis au point par les étudiant·e·s, les tuteur·ice·s et le directeur des études du DMA, signé par ces parties et transmis à la directrice des études sciences de l'ENS. Ce programme régule les conditions de validations de l'année d'étude correspondante. Il est vivement recommandé d'aller voir régulièrement les tuteur·ice·s."
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_001",
+    "question": "Compare les ECTS des cours fondamentaux de M1 entre le tableau de la première année (L3) et celui de la deuxième année (M1) : combien d'ECTS vaut chacun des quatre cours communs de L3, et combien d'ECTS vaut chacun des trois cours fondamentaux de M1 requis en deuxième année ?",
+    "reponse_attendue": "Dans le tableau de la première année (L3), les 4 cours communs de niveau licence (Algèbre 1, Analyse complexe, Intégration et probabilités, Topologie et calcul différentiel) valent chacun 12 ECTS, soit 12 ECTS x 4 = 48 ECTS. Dans le tableau de la deuxième année (M1), les 3 cours fondamentaux de M1 (à choisir parmi Algèbre 2, Analyse complexe, Analyse fonctionnelle, Géométrie différentielle, Logique, Processus stochastiques, Optimisation et transport optimal) valent également chacun 12 ECTS, soit 3 x 12 ECTS = 36 ECTS.",
+    "reponse_llm": "Chacun des quatre cours communs de la première année (L3) vaut 12 ECTS (Source : ENS.pdf) et chacun des trois cours fondamentaux de la deuxième année (M1) vaut également 12 ECTS (Source : ENS.pdf).",
+    "duree_secondes": 325.3,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 23,
+        "content": "## DEUXIEME ANNEE  \nL'obtention de la première année de master (M1) requiert :  \n**==> picture [464 x 308] intentionally omitted <==**  \n**----- Start of picture text -----**<br>\n3 cours fondamentaux de M1 de mathématiques parmi :<br>o Algèbre 2<br>o Analyse complexe  [(1)]<br>o Analyse fonctionnelle  [(2)] 3 x 12 ECTS = 36 ECTS<br>o Géométrie différentielle  [(2)]<br>o Logique  [(2)]<br>o Processus stochastiques  [(3)]<br>o Optimisation et transport optimal  [(2)]<br>1 cours complémentaire de M1 de mathématiques parmi :<br>o Analyse des équations aux dérivées partielles<br>o Mathématiques des données<br>o Spectre des surfaces hyperboliques aléatoires  [(4)] 12 ECTS<br>o Statistique  [(2)]<br>o Systèmes dynamiques<br>o Topologie algébrique  [(2)]<br>Un groupe de travail 12 ECTS<br>Total 60 ECTS<br>**----- End of picture text -----**<br>  \n- (1) Comptabilisé pour le M1 si ne compte pas pour la L3  \n- (2) Cours accessible dès la 1[ère] année"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 23,
+        "content": "Ce passage concerne les exigences d'obtention du Master 1 en mathématiques à l'ENS.\n\n## DEUXIEME ANNEE  \nL'obtention de la première année de master (M1) requiert :  \n**==> picture [464 x 308] intentionally omitted <==**  \n**----- Start of picture text -----**<br>\n3 cours fondamentaux de M1 de mathématiques parmi :<br>o Algèbre 2<br>o Analyse complexe  [(1)]<br>o Analyse fonctionnelle  [(2)] 3 x 12 ECTS = 36 ECTS<br>o Géométrie différentielle  [(2)]<br>o Logique  [(2)]<br>o Processus stochastiques  [(3)]<br>o Optimisation et transport optimal  [(2)]<br>1 cours complémentaire de M1 de mathématiques parmi :<br>o Analyse des équations aux dérivées partielles<br>o Mathématiques des données<br>o Spectre des surfaces hyperboliques aléatoires  [(4)] 12 ECTS<br>o Statistique  [(2)]<br>o Systèmes dynamiques<br>o Topologie algébrique  [(2)]<br>Un groupe de travail 12 ECTS<br>Total 60 ECTS<br>**----- End of picture text -----**<br>  \n- (1) Comptabilisé pour le M1 si ne compte pas pour la L3  \n- (2) Cours accessible dès la 1[ère] année"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 9,
+        "content": "Master 1  \n- deux UE de 9 ECTS, une UE de 6 ECTS et une UE de 3 ECTS,  \n- une UE de 9 ECTS et trois UE de 6 ECTS,  \n- quatre UE de 6 ECTS et une UE de 3 ECTS (sauf d´ecision des responsables p´edagogiques).  \nLe choix des UE de M1 doit se faire en fonction des goˆuts, des acquis ant´erieurs, et bien entendu en coh´erence avec les souhaits d'orientation en M2. Nous ne proposons pas de parcours-types, et chaque ´etudiant-e est libre de composer son contrat p´edagogique, en accord avec sa directrice ou son directeur d'´etudes (voir plus loin) et les responsables p´edagogiques du M1, et modulo les contraintes d'organisation (compatibilit´es d'emplois du temps, par exemple).  \nN´eanmoins, afin d'´eviter des parcours p´edagogiques th´ematiquement trop ´etroits, cette libert´e dans la composition du contrat p´edagogique est encadr´ee par quelques restrictions qui seront d´etaill´ees au paragraphe 1.6."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 19,
+        "content": "## REGLES D'OBTENTION  \n**|** _Un enseignement de langue au moins est obligatoire pour toutes les filières chaque année. Il peut être validé par un cours du département des langues de l'ENS (ECLA), ou par un séjour longue durée dans un pays non francophone_ . **|**  \n▪  \nPREMIERE ANNEE  \nLa licence troisième année (L3) de mathématiques nécessite selon les filières :  \n|Commun pour toutes les filières|4 cours de niveau licence :(1)<br>o<br>Algèbre 1<br>o<br>Analyse complexe<br>o<br>Intégration et probabilités<br>o<br>Topologie et calcul différentiel|12 ECTS x 4 =<br>48 ECTS|\n|---|---|---|\n|Filière Mathématique|Mémoire et exposé de 1èreannée|12 ECTS|\n|Filière Math/Physique|Cours spécifiques du cursus mixte<br>o<br>Grande dimension||\n|Filière Math/Informatique|Cours spécifique du cursus mixte)<br>o<br>Initiation à la cryptologie||\n|Filière Math/Biologie|Mémoire et exposé d'interface math-biologie||"
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_002",
+    "question": "Quelles sont les quatre notes de bas de tableau (numérotées de 1 à 4) du tableau des règles d'obtention de la deuxième année (M1), et à quels cours ou groupes de cours du tableau s'appliquent-elles ?",
+    "reponse_attendue": "Les quatre notes du tableau de la deuxième année sont : (1) Comptabilisé pour le M1 si ne compte pas pour la L3 — appliquée au cours d'Analyse complexe parmi les cours fondamentaux de M1 ; (2) Cours accessible dès la 1ère année — appliquée aux cours Analyse fonctionnelle, Géométrie différentielle et Logique parmi les fondamentaux, ainsi qu'à Statistique et Topologie algébrique parmi les complémentaires ; (3) Cours recommandé pour la filière maths/biologie — appliquée au cours Processus stochastiques parmi les fondamentaux ; (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025 — appliquée au cours Spectre des surfaces hyperboliques aléatoires parmi les cours complémentaires.",
+    "reponse_llm": "",
+    "duree_secondes": 1096.9,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 16,
+        "content": "## Deuxième année  \nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l'avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l'étranger, dans une université ou une entreprise.  \nTroisième année  \nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L'inscription dans une université est entièrement de la responsabilité de l'élève. Avec le·a tuteur·ice, l'élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires…  \ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d'un domaine de recherche. Ce mémoire fait l'objet d'une soutenance orale obligatoire pour la validation du diplôme de l'ENS avec mention ès Mathématiques."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "Ce passage décrit les choix d'unités d'enseignement pour le Master 1 à l'université Sorbonne-Université.\n\n## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "Sorbonne Université - Master 1 - Choix des unités d'enseignement du Master 1\n\n## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "## _**Filière mathématiques**_  \n- Un second cours de M1 complémentaire (peut être remplacé par la validation de 12 ECTS de cours de M2)  \n- La validation de deux « cours avancés » (24 ECTS)  \nChaque cours avancé est composé d'une partie cours sur 6 semaines, validée par un examen, puis d'une partie groupe de travail, validée par un ou plusieurs exposés. Les élèves valident deux « cours avancés » parmi :  \nAnalyse rugueuse (probabilité et analyse)  \nLa régularité elliptique et parabolique (analyse des ÉDP)  \nThéorie géométrique des invariants  \nLes cours avancés sont remplaçables par un stage long (4 mois minimum) ; un stage moins long, commençant au milieu du second semestre, permet d'être dispensé de la partie groupe de travail des cours avancés.  \n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année"
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_003",
+    "question": "Quel cours spécial sans ECTS est proposé au second semestre dans le cadre des règles d'obtention de la deuxième année, sur quelle thématique porte-t-il, et qui le donne ? Précise également le lien avec la fiche de cours détaillée correspondante plus loin dans la brochure.",
+    "reponse_attendue": "Le DMA propose au second semestre un cours spécial ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir, sur la thématique de la théorie de Yang-Mills plane, proposé par Thibaut Lemoine (Collège de France). Ce cours correspond à la fiche détaillée « Cours spécial : Construction et étude asymptotique de la mesure de Yang-Mills en deux dimensions (L3 S2) » page 44, qui précise explicitement que ce cours ne fait pas l'objet d'une évaluation et ne procure pas d'ECTS.",
+    "reponse_llm": "",
+    "duree_secondes": 524.9,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "Sorbonne Université, Master 2, cours spécial \"théorie de Yang-Mills plane\" proposé par Thibaut Lemoine (Collège de France).\n\n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année  \n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d'un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie.  \n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France).  \n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**  \ni— PAGE **23** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "Ce passage concerne les conditions d'obtention du DENS à l'ENS.\n\n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année  \n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d'un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie.  \n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France).  \n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**  \ni— PAGE **23** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année  \n- Des cours scientifiques non mathématiques, à choisir, en accord avec le·a tuteur·ice ou la direction des études, dans la liste des cours non mathématiques proposés plus loin dans cette brochure ou dans la maquette d'un autre département scientifique : physique, informatique, biologie, chimie, géosciences, études cognitives, voire économie.  \n- Le DMA propose à nouveau un cours spécial au S2, ne donnant pas lieu à des ECTS, à suivre par pur curiosité et plaisir ! La thématique cette année est celle de la théorie de Yang-Mills plane. Ce cours est proposé par Thibaut Lemoine (Collège de France).  \n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**  \ni— PAGE **23** SUR 78 >"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 65,
+        "content": "```  \net  \n```\nhttps://sites.google.com/site/phamxuanhuyen/\n```  \n**Objectifs de l'UE :** Il s'agit d'offrir aux ´etudiants `a la fois un parcours de sp´eciali sation th´ematique qui clˆot leur parcours acad´emique et une composante applicative professionnalisante. La sp´ecialisation se traduit par le choix de quatre cours d'options donnant lieu `a ´evaluation dont deux (au moins) choisis dans une th´ematique r´epertori´ee ci-dessous constituant la \"majeure\", les deux autres ´etant laiss´es en libre choix pour constituer la \"mineure\". Majeure et mineure conf`erent 3 ECTS. La professionnalisation se concr´etise dans une premi`ere phase par la r´ealisation d'un projet informatique (3 ECTS) en programmation scientifique pour la finance en liaison avec le cours de Probabilit´es num´eriques. Le cœur de cette UE reste cependant l'insertion professionnelle (3 ECTS) et le stage obligatoire d'une dur´ee minimale de 5 mois (18 ECTS) en immersion compl`ete dans le milieu professionnel."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 18,
+        "content": "## **Responsable :** Albert Cohen  \nm´el : `albert.cohen@sorbonne-universite.fr`  \nurl : `https://www.ljll.fr/cohen/`  \n**Objectifs de l'UE :** Etudier[´] les grandes familles de m´ethodes num´eriques utilis´ees pour la discr´etisation et l'approximation des fonctions solutions d'´equations aux d´eriv´ees partielles (EDP). Apr`es une introduction `a la mod´elisation par les EDP, le cours aborde les m´ethodes de diff´erences finies pour les probl`emes aux limites et d'´evolution, ainsi que leur analyse de convergence fond´ee sur des techniques d'alg`ebre matricielle et d'approximation num´erique (stabilit´e et consistance). La seconde partie du cours aborde les m´ethodes d'´el´ements finis, et leur fondements th´eorique utilisant les formulations variationelles dans les espaces de Sobolev construits `a partir de l'espace _L_[2] ."
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_004",
+    "question": "Pour le cursus mathématiques/biologie, quels sont les deux cours parmi lesquels choisir au premier semestre et les deux cours parmi lesquels choisir au second semestre, en plus des trois cours de biologie pour non-biologistes obligatoires ?",
+    "reponse_attendue": "En plus des trois cours de biologie pour non-biologistes obligatoires (Introduction aux Sciences du Vivant au 1er semestre, 3 ECTS ; Biologie moléculaire de la cellule au 2ème semestre, 3 ECTS ; Groupe de lecture en biologie « Mathématiques pour la biologie » au 2ème semestre, 6 ECTS), les élèves choisissent : deux cours parmi Écologie & Biodiversité (6 ECTS), Neurosciences (6 ECTS) et Biologie Moléculaire et Génétique (6 ECTS) au premier semestre ; et deux cours parmi Biologie cellulaire (6 ECTS), Développement (6 ECTS) et Biologie évolutive (6 ECTS) au second semestre.",
+    "reponse_llm": "Au premier semestre, les cours parmi lesquels choisir sont Ecologie & Biodiversité, Neurosciences et Biologie Moléculaire et Génétique (Source : ENS.pdf).\nAu second semestre, les cours parmi lesquels choisir sont Biologie cellulaire, Développement et Biologie évolutive (Source : ENS.pdf).",
+    "duree_secondes": 341.4,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "## _**Mathématiques/Biologie**_  \nLes élèves s'inscrivent seulement en L3 de mathématiques. L'obtention de la première année demande, en plus de la L3 de mathématiques :  \n- Le cours d'optimisation et transport optimal (2[ème] semestre).  \n- Le cours de M1 d'Analyse fonctionnelle (2[ème] semestre, peut remplacer le cours d'Analyse complexe de la L3 de mathématiques qui devra alors être validé en 2[ème] année).  \n- Cours de biologie pour non biologistes :  \n- Introduction aux Sciences du Vivant (1[er] semestre, 3 ECTS)  \n- Biologie moléculaire de la cellule (2[ème] semestre, 3 ECTS)  \n- Groupe de lecture en biologie : Mathématiques pour la biologie (2[ème] semestre, 6 ECTS).  \n- Deux cours parmi les suivants au 1[er] semestre :  \n- Ecologie & Biodiversité (6 ECTS) Neurosciences (6 ECTS)  \nBiologie Moléculaire et Génétique (6 ECTS)  \n- Deux cours parmi les suivants au 2[ème] semestre :  \n- Biologie cellulaire (6 ECTS) Développement (6 ECTS)  \n- Biologie évolutive (6 ECTS)"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "Sorbonne Université - Master 2 - Optimisation et Transport Optimal\n\n## _**Mathématiques/Biologie**_  \nLes élèves s'inscrivent seulement en L3 de mathématiques. L'obtention de la première année demande, en plus de la L3 de mathématiques :  \n- Le cours d'optimisation et transport optimal (2[ème] semestre).  \n- Le cours de M1 d'Analyse fonctionnelle (2[ème] semestre, peut remplacer le cours d'Analyse complexe de la L3 de mathématiques qui devra alors être validé en 2[ème] année).  \n- Cours de biologie pour non biologistes :  \n- Introduction aux Sciences du Vivant (1[er] semestre, 3 ECTS)  \n- Biologie moléculaire de la cellule (2[ème] semestre, 3 ECTS)  \n- Groupe de lecture en biologie : Mathématiques pour la biologie (2[ème] semestre, 6 ECTS).  \n- Deux cours parmi les suivants au 1[er] semestre :  \n- Ecologie & Biodiversité (6 ECTS) Neurosciences (6 ECTS)  \nBiologie Moléculaire et Génétique (6 ECTS)  \n- Deux cours parmi les suivants au 2[ème] semestre :  \n- Biologie cellulaire (6 ECTS) Développement (6 ECTS)  \n- Biologie évolutive (6 ECTS)"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 26,
+        "content": "## **Premier semestre** :  \n- Algèbre 1 : théorie des groupes (L3, 12 ECTS) (70h : 42h cours + 28h TD)  \nA. Mézard SU N. Marquis ENS  \n- Probas 1 : intégration et probabilités (L3, 12 ECTS) (70h : 42h cours + 28h TD)  \nN. Enriquez UPS B. Laslier UPC  \n- Analyse 1 : topologie et calcul différentiel (L3, 12 ECTS)  \n- (70h : 42h cours + 28h TD)  \nJ. Guillod SU  \nC. Gentil ENS  \n- Groupe de lecture (L3, 6 ECTS)  \n- Arbres, marches et graphes aléatoires  \nI. Kortchemski CNRS  \n**•** Groupe de lecture (L3, 6 ECTS) Des équations différentielles à la géométrie, la correspondance de Riemann-Hilbert  \nT. Serafini SU  \n- Groupe de lecture (L3, 6 ECTS)  \n- Graphes expanseurs  \nJ. Marché SU  \n- Groupe de lecture (L3, 6 ECTS)  \n- Introduction à la modélisation mathématique  \nC. Gentil ENS  \n- _Cours de 2[nde] année accessible en 1[ère] année :_  \n- Logique (M1, 12 ECTS)  \n(Cours fondamental - 70h : 42h cours + 28h TD)  \nS. Rideau-Kikushi CNRS/ENS P. Wang ENS"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Sorbonne Université, Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_005",
+    "question": "À quelles dates précises ont lieu les huit séances du cours « Dimension reduction and manifold learning » de M2 et où se déroule ce cours ?",
+    "reponse_attendue": "Le cours « Dimension reduction and manifold learning » (M2 S1, Eddie Aamari) se tient les mercredis matin de 9h à 12h15 sur 8 semaines à Paris Santé Campus. Les dates sont : 02/10, 09/10, 16/10, 04/11, 06/11, 13/11, 18/11 et 20/11.",
+    "reponse_llm": "Les huit séances du cours se déroulent à Paris Santé Campus (Source : ENS.pdf) aux dates suivantes : 02/10, 09/10, 16/10, 04/11, 06/11, 13/11, 18/11 et 20/11 (Source : ENS.pdf).",
+    "duree_secondes": 418.7,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 50,
+        "content": "Sorbonne Université - Master 2 - Enseignement en Mathématiques et Applications - Dimension Reduction et Apprentissage des Modèles Linéaires\n\n## **Bibliography:**  \n- Ghojogh, B., M. Crowley, F. Karray, and A. Ghodsi (2023). Elements of dimensionality reduction and manifold learning  \n- Lee, J. A., M. Verleysen, et al. (2007). Nonlinear dimensionality reduction\n\n## **Horaires :**  \nLe cours se tiendra les mercredis matin de 9h à 12h15 sur 8 semaines à Paris Santé Campus. Les dates s'étalent du 02/10 (inclus) au 20/11 (inclus) : 02/10, 09/10, 16/10, 04/11, 06/11, 13/11, 18/11, 20/11  \nPAGE **49** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 50,
+        "content": "Ce passage concerne la bibliographie et les horaires d'un cours de dimension reduction et de manifold learning au sein de l'ENS.\n\n## **Bibliography:**  \n- Ghojogh, B., M. Crowley, F. Karray, and A. Ghodsi (2023). Elements of dimensionality reduction and manifold learning  \n- Lee, J. A., M. Verleysen, et al. (2007). Nonlinear dimensionality reduction\n\n## **Horaires :**  \nLe cours se tiendra les mercredis matin de 9h à 12h15 sur 8 semaines à Paris Santé Campus. Les dates s'étalent du 02/10 (inclus) au 20/11 (inclus) : 02/10, 09/10, 16/10, 04/11, 06/11, 13/11, 18/11, 20/11  \nPAGE **49** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 50,
+        "content": "## **Bibliography:**  \n- Ghojogh, B., M. Crowley, F. Karray, and A. Ghodsi (2023). Elements of dimensionality reduction and manifold learning  \n- Lee, J. A., M. Verleysen, et al. (2007). Nonlinear dimensionality reduction\n\n## **Horaires :**  \nLe cours se tiendra les mercredis matin de 9h à 12h15 sur 8 semaines à Paris Santé Campus. Les dates s'étalent du 02/10 (inclus) au 20/11 (inclus) : 02/10, 09/10, 16/10, 04/11, 06/11, 13/11, 18/11, 20/11  \nPAGE **49** SUR 78 >"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "## **Semestre 2**  \n- 4MA076 Bases de l'apprentissage statistique (9 ECTS) ou  \n- 4MA379 Statistique computationnelle et machine learning (9 ECTS) ;  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS) ou  \n- 4MA257 Analyse convexe (6 ECTS) ou  \n- 4MA256 Programmation en C++ (6 ECTS) ;  \n- Deux UE au choix parmi :  \n- 4MA245 Travail d'´etude et de recherche (TER) (6 ECTS) ou  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS) ou  \n- 4MA273 Statistique avanc´ee, grande dimension et donn´ees massives (6 ECTS) ;  \n- 4MAOIP Orientation et Insertion professionnelle (OIP) (3 ECTS).  \nSe reporter au chapitre du M1 (ici) pour la description de ces UE.  \nPour s'inscrire `a l'UE TER, il est n´ecessaire d'avoir valid´e le premier semestre d'une part, et d'autre part, toutes les UE math´ematiques du premier semestre **sans compensation** .  \nPour les **Semestres 3 et 4** (niveau M2) se r´ef´erer aux chapitres des parcours de M2 correspondant."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 18,
+        "content": "## **Responsable :** Albert Cohen  \nm´el : `albert.cohen@sorbonne-universite.fr`  \nurl : `https://www.ljll.fr/cohen/`  \n**Objectifs de l'UE :** Etudier[´] les grandes familles de m´ethodes num´eriques utilis´ees pour la discr´etisation et l'approximation des fonctions solutions d'´equations aux d´eriv´ees partielles (EDP). Apr`es une introduction `a la mod´elisation par les EDP, le cours aborde les m´ethodes de diff´erences finies pour les probl`emes aux limites et d'´evolution, ainsi que leur analyse de convergence fond´ee sur des techniques d'alg`ebre matricielle et d'approximation num´erique (stabilit´e et consistance). La seconde partie du cours aborde les m´ethodes d'´el´ements finis, et leur fondements th´eorique utilisant les formulations variationelles dans les espaces de Sobolev construits `a partir de l'espace _L_[2] ."
+      }
+    ]
+  },
+  {
+    "id": "L3_ENS_006",
+    "question": "Pour le cursus mathématiques/informatique, en quoi consiste le travail bibliographique encadré par un·e chercheur·euse, et quelles sont les caractéristiques précises (durée, période, lieu) du stage de recherche en informatique qui le complète ?",
+    "reponse_attendue": "Le travail bibliographique du cursus mathématiques/informatique est encadré par un·e chercheur·euse et se termine par la rédaction d'un mémoire et une soutenance ; il est suivi d'un stage de recherche en informatique d'au moins 6 semaines entre mi-juin et fin août, ayant lieu en laboratoire (universitaire ou industriel), prioritairement en province. Ce stage comprend également la rédaction d'un rapport et une soutenance, et les sujets de mémoire et de stage sont liés l'un à l'autre.",
+    "reponse_llm": "Le travail bibliographique encadré par un·e chercheur·euse est un travail qui se termine par la rédaction d'un mémoire et une soutenance (Source : ENS.pdf). Le stage de recherche en informatique qui le complète présente les caractéristiques suivantes :\n- **Durée** : au moins 6 semaines (Source : ENS.pdf).\n- **Période** : entre mi-juin et fin août (Source : ENS.pdf).\n- **Lieu** : en laboratoire (universitaire ou industriel) prioritairement en province (Source : ENS.pdf).\n\nCe stage comprend également la rédaction d'un rapport et une soutenance, et les sujets de mémoire et de stage sont liés l'un à l'autre (Source : ENS.pdf).",
+    "duree_secondes": 190.5,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|  \n_Il s'agit d'un travail bibliographique encadré par un·e chercheur·euse et se terminant par la rédaction d'un mémoire et une soutenance, puis d'un stage de recherche en informatique d'au moins 6 semaines entre mi-juin et fin août. Il a lieu en laboratoire (universitaire ou industriel) prioritairement en province. Le stage comprend aussi la rédaction d'un rapport et une soutenance. Les sujets de mémoire et de stage sont liés l'un à l'autre._  \nEn deuxième année, les élèves s'orientent soit vers les mathématiques soit vers l'informatique et rejoignent le département de leur choix."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "Ce passage concerne les conditions d'obtention du Master 2 en informatique à l'ENS.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|  \n_Il s'agit d'un travail bibliographique encadré par un·e chercheur·euse et se terminant par la rédaction d'un mémoire et une soutenance, puis d'un stage de recherche en informatique d'au moins 6 semaines entre mi-juin et fin août. Il a lieu en laboratoire (universitaire ou industriel) prioritairement en province. Le stage comprend aussi la rédaction d'un rapport et une soutenance. Les sujets de mémoire et de stage sont liés l'un à l'autre._  \nEn deuxième année, les élèves s'orientent soit vers les mathématiques soit vers l'informatique et rejoignent le département de leur choix."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "Sorbonne Université - Master 2 - Thèse sur l'optimisation et le transport optimal dans les systèmes complexes.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025**  \n|  \n_Il s'agit d'un travail bibliographique encadré par un·e chercheur·euse et se terminant par la rédaction d'un mémoire et une soutenance, puis d'un stage de recherche en informatique d'au moins 6 semaines entre mi-juin et fin août. Il a lieu en laboratoire (universitaire ou industriel) prioritairement en province. Le stage comprend aussi la rédaction d'un rapport et une soutenance. Les sujets de mémoire et de stage sont liés l'un à l'autre._  \nEn deuxième année, les élèves s'orientent soit vers les mathématiques soit vers l'informatique et rejoignent le département de leur choix."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 84,
+        "content": "- Maˆıtriser au moins deux langages informatiques parmi C/C++, Python, R, Matlab, et connaˆıtre la syntaxe de base dans les deux autres.  \nLa brochure des r´esum´es de stage et mission d'alternance est disponible sur le site de la formation. Chaque ann´ee, `a l'issue du M2, certain·e·s ´etudiant·e·s poursuivent en doctorat."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 29,
+        "content": "**Pr´erequis :** prendre contact avec le responsable de l'UE avant d'´etablir la convention de stage.  \n**Th`emes abord´es :** L'´etudiant-e trouve son stage seul-e. Le sujet est propos´e par l'entreprise et doit ˆetre valid´e par le responsable de l'UE **avant** le d´ebut du stage. Le stage doit comprendre une immersion totale dans l'entreprise pendant deux mois minimum, soit pendant l'´et´e, soit pendant un semestre universitaire si l'´etudiant-e a d´ej`a valid´e les autres modules, dans le cas d'un M1 ´etal´e sur plus d'un an. Les stages ayant lieu pendant l'´et´e seront ´evalu´es `a la rentr´ee de septembre. D'autres situations particuli`eres peuvent ˆetre ´etudi´ees au cas par cas. Les stages valid´es au titre d'un autre diplˆome ne peuvent pas ˆetre pris en compte. L'´evaluation du stage repose sur trois crit`eres : la r´edaction d'un rapport, la soutenance orale et l'avis motiv´e des responsables du stage dans l'entreprise."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_001",
+    "question": "Avec quelle école le Master 2 Probabilités et Finance de Sorbonne Université est-il actuellement co-opéré ?",
+    "reponse_attendue": "Le Master 2 Probabilités et Finance est actuellement co-opéré avec l'École Polytechnique.",
+    "reponse_llm": "Le Master 2 Probabilités et Finance de Sorbonne Université est actuellement co-opéré avec l'École Polytechnique (SORBONNE.pdf).",
+    "duree_secondes": 101.8,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 60,
+        "content": "Sorbonne Université - Master 2 - Probabilités et Finance\n\n## **Chapitre 4**\n\n## **Master 2, Parcours Probabilit´es et Finance**  \nCe master 2 est actuellement co-op´er´e avec l'Ecole[´] Polytechnique.\n\n## **4.1 Objectifs et descriptions**  \nL'objectif de ce parcours est d'apporter aux ´etudiants un enseignement de haut niveau dans le domaine de la finance math´ematique probabiliste. Celle-ci recouvre l'ensemble de la finance de march´es, avec un accent tout particulier mis sur les instruments d´eriv´es, l'´etude approfondie des taux d'int´erˆet, l'analyse du risque d'une part et les m´ethodes num´eriques de la simulation de Monte Carlo au Machine Learning d'autre part.  \nL'ann´ee se d´ecompose en un semestre de cours intensifs (de d´ebut septembre septembre `a fin mars) et un semestre de stage dans un ´etablissement financier (de d´ebut avril au 30 septembre, ´eventuellement prolongeable jusqu' `a la fin de l'ann´ee civile en cours)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 60,
+        "content": "## **Chapitre 4**\n\n## **Master 2, Parcours Probabilit´es et Finance**  \nCe master 2 est actuellement co-op´er´e avec l'Ecole[´] Polytechnique.\n\n## **4.1 Objectifs et descriptions**  \nL'objectif de ce parcours est d'apporter aux ´etudiants un enseignement de haut niveau dans le domaine de la finance math´ematique probabiliste. Celle-ci recouvre l'ensemble de la finance de march´es, avec un accent tout particulier mis sur les instruments d´eriv´es, l'´etude approfondie des taux d'int´erˆet, l'analyse du risque d'une part et les m´ethodes num´eriques de la simulation de Monte Carlo au Machine Learning d'autre part.  \nL'ann´ee se d´ecompose en un semestre de cours intensifs (de d´ebut septembre septembre `a fin mars) et un semestre de stage dans un ´etablissement financier (de d´ebut avril au 30 septembre, ´eventuellement prolongeable jusqu' `a la fin de l'ann´ee civile en cours)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 60,
+        "content": "Ce passage décrit les objectifs et la structure d'un master 2 en probabilité et finance.\n\n## **Chapitre 4**\n\n## **Master 2, Parcours Probabilit´es et Finance**  \nCe master 2 est actuellement co-op´er´e avec l'Ecole[´] Polytechnique.\n\n## **4.1 Objectifs et descriptions**  \nL'objectif de ce parcours est d'apporter aux ´etudiants un enseignement de haut niveau dans le domaine de la finance math´ematique probabiliste. Celle-ci recouvre l'ensemble de la finance de march´es, avec un accent tout particulier mis sur les instruments d´eriv´es, l'´etude approfondie des taux d'int´erˆet, l'analyse du risque d'une part et les m´ethodes num´eriques de la simulation de Monte Carlo au Machine Learning d'autre part.  \nL'ann´ee se d´ecompose en un semestre de cours intensifs (de d´ebut septembre septembre `a fin mars) et un semestre de stage dans un ´etablissement financier (de d´ebut avril au 30 septembre, ´eventuellement prolongeable jusqu' `a la fin de l'ann´ee civile en cours)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2 - Probabilités et Finance\n\n## **4.4 Publics vis´es, pr´erequis**  \nLes titulaires d'un M1 de math´ematiques appliqu´ees et les ´el`eves de troisi`eme ann´ee d'´ecole d'ing´enieurs. Les pr´e-requis sont :  \n– quantitativement : un excellent niveau g´en´eral en math´ematiques appliqu´ees (Mention Bien au M1 ou top 15% dans une ´ecole d'ing´enieurs ; double-cursus appr´eci´e).  \n– qualitativement : un parcours ayant privil´egi´e les disciplines de l'al´eatoire (probabilit´es et statistique), si possible compl´et´e par des connaissances en Analyse appliqu´ee (EDP) et un acquis solide en calcul scientifique (programmation C, C++).  \nLa s´election des candidats est faite par un jury conjoint \"Sorbonne Universit´e-Ecole[´] Polytechnique\"."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 63,
+        "content": "Sorbonne Université, Master 2, Probabilités et Finance\n\n**Pr´e-requis :** Cf. pr´e-requis g´en´eraux pour l'admission dans le parcours \"Probabilit´es et Finance\" du Master 2 de Math´ematiques et Applications.  \n**Th`emes abord´es :** Cette UE est constitu´ee des 5 cours (ou ECUE) suivants : processus stochastiques et produits d´eriv´es en temps discret et continu ; ´econom´etrie sur donn´ees financi`eres ; march´es financiers et th´eorie financi`ere ; mesures de risque et extrˆemes ; Introduction aux mod`eles de saut.  \nLes programmes de ces cours sont d´etaill´es ci-dessous.  \n- Mod´elisation stochastique des produits d´eriv´es en finance traditionnelle et digitale. Mod`eles de taux (27C + 27 TD, M. Garcin & H. Pham, C. Hillairet & N. El Karoui)."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_002",
+    "question": "Dans le parcours Master 2 Mathématiques fondamentales de Sorbonne Université, quelles sont les deux autres universités dont les étudiants peuvent suivre et valider les cours du parcours équivalent ?",
+    "reponse_attendue": "Les étudiants peuvent suivre et valider les cours du parcours M2 Mathématiques fondamentales de l'Université Paris Cité et de l'Université Sorbonne Paris Nord.",
+    "reponse_llm": "Les deux autres universités sont l'Université Paris Cité et l'Université Sorbonne Paris Nord (Source : SORBONNE.pdf).",
+    "duree_secondes": 219.8,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 40,
+        "content": "Sorbonne Université, Master 2, Théorie des nombres.\n\n## **2.3 Organisation**  \nLe cursus comprend des _cours_ , une _UE d'ouverture_ et un _m´emoire_ . Les ´etudiants sont libres de choisir les cours (en plus des cours de ce parcours `a Sorbonne Universit´e, les ´etudiants peuvent suivre et valider les cours du parcours M2 Math´ematiques fondamentales de l'Universit´e Paris Cit´e et de l'Universit´e Sorbonne Paris Nord). Quatre cours seront exig´es ainsi qu'un m´emoire de recherche. Le m´emoire, dirig´e par un enseignantchercheur, introduit les ´etudiants aux sujets de recherche en cours de d´eveloppement.  \n39"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 40,
+        "content": "Ce passage décrit l'organisation d'un parcours de mathématiques fondamentales à Sorbonne Université.\n\n## **2.3 Organisation**  \nLe cursus comprend des _cours_ , une _UE d'ouverture_ et un _m´emoire_ . Les ´etudiants sont libres de choisir les cours (en plus des cours de ce parcours `a Sorbonne Universit´e, les ´etudiants peuvent suivre et valider les cours du parcours M2 Math´ematiques fondamentales de l'Universit´e Paris Cit´e et de l'Universit´e Sorbonne Paris Nord). Quatre cours seront exig´es ainsi qu'un m´emoire de recherche. Le m´emoire, dirig´e par un enseignantchercheur, introduit les ´etudiants aux sujets de recherche en cours de d´eveloppement.  \n39"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 41,
+        "content": "Sorbonne Université, Master 2, sujet sur les publics visés et leurs opportunités d'accès.\n\nMaster 2, Parcours Math´ematiques fondamentales  \nLes ´etudiants sont tous suivis, guid´es et encadr´es par les responsables et les enseignantschercheurs.\n\n## **2.4 Publics vis´es, pr´erequis**  \nLes ´etudiants ayant un diplˆome de Master 1 de Sorbonne Universit´e ou l'´equivalent auront les meilleures chances de r´eussite dans ce parcours. Nous visons ´egalement les ´el`eves des grandes ´ecoles, les futurs agr´eg´es et bien sˆur les ´etudiants ´etrangers.  \nLes ´etudiants en th`ese et les chercheurs d´ebutants profiteront de ce programme pour ´elargir leur champ de connaissances.  \nUn nombre important de cours seront propos´es pour l'enseignement `a distance visant les ´etudiants en situation familiale ou professionnelle particuli`ere."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 41,
+        "content": "Master 2, Parcours Math´ematiques fondamentales  \nLes ´etudiants sont tous suivis, guid´es et encadr´es par les responsables et les enseignantschercheurs.\n\n## **2.4 Publics vis´es, pr´erequis**  \nLes ´etudiants ayant un diplˆome de Master 1 de Sorbonne Universit´e ou l'´equivalent auront les meilleures chances de r´eussite dans ce parcours. Nous visons ´egalement les ´el`eves des grandes ´ecoles, les futurs agr´eg´es et bien sˆur les ´etudiants ´etrangers.  \nLes ´etudiants en th`ese et les chercheurs d´ebutants profiteront de ce programme pour ´elargir leur champ de connaissances.  \nUn nombre important de cours seront propos´es pour l'enseignement `a distance visant les ´etudiants en situation familiale ou professionnelle particuli`ere."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_003",
+    "question": "En quelle année le parcours MS2A (Master 2 Statistique, Apprentissage et Algorithmes) de Sorbonne Université est-il né, et de la fusion de quels deux M2 est-il issu ?",
+    "reponse_attendue": "Le parcours MS2A est né en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes.",
+    "reponse_llm": "Le parcours MS2A est né en 2025 (Source : SORBONNE.pdf) de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes (Source : SORBONNE.pdf).",
+    "duree_secondes": 111.4,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "## **7.1 Objectifs et description**  \nLe parcours Statistique, Apprentissage et Algorithmes (MS2A) est n´e en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes, avec la volont´e de mettre `a disposition des ´etudiant _·_ e _·_ s un parcours de M2 permettant une grande libert´e dans la d´efinition d'un profil personnalis´e alliant les aspects th´eoriques et num´eriques de la statistique et de l'apprentissage automatique.  \nLe MS2A est une formation pluridisciplinaire en math´ematiques appliqu´ees et en informatique, centr´ee sur la statistique, la science des donn´ees et l'intelligence artificielle. Il propose un vaste choix de cours permettant d'acqu´erir un profil unique et personnalis´e, allant de la statistique math´ematique `a l'apprentissage profond, en passant par les math´ematiques de l'apprentissage statistique. La formation dispens´ee est `a la fois :"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Sorbonne Université, Master 2, Statistique, Apprentissage et Algorithmes\n\n## **7.1 Objectifs et description**  \nLe parcours Statistique, Apprentissage et Algorithmes (MS2A) est n´e en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes, avec la volont´e de mettre `a disposition des ´etudiant _·_ e _·_ s un parcours de M2 permettant une grande libert´e dans la d´efinition d'un profil personnalis´e alliant les aspects th´eoriques et num´eriques de la statistique et de l'apprentissage automatique.  \nLe MS2A est une formation pluridisciplinaire en math´ematiques appliqu´ees et en informatique, centr´ee sur la statistique, la science des donn´ees et l'intelligence artificielle. Il propose un vaste choix de cours permettant d'acqu´erir un profil unique et personnalis´e, allant de la statistique math´ematique `a l'apprentissage profond, en passant par les math´ematiques de l'apprentissage statistique. La formation dispens´ee est `a la fois :"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Ce passage décrit les objectifs et la description du parcours MS2A à Sorbonne Universitée.\n\n## **7.1 Objectifs et description**  \nLe parcours Statistique, Apprentissage et Algorithmes (MS2A) est n´e en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes, avec la volont´e de mettre `a disposition des ´etudiant _·_ e _·_ s un parcours de M2 permettant une grande libert´e dans la d´efinition d'un profil personnalis´e alliant les aspects th´eoriques et num´eriques de la statistique et de l'apprentissage automatique.  \nLe MS2A est une formation pluridisciplinaire en math´ematiques appliqu´ees et en informatique, centr´ee sur la statistique, la science des donn´ees et l'intelligence artificielle. Il propose un vaste choix de cours permettant d'acqu´erir un profil unique et personnalis´e, allant de la statistique math´ematique `a l'apprentissage profond, en passant par les math´ematiques de l'apprentissage statistique. La formation dispens´ee est `a la fois :"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Sorbonne Université, Master 2, parcours Statistique, Apprentissage et Algorithmes.\n\n- th´eorique, au travers d'enseignements de haut niveau abordant les notions math´ematiques de la statistique et de l'apprentissage automatique ;  \n- num´erique, via des exemples port´es par des travaux pratiques et des projets ;  \n- concr`ete, grˆace `a un stage au second semestre et par le contact direct avec des entreprises et des laboratoires proposant des probl`emes concrets d'apprentissage automatique.  \nLe parcours MS2A s'appuie principalement sur quatre laboratoires de Sorbonne Universit´e :  \n- le Laboratoire de Probabilit´es, Statistique et Mod´elisation (LPSM) ;  \n- l'Institut des Syst`emes Intelligents et de Robotique (ISIR) ;  \n- le Laboratoire d'Informatique de Paris 6 (LIP6) ;  \n- le Laboratoire Jacques-Louis Lions (LJLL)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Ce passage décrit les objectifs et la structure du parcours MS2A à Sorbonne Universitée.\n\n- th´eorique, au travers d'enseignements de haut niveau abordant les notions math´ematiques de la statistique et de l'apprentissage automatique ;  \n- num´erique, via des exemples port´es par des travaux pratiques et des projets ;  \n- concr`ete, grˆace `a un stage au second semestre et par le contact direct avec des entreprises et des laboratoires proposant des probl`emes concrets d'apprentissage automatique.  \nLe parcours MS2A s'appuie principalement sur quatre laboratoires de Sorbonne Universit´e :  \n- le Laboratoire de Probabilit´es, Statistique et Mod´elisation (LPSM) ;  \n- l'Institut des Syst`emes Intelligents et de Robotique (ISIR) ;  \n- le Laboratoire d'Informatique de Paris 6 (LIP6) ;  \n- le Laboratoire Jacques-Louis Lions (LJLL)."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_004",
+    "question": "Quelles sont les trois options de préparation à l'oral (A, B, C) proposées dans le parcours Agrégation de Mathématiques de Sorbonne Université ?",
+    "reponse_attendue": "Les trois options sont : option A « Probabilités et Statistiques », option B « Calcul Scientifique », et option C « Algèbre et Calcul formel ».",
+    "reponse_llm": "Les trois options de préparation sont les suivantes :\n- Option A : Probabilités et Statistiques (Source : SORBONNE.pdf)\n- Option B : Calcul Scientifique (Source : SORBONNE.pdf)\n- Option C : Algèbre et Calcul formel (Source : SORBONNE.pdf)",
+    "duree_secondes": 486.1,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 117,
+        "content": "Ce passage concerne la préparation à l'Agrégation de mathématiques au sein du Master 2 de Sorbonne Universitée.\n\n— une pr´eparation aux options Probabilit´es et Statistiques (option A), Calcul Scientifique (option B), Alg`ebre et Calcul formel (option C), incluant des travaux pratiques sur ordinateur et des pr´esentations de texte confi´ees aux ´etudiants.  \n— l'organisation r´eguli`ere d'´epreuves ´ecrites (concours blancs) et d'oraux blancs, permettant aux ´etudiants de se confronter aux conditions r´eelles du concours."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 117,
+        "content": "Ce passage décrit l'organisation de la préparation à l'Agrégation de mathématiques au sein du Master 2 de Sorbonne Universitée.\n\n## **8.3 Organisation**  \nLa pr´eparation `a l'agr´egation de math´ematiques se d´eroule en un an, en deuxi`eme ann´ee du Master de Math´ematiques. Elle comprend :  \n— une solide pr´eparation aux ´epreuves d'´ecrit, couvrant l'essentiel du programme d'alg`ebre, de g´eom´etrie, d'analyse et de probabilit´es du concours ; ces cours sont compl´et´es par des travaux dirig´es et par des interrogations individuelles (colles) permettant de s'assurer que les notions essentielles ont ´et´e bien assimil´ees ;  \n— une pr´eparation `a l'oral, consistant d'une part en des cours ou le¸cons pr´esent´ees par les enseignants, d'autre part en des le¸cons confi´ees aux ´etudiants, mais qui sont pr´epar´ees en concertation avec les enseignants pour en am´eliorer la qualit´e ;"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 117,
+        "content": "Sorbonne Université, Master 2, agrégation de mathématiques.\n\n## **8.3 Organisation**  \nLa pr´eparation `a l'agr´egation de math´ematiques se d´eroule en un an, en deuxi`eme ann´ee du Master de Math´ematiques. Elle comprend :  \n— une solide pr´eparation aux ´epreuves d'´ecrit, couvrant l'essentiel du programme d'alg`ebre, de g´eom´etrie, d'analyse et de probabilit´es du concours ; ces cours sont compl´et´es par des travaux dirig´es et par des interrogations individuelles (colles) permettant de s'assurer que les notions essentielles ont ´et´e bien assimil´ees ;  \n— une pr´eparation `a l'oral, consistant d'une part en des cours ou le¸cons pr´esent´ees par les enseignants, d'autre part en des le¸cons confi´ees aux ´etudiants, mais qui sont pr´epar´ees en concertation avec les enseignants pour en am´eliorer la qualit´e ;"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 117,
+        "content": "Ce passage concerne l'organisation et les exigences pour la préparation à l'Agrégation de mathématiques au sein de l'Université Sorbonne.\n\nMaster 2, Parcours Agr´egation de Math´ematiques"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 50,
+        "content": "Ce passage concerne les prèquis pour le parcours \"Mathématiques fondamentales\" à l'université Sorbonne.\n\n**Pr´erequis :** Th´eorie de Poincar´e pour les hom´eomorphismes du cercle, th´eor`emes principaux de th´eorie ergodique (Birkhoff et Kingman) et fer `a cheval de Smale. Ces notions sont abord´ees dans les trois cours pr´ec´edents dans le parcours syst`emes dynamiques."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_005",
+    "question": "En quelle année le parcours Sciences des données (SCDA et SCDI) de Sorbonne Université a-t-il été initié, et sur quel intervalle de niveaux d'études s'étend-il ?",
+    "reponse_attendue": "Le parcours Science des données a été initié en 2021. Il s'étend de la L1 au M2 et peut être rejoint à chaque niveau.",
+    "reponse_llm": "Le parcours s'étend sur les niveaux Master 1 (M1) et Master 2 (M2) (Source : SORBONNE.pdf). Je ne trouve pas cette information dans les documents fournis.",
+    "duree_secondes": 713.6,
+    "logs": "! Erreur Ollama (an error was encountered while running the model: unexpected EOF (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Ce passage décrit les parcours Science des données au niveau Master 1 et Master 2 de l'Université Sorbonne.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 124,
+        "content": "Sorbonne Université - Master 1 - Parcours Sciences des données (SCDA et SCDI)\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \nEn M1, l'´etudiant doit atteindre le niveau B2 du Cadre Europ´een Commun de R´ef´erence pour les Langues (CECRL) dans toutes les comp´etences (compr´ehension et production orales et ´ecrites). L'accent est mis sur les comp´etences de compr´ehension ´ecrite et orale qui seront ´evalu´ees au Toeic en M2. Les documents ´etudi´es couvrent des th`emes scientifiques, ´economiques, la vie en entreprise et le monde du travail en g´en´eral. Chaque ´etudiant doit faire une pr´esentation orale de 10 `a 15 minutes sur un th`eme scientifique et diriger le d´ebat qui s'ensuit. Les cours de langues sont dispens´es en petits groupes de niveau, ce qui permet d'encourager la participation de tous et d'adapter le contenu du cours au niveau du groupe. L'enseignement se fait en deux semestres de 30 heures. L'´evaluation se fait en contrˆole continu, avec deux ´epreuves communes `a tous les groupes chaque semestre."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 2, Parcours Sciences des données (SCDA et SCDI).\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.5.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDI (niveau master) s'appuient sur la premi`ere ann´ee du master Math´ematiques et Applications `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique auxquels s'ajoutent des enseignements sp´ecifiques `a l'ISUP, indiqu´es ci-dessous par le symbole _∗_ .  \nChaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\nAu niveau M2, l'acceptation dans un des parcours propos´es dans le master Math´ematiques et Applications se fait sur dossier. Les ´etudiants du parcours Science des donn´ees ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associ´es au parcours Science des donn´ees, `a savoir le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (voir ce chapitre). Cependant, les r`egles sp´ecifiques `a l'ISUP s'appliquent au parcours SCDI, qui offre aux ´etudiants qui le suivent en M1 la garantie de pouvoir poursuivre en M2 Ing´enierie math´ematique, majeure SCDI (anciennement ISup parcours Data Sciences, voir ce chapitre), qui est la deuxi`eme et derni`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLes enseignements sont presque int´egralement d´elivr´es en fran¸cais, bien que du mat´eriel de cours en anglais soit disponible au niveau M2."
+      }
+    ]
+  },
+  {
+    "id": "L1_SU_006",
+    "question": "Quelle est la durée minimale du stage obligatoire du M1 SCDI (Sciences des données pour l'ingénieur·e) à Sorbonne Université, et pendant quels mois doit-il avoir lieu ?",
+    "reponse_attendue": "Le stage obligatoire du M1 SCDI dure au minimum deux mois à plein temps, et doit avoir lieu au cours des mois de juin, juillet et août.",
+    "reponse_llm": "Le stage obligatoire du M1 SCDI a une durée minimale de deux mois à plein temps (Source : SORBONNE.pdf) et doit avoir lieu au cours des mois de juin, juillet et août (Source : SORBONNE.pdf).",
+    "duree_secondes": 112.1,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 29,
+        "content": "Ce passage concerne les prèquis et les thématiques du stage en entreprise pour les étudiants de Master 1 à Sorbonne Université.\n\n**Pr´erequis :** prendre contact avec le responsable de l'UE avant d'´etablir la convention de stage.  \n**Th`emes abord´es :** L'´etudiant-e trouve son stage seul-e. Le sujet est propos´e par l'entreprise et doit ˆetre valid´e par le responsable de l'UE **avant** le d´ebut du stage. Le stage doit comprendre une immersion totale dans l'entreprise pendant deux mois minimum, soit pendant l'´et´e, soit pendant un semestre universitaire si l'´etudiant-e a d´ej`a valid´e les autres modules, dans le cas d'un M1 ´etal´e sur plus d'un an. Les stages ayant lieu pendant l'´et´e seront ´evalu´es `a la rentr´ee de septembre. D'autres situations particuli`eres peuvent ˆetre ´etudi´ees au cas par cas. Les stages valid´es au titre d'un autre diplˆome ne peuvent pas ˆetre pris en compte. L'´evaluation du stage repose sur trois crit`eres : la r´edaction d'un rapport, la soutenance orale et l'avis motiv´e des responsables du stage dans l'entreprise."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2 - Semestre 2 : Spécialisation et Professionnalisation\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_001",
+    "question": "Comment est organisé le premier semestre (tronc commun) du Master 2 Probabilités et Finance de Sorbonne Université, et comment se fait la sélection des candidats à l'entrée de ce parcours ?",
+    "reponse_attendue": "Le premier semestre est un semestre de cours intensifs de tronc commun fondamental : il commence par 4 cours de remise à niveau à choisir parmi 4 (Informatique de Python à C++, Probabilités, Statistique, EDP pour la Finance) pendant deux semaines à partir de la deuxième semaine de septembre, puis se poursuit à partir de fin septembre par un bloc « Probabilités, méthodes numériques et optimisation » et un bloc « Finance de marché, dérivés et économétrie », avant une session d'examens la semaine de la rentrée de janvier. La sélection des candidats à l'entrée du parcours est faite par un jury conjoint « Sorbonne Université - École Polytechnique ».",
+    "reponse_llm": "Le premier semestre (tronc commun fondamental) est un semestre de cours intensifs (Source : SORBONNE.pdf - Semestre 1 : Tronc commun fondamental). Il comprend 4 cours de remise à niveau à choisir parmi 4 (Informatique de Python à C, C++, Probabilités, Statistique, EDP pour la Finance) pendant deux semaines à partir de la seconde semaine de tout début septembre (Source : SORBONNE.pdf - Semestre 1 : Tronc commun fondamental). Ce tronc commun est composé de deux blocs (UE) : \"Probabilités, méthodes numériques et optimisation\" et \"Finance de marché, dérivés et économétrie\", qui commencent à la fin de septembre et se terminent par une session d'examens la semaine de la rentrée en janvier (Source : SORBONNE.pdf - Sorbonne Université - Master 2, Parcours Probabilités et Finance).\n\nLa sélection des candidats est effectuée par un jury conjoint \"Sorbonne Université-Ecole d'Polytechnique\" (Source : SORBONNE.pdf - 4.4 Publics visés, prérequis).",
+    "duree_secondes": 302.8,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2 - Probabilités et Finance\n\n## **4.4 Publics vis´es, pr´erequis**  \nLes titulaires d'un M1 de math´ematiques appliqu´ees et les ´el`eves de troisi`eme ann´ee d'´ecole d'ing´enieurs. Les pr´e-requis sont :  \n– quantitativement : un excellent niveau g´en´eral en math´ematiques appliqu´ees (Mention Bien au M1 ou top 15% dans une ´ecole d'ing´enieurs ; double-cursus appr´eci´e).  \n– qualitativement : un parcours ayant privil´egi´e les disciplines de l'al´eatoire (probabilit´es et statistique), si possible compl´et´e par des connaissances en Analyse appliqu´ee (EDP) et un acquis solide en calcul scientifique (programmation C, C++).  \nLa s´election des candidats est faite par un jury conjoint \"Sorbonne Universit´e-Ecole[´] Polytechnique\"."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2, Parcours Probabilités et Finance\n\nMaster 2, Parcours Probabilit´es et Finance  \n– 1 bloc (UE) \"Probabilit´es, m´ethodes num´eriques et optimisation\" (`a partir de fin septembre).  \n– 1 bloc (UE) \"Finance de march´e, d´eriv´es et ´econom´etrie\" (`a partir de fin septembre). Le tronc commun s'ach`eve par une session d'examens la semaine de la rentr´ee en janvier."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Ce passage décrit les cours et les obligations pour le Master 2 en Probabilité et Finance à l'Université de Sorbonne.\n\nMaster 2, Parcours Probabilit´es et Finance  \n– 1 bloc (UE) \"Probabilit´es, m´ethodes num´eriques et optimisation\" (`a partir de fin septembre).  \n– 1 bloc (UE) \"Finance de march´e, d´eriv´es et ´econom´etrie\" (`a partir de fin septembre). Le tronc commun s'ach`eve par une session d'examens la semaine de la rentr´ee en janvier."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Ce passage concerne la liste des unités d'enseignement pour le Master 2 en Probabilités et Finance à l'Université Sorbonne.\n\n## **4.5 Liste des UE**  \n_•_ Au premier semestre :  \n**5MK01 Probabilit´es et calcul stochastique pour la finance\" (15 ECTS) (1er semestre)**  \n**Professeur :** Gilles Pag`es  \ncourriel : gilles.pages@sorbonne-universite.fr  \n```\nhttps://www.lpsm.paris/users/pages/index\n```  \n**Objectifs de l'UE :** Acqu´erir les outils math´ematiques fondamentaux, notamment `a caract`ere probabiliste et statistique en vue de leur application en finance de march´e.  \n60"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 60,
+        "content": "Sorbonne Université, Master 2, chapitre 4, section \"Décisions à prendre\"\n\n## **4.2 D´ebouch´es professionnels**  \nLes diplˆom´es de ce parcours s'orientent majoritairement vers les cellules de recherche des ´etablissements financiers en France, en Europe (Londres) et dans le reste du monde (USA, Asie). Une fraction d'entre eux s'oriente vers la recherche (th`ese, th`ese CIFRE, etc.), puis vers des carri`eres universitaires.\n\n## **4.3 Organisation**  \nL'ann´ee se d´ecompose en deux semestres.\n\n## **Semestre 1 : Tronc commun fondamental**  \nIl s'agit d'un semestre de cours intensifs.  \n– 4 cours de remise `a niveau `a choisir parmi 4 (Informatique de Python `a _C_ ++, Probabilit´es, Statistique, EDP pour la Finance) pendant deux semaines `a partir de la seconde semaine de tout d´ebut septembre.  \n59"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_002",
+    "question": "Combien d'ECTS un·e étudiant·e du parcours MS2A (Master 2 Statistique, Apprentissage et Algorithmes) doit-il/elle valider chaque année, comment se répartissent-ils entre les deux semestres, et que se passe-t-il si l'étudiant·e choisit plus d'ECTS que le minimum requis sur un semestre ?",
+    "reponse_attendue": "Chaque étudiant·e du MS2A concourt pour 60 ECTS annuels : 30 ECTS au premier semestre et 30 ECTS au second semestre (le second semestre incluant une UE Stage de 18 ECTS). Il est possible de choisir jusqu'à 36 ECTS par semestre ; dans ce cas, c'est la moyenne la plus favorable pour l'étudiant·e qui est retenue.",
+    "reponse_llm": "Un étudiant du parcours MS2A doit valider 60 ECTS annuels (Source : SORBONNE.pdf). Ces crédits se répartissent en 30 ECTS au premier semestre et 30 ECTS au second (Source : SORBONNE.pdf). Si l'étudiant choisit plus d'ECTS que le minimum requis sur un semestre (il est possible d'en choisir jusqu'à 36), la moyenne retenue est la plus favorable pour l'étudiant (Source : SORBONNE.pdf).",
+    "duree_secondes": 289.9,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Ce passage concerne l'organisation des cours de la spécialité MS2A à Sorbonne Université.\n\n## **7.4 Organisation**  \nChaque ´etudiant _·_ e concourt pour 60 ECTS annuels : 30 au premier semestre et 30 au second (incluant une UE Stage de 18 ECTS). Il est possible de choisir au plus 36 ECTS par semestre, auquel cas la moyenne retenue est la plus favorable pour l'´etudiant _·_ e.\n\n## **Premier semestre (de septembre `a janvier)**  \n- Pr´e-rentr´ee (d´ebut septembre) ;  \n- –  \n- Cours fondamentaux P´eriode 1 (avant la Toussaint) ;  \n- –  \n- Cours fondamentaux P´eriode 2 (apr`es la Toussaint)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "## **7.4 Organisation**  \nChaque ´etudiant _·_ e concourt pour 60 ECTS annuels : 30 au premier semestre et 30 au second (incluant une UE Stage de 18 ECTS). Il est possible de choisir au plus 36 ECTS par semestre, auquel cas la moyenne retenue est la plus favorable pour l'´etudiant _·_ e.\n\n## **Premier semestre (de septembre `a janvier)**  \n- Pr´e-rentr´ee (d´ebut septembre) ;  \n- –  \n- Cours fondamentaux P´eriode 1 (avant la Toussaint) ;  \n- –  \n- Cours fondamentaux P´eriode 2 (apr`es la Toussaint)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 53,
+        "content": "La travail de m´emoire ou de stage est cr´edit´e de 12ECTS. Les ´etudiants doivent le compl´eter par la validation de 3 cours optionnels de 6 ECTS au choix pour valider le deuxi`eme semestre"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 53,
+        "content": "Sorbonne Université, Master 2, Spécialité Probabilités et Modèles Aléatoires.\n\nLa travail de m´emoire ou de stage est cr´edit´e de 12ECTS. Les ´etudiants doivent le compl´eter par la validation de 3 cours optionnels de 6 ECTS au choix pour valider le deuxi`eme semestre"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_003",
+    "question": "Pendant la pré-rentrée du parcours MS2A à Sorbonne Université, quel choix obligatoire les étudiant·e·s doivent-ils/elles faire, et combien d'heures représentent respectivement le cours de Statistique et le cours d'Optimisation et calcul différentiel ?",
+    "reponse_attendue": "Pendant la pré-rentrée du MS2A, les cours sont obligatoires mais non notés, et les étudiant·e·s doivent choisir entre R et Python avancé (12h chacun). Par ailleurs, le cours de Statistique représente 21h et le cours d'Optimisation et calcul différentiel représente 15h.",
+    "reponse_llm": "Lors de la pré-rentrée, les étudiants doivent choisir soit R, soit Python avancé (Source : SORBONNE.pdf). Le cours de Statistique représente 21h et le cours d'Optimisation et calcul différentiel représente 15h (Source : SORBONNE.pdf).",
+    "duree_secondes": 1211.7,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Ce passage décrit les cours obligatoires et facultatifs pour le parcours Master 2 en Statistique, Apprentissage et Algorithmes à Sorbonne Universitée.\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Ce passage concerne les modalités d'admission et d'organisation du Master 2 en Statistique à l'Université Sorbonne.\n\n## **Second semestre (de janvier `a octobre)**  \n- Cours d'ouverture (jusqu'`a fin mars) ;  \n- Stage (`a partir de mi-avril).\n\n## **Examens**  \nLes examens ont lieu `a l'issue de chaque bloc (novembre, janvier et avril). Des rattrapages sont organis´es en juin pour les ´etudiant _·_ e _·_ s n'ayant pas obtenu de notes validantes `a la premi`ere session. Il existe une compensation entre UE. Cependant, il n'y a pas de compensation entre les semestres.\n\n## **7.4.1 Pr´e-rentr´ee**  \nL'objectif de la pr´e-rentr´ee est de r´einstaller les fondamentaux math´ematiques et informatiques des cours `a venir. Les cours sont obligatoires mais non-not´es. Vous devez choisir soit R, soit Python avanc´e.  \n|vanc´e.||\n|---|---|\n|Intitul´e|Volume|\n|Statistique|21h|\n|Optimisation et calcul dif´erentiel|15h|\n|Python|12h|\n|R|12h|\n|Python avanc´e|12h|  \n98"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Sorbonne Université, Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 98,
+        "content": "Sorbonne Université, Master 2, Statistique, Apprentissage et Algorithmes\n\n## **7.1 Objectifs et description**  \nLe parcours Statistique, Apprentissage et Algorithmes (MS2A) est n´e en 2025 de la fusion du M2 Statistique & Learning et du M2 Apprentissage et Algorithmes, avec la volont´e de mettre `a disposition des ´etudiant _·_ e _·_ s un parcours de M2 permettant une grande libert´e dans la d´efinition d'un profil personnalis´e alliant les aspects th´eoriques et num´eriques de la statistique et de l'apprentissage automatique.  \nLe MS2A est une formation pluridisciplinaire en math´ematiques appliqu´ees et en informatique, centr´ee sur la statistique, la science des donn´ees et l'intelligence artificielle. Il propose un vaste choix de cours permettant d'acqu´erir un profil unique et personnalis´e, allant de la statistique math´ematique `a l'apprentissage profond, en passant par les math´ematiques de l'apprentissage statistique. La formation dispens´ee est `a la fois :"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_004",
+    "question": "Au premier semestre du parcours MS2A, quels sont les deux cours obligatoires du tronc commun, et combien de cours optionnels parmi lesquels les étudiant·e·s doivent-ils/elles en choisir, avec leurs ECTS ?",
+    "reponse_attendue": "Au premier semestre du MS2A, les cours « Apprentissage statistique » (60h, 6 ECTS) et « Optimisation stochastique » (30h, 6 ECTS) sont obligatoires. Les étudiant·e·s doivent en outre choisir 1 ou 2 cours parmi « Statistique en grande dimension » (30h, 6 ECTS) et « Estimation non-paramétrique » (30h, 6 ECTS).",
+    "reponse_llm": "Au premier semestre du parcours MS2A, les deux cours obligatoires du tronc commun sont Apprentissage statistique et Optimisation stochastique (Source : SORBONNE.pdf). Les étudiants doivent choisir 1 ou 2 cours parmi un total de 2 options disponibles : Statistique en grande dimension (6 ECTS) et Estimation non-paramétrique (6 ECTS) (Source : SORBONNE.pdf).",
+    "duree_secondes": 406.7,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Ce passage décrit les cours obligatoires et facultatifs pour le parcours Master 2 en Statistique, Apprentissage et Algorithmes à Sorbonne Universitée.\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 100,
+        "content": "Sorbonne Université, Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.4.2 Premier semestre**\n\n## **(A) Tronc commun (18 ou 24 ECTS)**  \nLes cours Apprentissage statistique et Optimisation stochastique sont obligatoires. Vous devez choisir 1 ou 2 cours parmi Statistique en grande dimension et Estimation non-param´etrique.  \n|Intitul´e|Volume|ECTS|\n|---|---|---|\n|Apprentissage statistique|60h|6|\n|Optimisation stochastique|30h|6|\n|Statistique en grande dimension|30h|6|\n|Estimation non-param´etrique|30h|6|  \nLes cr´edits ECTS restants, dans la limite d'un volume total de 30 ECTS au premier semestre (36 ECTS possibles et r`egle du maximum), peuvent ˆetre choisis :  \n- soit dans les cours de sp´ecialisation ;  \n- soit dans les cours du label intensif maths-info ou de sp´ecialisation."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 22,
+        "content": "Biologie Moléculaire et Génétique (6 ECTS)  \n- Deux cours parmi les suivants au 2[ème] semestre :  \n- Biologie cellulaire (6 ECTS) Développement (6 ECTS)  \n- Biologie évolutive (6 ECTS)  \n- Une école d'été ou un stage en biologie ou en neuroscience.  \ni— PAGE **21** SUR 78 >"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 27,
+        "content": "## |  \n• Géométrie différentielle (M1, 12 ECTS) (Cours fondamental - 70h : 42h cours + 28h TD)  \nE. Giroux CNRS/ENS E. Di Nezza SU  \n• Optimisation et transport optimal (M1, obligatoire en cursus mixte math/bio, 12 ECTS) (Cours fondamental - 70h : 42h cours + 28h TD)  \nQ. Mérigot UPS S. Perrin-Roussel ENS  \n• _Cours de 2[nde] année accessible en 1[ère] année :_ Topologie algébrique (12 ECTS) (Cours complémentaire - 63h : 35h cours + 28h TD)  \nM. Livernet PC C. Emprin ENS  \n• _Cours spécifique cursus Info/Maths :_ Initiation à la cryptologie (12 ECTS) (48h cours + 24hTD)  \nB. Minaud INRIA  \nP. Nguyen INRIA  \n• _Cours spécifique cursus Maths/Physique :_ Grande dimension (12 ECTS) (42h de cours + 28h de TD)  \nL. Rey ENS  \n• _Groupe de lecture en biologie du cursus maths/bio :_ Mathématiques pour la biologie (6 ECTS)  \nA. Véber CNRS PC  \nExposé de première année (12 ECTS)"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_005",
+    "question": "D'après le tableau des UE du parcours Agrégation de Mathématiques de Sorbonne Université, combien d'ECTS et combien d'heures valent respectivement les UE « Préparation à l'écrit de Mathématiques Générales » et « Préparation à l'oral d'option A, B, C », et quel est le total général du tableau ?",
+    "reponse_attendue": "L'UE « Préparation à l'écrit de Mathématiques Générales » (5ME01, semestre 1) vaut 15 ECTS pour 160h. L'UE « Préparation à l'oral d'option A, B, C » (5ME05, semestre 2) vaut 12 ECTS pour 120 à 140h. Le total général du tableau est de 60 ECTS pour environ 690h.",
+    "reponse_llm": "L'UE « Préparation à l'écrit de Mathématiques Générales » vaut 160 heures (Source : SORBONNE.pdf) et 15 ECTS (Source : SORBONNE",
+    "duree_secondes": 380.5,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 118,
+        "content": "Sorbonne Université, Master 2, sujet sur les UE du parcours.\n\n## **8.5 Liste et description des UE du parcours**  \n|intitul´e|sem.|code|vol.|ects|\n|---|---|---|---|---|\n|Pr´eparation `a l'´ecrit de Math´ematiques G´en´erales|1|5ME01|160h|15|\n|Pr´eparation `a l'´ecrit d'Analyse et Probabilit´es|1|5ME02|160h|15|\n|Pr´eparation `a l'oral I|2|5ME03|120h|9|\n|Pr´eparation `a l'oral II|2|5ME04|120h|9|\n|Pr´eparation `a l'oral d'option A, B, C|2|5ME05|120-140h|12|\n|Total|||_∼_690h|60|  \nLes cours sont destin´es `a tous les ´etudiants, qu'ils soient dispens´es ou non de la validation du M2. Ils couvrent la totalit´e du programme.  \nLes cours repr´esentent `a peu pr`es 690 heures par an. Dix concours blancs, des oraux blancs et des colles sont organis´es. L'emploi du temps se trouve ici : `http://agreg. math.upmc.fr/calendrier.html` . La formation n'est pas adapt´ee aux personnes ayant un emploi `a cˆot´e."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 118,
+        "content": "Ce passage décrit les UE du parcours Master 2 en mathématiques à Sorbonne Université.\n\n## **8.5 Liste et description des UE du parcours**  \n|intitul´e|sem.|code|vol.|ects|\n|---|---|---|---|---|\n|Pr´eparation `a l'´ecrit de Math´ematiques G´en´erales|1|5ME01|160h|15|\n|Pr´eparation `a l'´ecrit d'Analyse et Probabilit´es|1|5ME02|160h|15|\n|Pr´eparation `a l'oral I|2|5ME03|120h|9|\n|Pr´eparation `a l'oral II|2|5ME04|120h|9|\n|Pr´eparation `a l'oral d'option A, B, C|2|5ME05|120-140h|12|\n|Total|||_∼_690h|60|  \nLes cours sont destin´es `a tous les ´etudiants, qu'ils soient dispens´es ou non de la validation du M2. Ils couvrent la totalit´e du programme.  \nLes cours repr´esentent `a peu pr`es 690 heures par an. Dix concours blancs, des oraux blancs et des colles sont organis´es. L'emploi du temps se trouve ici : `http://agreg. math.upmc.fr/calendrier.html` . La formation n'est pas adapt´ee aux personnes ayant un emploi `a cˆot´e."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 11,
+        "content": "Ce passage concerne les UE de Master 1 pour la formation en mathématiques à l'université Sorbonne.\n\nUne UE de 3 ECTS : 30 heures d'enseignement pour les ´etudiants, soit 12 heures de cours, 18 heures de TD ou TP, le fonctionnement par semaine d´ependant de chaque UE.  \nHormis les UE `a 3 ECTS, consid´er´ees comme des UE de culture g´en´erale, et non comme des UE de sp´ecialisation, les UE du second semestre doivent ˆetre choisies en fonction des sp´ecialit´es envisag´ees en M2. Le tableau suivant indique les choix recommand´es. Les sept parcours de M2 propos´es sont :  \n`agr` _Agr´egation_ `mod` _Math´ematiques de la mod´elisation_ `fin` _Probabilit´es et finance_ `pro` _Probabilit´es et mod`eles al´eatoires_ `ing` _Ing´enierie math´ematique_ `sta` _Statistique, apprentissage et algorithmes_ `maf` _Math´ematiques fondamentales_  \nPour le parcours _Agr´egation_ , il est recommand´e de faire dans l'ann´ee au moins un cours `a dominante analyse, et un cours `a dominante alg`ebre. A[`] ce titre, pour le S1, on peut recommander de choisir entre  \n— UM4MA305+UM4MA201+UM4MA204+UM4MA208,"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 118,
+        "content": "## **8.5 Liste et description des UE du parcours**  \n|intitul´e|sem.|code|vol.|ects|\n|---|---|---|---|---|\n|Pr´eparation `a l'´ecrit de Math´ematiques G´en´erales|1|5ME01|160h|15|\n|Pr´eparation `a l'´ecrit d'Analyse et Probabilit´es|1|5ME02|160h|15|\n|Pr´eparation `a l'oral I|2|5ME03|120h|9|\n|Pr´eparation `a l'oral II|2|5ME04|120h|9|\n|Pr´eparation `a l'oral d'option A, B, C|2|5ME05|120-140h|12|\n|Total|||_∼_690h|60|  \nLes cours sont destin´es `a tous les ´etudiants, qu'ils soient dispens´es ou non de la validation du M2. Ils couvrent la totalit´e du programme.  \nLes cours repr´esentent `a peu pr`es 690 heures par an. Dix concours blancs, des oraux blancs et des colles sont organis´es. L'emploi du temps se trouve ici : `http://agreg. math.upmc.fr/calendrier.html` . La formation n'est pas adapt´ee aux personnes ayant un emploi `a cˆot´e."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 11,
+        "content": "Sorbonne Université, Master 1, Liste des UE enseignées au premier semestre\n\nUne UE de 3 ECTS : 30 heures d'enseignement pour les ´etudiants, soit 12 heures de cours, 18 heures de TD ou TP, le fonctionnement par semaine d´ependant de chaque UE.  \nHormis les UE `a 3 ECTS, consid´er´ees comme des UE de culture g´en´erale, et non comme des UE de sp´ecialisation, les UE du second semestre doivent ˆetre choisies en fonction des sp´ecialit´es envisag´ees en M2. Le tableau suivant indique les choix recommand´es. Les sept parcours de M2 propos´es sont :  \n`agr` _Agr´egation_ `mod` _Math´ematiques de la mod´elisation_ `fin` _Probabilit´es et finance_ `pro` _Probabilit´es et mod`eles al´eatoires_ `ing` _Ing´enierie math´ematique_ `sta` _Statistique, apprentissage et algorithmes_ `maf` _Math´ematiques fondamentales_  \nPour le parcours _Agr´egation_ , il est recommand´e de faire dans l'ann´ee au moins un cours `a dominante analyse, et un cours `a dominante alg`ebre. A[`] ce titre, pour le S1, on peut recommander de choisir entre  \n— UM4MA305+UM4MA201+UM4MA204+UM4MA208,"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_006",
+    "question": "Au premier semestre du parcours M1 SCDA (Sciences des données avancées) de Sorbonne Université, quelles sont les quatre UE suivies, et quelle est la particularité de l'une d'entre elles par rapport aux trois autres ?",
+    "reponse_attendue": "Au premier semestre du parcours SCDA, les étudiant·e·s suivent les UE : 4MA311 Probabilités approfondies (9 ECTS), 4MA315 Statistique (9 ECTS), 4MA305 Bases d'analyse fonctionnelle (9 ECTS), et 4LVAN1 Anglais (3 ECTS). La particularité de l'UE d'anglais est qu'elle ne vaut que 3 ECTS, contre 9 ECTS pour chacune des trois autres UE mathématiques.",
+    "reponse_llm": "",
+    "duree_secondes": 760.1,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\n## **9.4.1 Publics vis´es, pr´erequis**  \nLes ´etudiant _·_ e _·_ s ayant valid´e la troisi`eme ann´ee (niveau L3) du parcours Science des donn´ees de la licence de math´ematiques de Sorbonne Universit´e ou une licence en math´ematiques, apr`es examen d'un dossier de candidature soumis dans tous les cas via la plateforme _Mon Master_ .  \nLa commission sera particuli`erement attentive aux acquis ant´erieurs portant sur l'al´eatoire, l'analyse et l'informatique.\n\n## **9.4.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDA (niveau Master) s'appuient sur la premi`ere ann´ee du Master `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique.\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS) ;  \n- 4MA315 Statistique (9 ECTS) ;  \n120"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "Sorbonne Université, Master 1, Sciences des données pour l'ingénieur(e).\n\n## **Semestre 2**  \n- 4MA076 Bases de l'apprentissage statistique (9 ECTS) ou  \n- 4MA379 Statistique computationnelle et machine learning (9 ECTS) ;  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS) ou  \n- 4MA257 Analyse convexe (6 ECTS) ou  \n- 4MA256 Programmation en C++ (6 ECTS) ;  \n- Deux UE au choix parmi :  \n- 4MA245 Travail d'´etude et de recherche (TER) (6 ECTS) ou  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS) ou  \n- 4MA273 Statistique avanc´ee, grande dimension et donn´ees massives (6 ECTS) ;  \n- 4MAOIP Orientation et Insertion professionnelle (OIP) (3 ECTS).  \nSe reporter au chapitre du M1 (ici) pour la description de ces UE.  \nPour s'inscrire `a l'UE TER, il est n´ecessaire d'avoir valid´e le premier semestre d'une part, et d'autre part, toutes les UE math´ematiques du premier semestre **sans compensation** .  \nPour les **Semestres 3 et 4** (niveau M2) se r´ef´erer aux chapitres des parcours de M2 correspondant."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Ce passage décrit la liste des UE pour le parcours Sciences des données à l'Université Sorbonne.\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.5.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDI (niveau master) s'appuient sur la premi`ere ann´ee du master Math´ematiques et Applications `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique auxquels s'ajoutent des enseignements sp´ecifiques `a l'ISUP, indiqu´es ci-dessous par le symbole _∗_ .  \nChaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_007",
+    "question": "Quels sont les deux diplômes préparés simultanément par les étudiant·e·s du parcours M1 SCDI à Sorbonne Université, et combien d'ECTS chaque semestre comporte-t-il pour ce parcours, en comparaison avec un semestre standard de M1 ?",
+    "reponse_attendue": "Les étudiant·e·s du parcours M1 SCDI préparent à la fois le diplôme de master Mathématiques et Applications de Sorbonne Université et le diplôme universitaire (DU) de statisticien de l'ISUP, ce qui implique deux inscriptions distinctes (au master de mathématiques et à l'ISUP). Chaque semestre du parcours SCDI comporte 36 ECTS à valider pour l'obtention des deux diplômes, contre 30 ECTS pour un semestre standard de M1.",
+    "reponse_llm": "Les étudiants du parcours M1 SCDI préparent simultanément le « diplôme de master Mathématiques et Applications de Sorbonne Université » et le « DU de statisticien de l'ISUP » (Source : SORBONNE.pdf). Chaque semestre pour ce parcours comporte 36 ECTS (Source : SORBONNE.pdf), alors qu'un semestre standard nécessite la validation de 30 ECTS pour obtenir le diplôme de master (Source : SORBONNE.pdf).",
+    "duree_secondes": 408.3,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "Sorbonne Université, Master 1, Majeur SCDI\n\nLes ´etudiants de ce parcours pr´eparent `a la fois le diplˆome de master Math´ematiques et Applications de Sorbonne Universit´e et le DU de statisticien de l'ISUP. Ils ont donc `a proc´eder `a deux inscriptions, au master de math´ematiques et `a l'ISUP. Chaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "Ce passage décrit les objectifs et la structure du parcours Sciences des données à l'ISUP en M1.\n\nLes ´etudiants de ce parcours pr´eparent `a la fois le diplˆome de master Math´ematiques et Applications de Sorbonne Universit´e et le DU de statisticien de l'ISUP. Ils ont donc `a proc´eder `a deux inscriptions, au master de math´ematiques et `a l'ISUP. Chaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 2, Parcours Sciences des données (SCDA et SCDI).\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.5.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDI (niveau master) s'appuient sur la premi`ere ann´ee du master Math´ematiques et Applications `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique auxquels s'ajoutent des enseignements sp´ecifiques `a l'ISUP, indiqu´es ci-dessous par le symbole _∗_ .  \nChaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Ce passage décrit la liste des UE pour le parcours Sciences des données à l'Université Sorbonne.\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.5.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDI (niveau master) s'appuient sur la premi`ere ann´ee du master Math´ematiques et Applications `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique auxquels s'ajoutent des enseignements sp´ecifiques `a l'ISUP, indiqu´es ci-dessous par le symbole _∗_ .  \nChaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
+      }
+    ]
   }
 ]

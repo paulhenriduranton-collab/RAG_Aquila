@@ -21,8 +21,8 @@ from ragas.metrics.collections import (
 from ragas.llms import llm_factory               # Crée un InstructorLLM requis par ragas.metrics.collections
 from ragas.embeddings import embedding_factory   # Crée un BaseRagasEmbedding requis par ragas.metrics.collections
 
-# --- Import OpenAI (client OpenAI-compatible pour pointer vers Ollama) ---
-from openai import OpenAI
+# --- Import OpenAI (client async OpenAI-compatible pour pointer vers Ollama) ---
+from openai import AsyncOpenAI  # ascore() appelle agenerate() — nécessite un client async
 
 # =============================================================================
 # CONFIGURATION — modifier ici selon l'environnement
@@ -215,7 +215,8 @@ def main() -> None:
 
     # Ollama expose une API compatible OpenAI sur le port 11434 — llm_factory en a besoin
     # pour produire un InstructorLLM accepté par ragas.metrics.collections
-    ollama_client = OpenAI(
+    # AsyncOpenAI requis car ascore() appelle agenerate() en interne
+    ollama_client = AsyncOpenAI(
         base_url="http://localhost:11434/v1",
         api_key="ollama",  # Valeur fictive : Ollama ne vérifie pas la clé
     )

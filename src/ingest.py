@@ -141,13 +141,15 @@ def _restart_ollama():
 
 def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
     """Réessaie l'appel LLM en redémarrant Ollama entre chaque tentative en cas de crash de llama-server."""
-    for attempt in range(retries):
+    for attempt in range(retries + 1):  # +1 : la dernière itération est la tentative finale sans redémarrage
         try:
             return llm.invoke(prompt)
         except Exception as e:
-            print(f"    ! Erreur Ollama ({e}) — redémarrage et nouvelle tentative ({attempt + 1}/{retries})...", flush=True)
-            _restart_ollama()
-    return llm.invoke(prompt)
+            if attempt < retries:
+                print(f"    ! Erreur LLM ({e}) — redémarrage et nouvelle tentative ({attempt + 1}/{retries})...", flush=True)
+                _restart_ollama()
+            else:
+                raise  # toutes les tentatives épuisées : on laisse remonter l'erreur
 
 
 def _contextualize_chunks(chunks: list[Document], llm: OllamaLLM) -> list[Document]:

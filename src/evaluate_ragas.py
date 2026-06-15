@@ -9,6 +9,7 @@ from pathlib import Path
 
 # --- Imports RAGAS (nécessite : pip install ragas) ---
 import asyncio
+import inspect
 from ragas import EvaluationDataset, SingleTurnSample
 from ragas.metrics.collections import (
     Faithfulness,        # L'answer est-elle fondée sur le contexte récupéré ?
@@ -103,41 +104,48 @@ def build_metrics(llm, embeddings) -> list:
     ]
 
 
-def _call_metric(metric, sample) -> float | None:
-    """Appelle la méthode de scoring disponible selon la version de RAGAS installée."""
-    # RAGAS v0.2+ collections : méthode score() synchrone
-    if hasattr(metric, "score"):
-        return metric.score(sample)
-    # RAGAS v0.1 : méthode ascore() asynchrone (ne devrait pas arriver ici mais par sécurité)
-    return None
+def _build_kwargs(method, sample: SingleTurnSample) -> dict:
+    """Mappe les champs de SingleTurnSample aux paramètres attendus par ascore() via inspection."""
+    field_map = {
+        "user_input":          sample.user_input,
+        "response":            sample.response,
+        "retrieved_contexts":  sample.retrieved_contexts,
+        "reference":           sample.reference,
+    }
+    sig = inspect.signature(method)
+    # Garde uniquement les paramètres présents dans field_map (ignore *args, **kwargs)
+    return {
+        name: field_map[name]
+        for name, param in sig.parameters.items()
+        if name in field_map and param.kind not in (
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        )
+    }
 
 
 async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
     """Score chaque sample individuellement — contourne evaluate() incompatible avec les collections metrics."""
-    # Affiche les méthodes disponibles au premier lancement pour diagnostic
-    if dataset.samples:
-        available = [m for m in dir(metrics[0]) if not m.startswith("_") and "score" in m.lower()]
-        print(f"  [INFO] méthodes scoring détectées sur {metrics[0].__class__.__name__} : {available}")
-
     rows = []
     total = len(dataset.samples)
     for i, sample in enumerate(dataset.samples, 1):
         row = {}
         for metric in metrics:
             try:
-                if hasattr(metric, "single_turn_ascore"):       # RAGAS ≥ 0.2 async
-                    row[metric.name] = await metric.single_turn_ascore(sample)
-                elif hasattr(metric, "ascore"):                  # RAGAS 0.1 async
-                    row[metric.name] = await metric.ascore(sample)
-                elif hasattr(metric, "score"):                   # RAGAS 0.2 collections sync
-                    result = metric.score(sample)
-                    # score() peut retourner une coroutine selon la version
+                if hasattr(metric, "ascore"):
+                    # ascore() attend les champs séparés, pas un SingleTurnSample
+                    kwargs = _build_kwargs(metric.ascore, sample)
+                    result = metric.ascore(**kwargs)
+                    row[metric.name] = await result if asyncio.iscoroutine(result) else result
+                elif hasattr(metric, "score"):
+                    kwargs = _build_kwargs(metric.score, sample)
+                    result = metric.score(**kwargs)
                     row[metric.name] = await result if asyncio.iscoroutine(result) else result
                 else:
                     row[metric.name] = None
             except Exception as e:
                 row[metric.name] = None
-                if i == 1:  # Affiche l'erreur seulement au premier sample pour ne pas spammer
+                if i == 1:  # Log l'erreur seulement sur le premier sample
                     print(f"  [WARN] {metric.name} : {e}")
         print(f"  [{i}/{total}] scoré")
         rows.append(row)

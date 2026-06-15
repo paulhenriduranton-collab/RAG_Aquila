@@ -103,18 +103,42 @@ def build_metrics(llm, embeddings) -> list:
     ]
 
 
+def _call_metric(metric, sample) -> float | None:
+    """Appelle la méthode de scoring disponible selon la version de RAGAS installée."""
+    # RAGAS v0.2+ collections : méthode score() synchrone
+    if hasattr(metric, "score"):
+        return metric.score(sample)
+    # RAGAS v0.1 : méthode ascore() asynchrone (ne devrait pas arriver ici mais par sécurité)
+    return None
+
+
 async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
     """Score chaque sample individuellement — contourne evaluate() incompatible avec les collections metrics."""
+    # Affiche les méthodes disponibles au premier lancement pour diagnostic
+    if dataset.samples:
+        available = [m for m in dir(metrics[0]) if not m.startswith("_") and "score" in m.lower()]
+        print(f"  [INFO] méthodes scoring détectées sur {metrics[0].__class__.__name__} : {available}")
+
     rows = []
     total = len(dataset.samples)
     for i, sample in enumerate(dataset.samples, 1):
         row = {}
         for metric in metrics:
             try:
-                row[metric.name] = await metric.single_turn_ascore(sample)  # Scoring async natif
+                if hasattr(metric, "single_turn_ascore"):       # RAGAS ≥ 0.2 async
+                    row[metric.name] = await metric.single_turn_ascore(sample)
+                elif hasattr(metric, "ascore"):                  # RAGAS 0.1 async
+                    row[metric.name] = await metric.ascore(sample)
+                elif hasattr(metric, "score"):                   # RAGAS 0.2 collections sync
+                    result = metric.score(sample)
+                    # score() peut retourner une coroutine selon la version
+                    row[metric.name] = await result if asyncio.iscoroutine(result) else result
+                else:
+                    row[metric.name] = None
             except Exception as e:
                 row[metric.name] = None
-                print(f"  [WARN] {metric.name} sample {i}/{total} : {e}")
+                if i == 1:  # Affiche l'erreur seulement au premier sample pour ne pas spammer
+                    print(f"  [WARN] {metric.name} : {e}")
         print(f"  [{i}/{total}] scoré")
         rows.append(row)
     return pd.DataFrame(rows)
@@ -145,6 +169,9 @@ def print_summary(df: pd.DataFrame) -> None:
     for col in metric_cols:
         if col in df.columns:
             mean_val = df[col].mean()
+            if pd.isna(mean_val):  # Scores NaN = metric n'a pas pu être calculée
+                print(f"  {col:<25} N/A")
+                continue
             bar = "█" * int(mean_val * 20)  # Barre de progression visuelle (20 = 100%)
             print(f"  {col:<25} {mean_val:.3f}  {bar}")
 

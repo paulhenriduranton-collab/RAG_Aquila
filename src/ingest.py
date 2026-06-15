@@ -173,7 +173,9 @@ def _contextualize_chunks(chunks: list[Document], llm: OllamaLLM) -> list[Docume
         )
 
         prompt = CONTEXT_PROMPT.format(chunk=chunk.page_content)
-        keywords = _invoke_with_retry(llm, prompt).strip().splitlines()[0].strip()
+        # Récupère la première ligne non vide ; fallback sur "" si le LLM renvoie une réponse vide
+        lines = [l for l in _invoke_with_retry(llm, prompt).strip().splitlines() if l.strip()]
+        keywords = lines[0].strip() if lines else ""
 
         parts = [source, f"p.{page}"]
         if section_path:

@@ -2,23 +2,25 @@
 
 ## `Collection expecting embedding with dimension 768, got 1024`
 
-**Cause :** La base `vector_db/` a été créée avec `nomic-embed-text` (768 dimensions), mais le code utilise maintenant `bge-m3` (1024 dimensions). Les deux sont incompatibles.
+**Cause :** La base `C:/vector_db_aquila` a été créée avec un modèle d'embedding à 768 dimensions (ex: `nomic-embed-text`), mais le code utilise maintenant `bge-m3` (1024 dimensions). Les deux sont incompatibles.
 
 **Solution :**
 ```powershell
-Remove-Item -Recurse -Force vector_db
+# Supprimer l'ancienne base puis réindexer
+Remove-Item -Recurse -Force "C:\vector_db_aquila"
 python src/ingest.py
 ```
 
 ---
 
-## `model "bge-m3" not found, try pulling it first`
+## `model "bge-m3" not found` ou `model "gemma4:12b" not found`
 
 **Cause :** Le modèle n'est pas encore téléchargé dans Ollama.
 
 **Solution :**
 ```powershell
 ollama pull bge-m3
+ollama pull gemma4:12b
 ```
 
 ---
@@ -35,20 +37,22 @@ venv\Scripts\activate
 # Vérifier que uvicorn est installé
 pip install "uvicorn[standard]"
 
-# Relancer
-uvicorn src.api:app --host 0.0.0.0 --port 8000
+# Lancer depuis le dossier src/
+cd src
+uvicorn api_server:app --host 0.0.0.0 --port 8001
 ```
 
 ---
 
 ## L'IA répond "Je ne trouve pas cette information dans les documents fournis"
 
-**Cause 1 :** Le passage demandé n'est dans aucun des 5 chunks sélectionnés.
+**Cause 1 :** Le passage demandé n'est dans aucun des chunks sélectionnés après re-ranking.
 
 **Solutions :**
-1. Lance `python src/ask.py` et regarde les logs `[Fusion] Top 5` — les bons chunks sont-ils sélectionnés ?
-2. Reformule la question avec des mots présents dans les documents
-3. Lance `python evaluation/eval_retrieval.py` pour mesurer objectivement le Recall@5
+1. Lance `python src/ask.py` et regarde les logs `[Top 5 final]` — les bons chunks sont-ils sélectionnés ?
+2. Regarde le score du re-ranker dans les logs `[Re-ranking]` — les chunks sont-ils écartés (score < 0) ?
+3. Reformule la question avec des mots présents dans les documents
+4. Utilise le pipeline agentique (`python src/agent.py`) — il reformule automatiquement si le retrieval est insuffisant
 
 **Cause 2 :** `ingest.py` n'a pas été relancé après l'ajout d'un document.
 
@@ -56,25 +60,36 @@ uvicorn src.api:app --host 0.0.0.0 --port 8000
 
 ---
 
-## `ingest.py` se bloque sans afficher d'erreur
+## `ingest.py` se bloque ou crash en cours de route
 
-**Cause probable :** Ollama plante ou sature en mémoire pendant le calcul des embeddings.
+**Cause probable :** llama-server (le backend d'Ollama) crash sur les longs runs de contextualisation (~700 appels LLM). C'est un comportement connu sur Colab et Windows.
+
+**Ce qui se passe automatiquement :** `_invoke_with_retry` tente jusqu'à 3 fois en redémarrant Ollama entre chaque tentative. Si le crash a lieu entre deux pages, le checkpoint pickle sauvegarde la progression.
 
 **Solutions :**
-1. Vérifie qu'Ollama tourne : `ollama list`
-2. Redémarre Ollama depuis la barre des tâches
-3. Réduis le `batch_size` dans `ingest.py` (passer de 50 à 20)
+1. Relance `python src/ingest.py` — il repart du checkpoint automatiquement
+2. Vérifie qu'Ollama tourne : `ollama list`
+3. Si Ollama est complètement bloqué, redémarre-le depuis la barre des tâches puis relance
+
+**Si le checkpoint est corrompu :**
+```powershell
+# Supprimer le checkpoint pour repartir de zéro
+Remove-Item "C:\ingest_checkpoint.pkl"
+```
 
 ---
 
 ## `Le processus ne peut pas accéder au fichier chroma.sqlite3`
 
-**Cause :** Un processus Python tourne encore en arrière-plan et utilise le fichier.
+**Cause :** Un processus Python tourne encore en arrière-plan et utilise le fichier de base de données.
 
 **Solution :**
 ```powershell
+# Tue tous les processus Python en cours
 Stop-Process -Name python -Force
-Remove-Item -Recurse -Force "vector_db"
+
+# Supprimer la base et réindexer
+Remove-Item -Recurse -Force "C:\vector_db_aquila"
 python src/ingest.py
 ```
 
@@ -82,34 +97,78 @@ python src/ingest.py
 
 ## Open WebUI affiche "Connexion impossible" ou pas de modèle disponible
 
-**Cause :** Le serveur FastAPI n'est pas démarré, ou Docker ne trouve pas l'hôte.
+**Cause :** Le serveur FastAPI n'est pas démarré, ou Open WebUI ne trouve pas l'hôte.
 
 **Solutions :**
-1. Vérifie que le serveur RAG tourne : `uvicorn src.api:app --host 0.0.0.0 --port 8000`
-2. Teste directement l'API : ouvre `http://localhost:8000/v1/models` dans ton navigateur — tu dois voir `{"data":[{"id":"aquila-rag"...}]}`
-3. Si Open WebUI tourne dans Docker mais ne trouve pas le serveur : l'URL doit être `http://host.docker.internal:8000/v1` (pas `localhost`)
+1. Vérifie que le serveur RAG tourne :
+   ```powershell
+   cd src
+   uvicorn api_server:app --host 0.0.0.0 --port 8001
+   ```
+2. Teste directement l'API — ouvre `http://localhost:8001/v1/models` dans ton navigateur. Tu dois voir :
+   ```json
+   {"object":"list","data":[{"id":"rag-aquila-agentic","object":"model","owned_by":"rag-aquila"}]}
+   ```
+3. Si Open WebUI tourne dans Docker mais ne trouve pas le serveur : l'URL doit être `http://host.docker.internal:8001/v1` (pas `localhost`)
+
+---
+
+## La latence augmente fortement au fil des questions
+
+**Cause :** Le KV-cache de llama-server s'accumule entre les appels et n'est pas libéré. Latences observées sur 9 questions sans redémarrage : 101s → 1211s.
+
+**Solution automatique :** Le code redémarre Ollama toutes les 2 questions (`QUESTION_RESTART_INTERVAL = 2` dans `ask.py`). Ce comportement est actif par défaut.
+
+**Si tu veux ajuster :**
+```python
+# Dans src/ask.py, ligne ~57 — augmenter pour moins de redémarrages
+QUESTION_RESTART_INTERVAL = 2  # redémarre Ollama toutes les N questions
+```
 
 ---
 
 ## La recherche sémantique retourne des chunks du mauvais cours
 
-**Cause :** Limitation connue des modèles d'embedding sur du texte mathématique. bge-m3 peut confondre des matières si les formules sont peu lisibles.
+**Cause :** Les brochures ENS et Sorbonne ont des sections avec des intitulés similaires (ex: "Organisation", "Calendrier"). bge-m3 peut les confondre si les mots-clés sont proches.
 
-**Ce qui compense :** BM25 retrouve les bons chunks par mots-clés exacts. La fusion donne la priorité aux chunks présents dans les deux listes. Vérifie les logs `[Fusion]` — le résultat final devrait être correct même si `[Sémantique]` est bruité.
+**Ce qui compense :**
+1. Le **contextual retrieval** : le préfixe `[source | p.X | ...]` dans chaque chunk précise son établissement — l'embedding le voit
+2. BM25 retrouve les chunks par mots-clés exacts de l'établissement mentionné
+3. Le **pipeline agentique** : `identify_sources` choisit le bon fichier avant de lancer le retrieval
 
-**Solution durable :** Mesure le Recall@5 avec `eval_retrieval.py`, puis expérimente : augmenter `K_RETRIEVE`, ajuster `BM25_WEIGHT`, ajouter un reranker `sentence-transformers`.
+**Si le problème persiste :** Lance `python src/agent.py` au lieu d'`ask.py` — l'agent filtre la recherche sur le bon document.
+
+---
+
+## L'évaluation RAGAS échoue avec `RuntimeError: Event loop is already running`
+
+**Cause :** Jupyter / Colab a déjà une event loop asyncio active, incompatible avec `asyncio.run()`.
+
+**Solution automatique :** `evaluate_ragas.py` détecte ce cas et utilise `nest_asyncio` :
+```python
+# Déjà géré dans _run_scoring() — pas d'action nécessaire
+import nest_asyncio
+nest_asyncio.apply()
+```
+
+Si l'erreur persiste, vérifie que `nest_asyncio` est installé :
+```powershell
+pip install nest_asyncio
+```
 
 ---
 
 ## Le conflit git sur `chroma.sqlite3`
 
-**Cause :** `vector_db/` est versionné dans git alors qu'il ne devrait pas l'être.
+**Cause :** `C:/vector_db_aquila` ou un ancien `vector_db/` est versionné dans git alors qu'il ne devrait pas l'être.
 
 **Solution :**
 ```powershell
+# Retirer du suivi git (sans supprimer les fichiers)
 git rm -r --cached -f vector_db/
 ```
-Puis vérifier que `vector_db/` est bien dans `.gitignore`.
+
+Puis vérifier que `vector_db/` et `C:/vector_db_aquila` sont dans `.gitignore`.
 
 ---
 
@@ -120,4 +179,16 @@ Puis vérifier que `vector_db/` est bien dans `.gitignore`.
 **Solution :**
 ```powershell
 venv\Scripts\activate
+```
+
+---
+
+## `ragas` ou `langgraph` non trouvés
+
+**Cause :** Les dépendances n'ont pas été installées, ou le venv n'est pas activé.
+
+**Solution :**
+```powershell
+venv\Scripts\activate
+pip install -r requirements.txt
 ```

@@ -2,7 +2,7 @@
 
 ## C'est quoi ce projet ?
 
-**RAG Aquila** est un système de type **RAG** (*Retrieval-Augmented Generation*).
+**RAG Aquila** est un système de type **RAG** (*Retrieval-Augmented Generation*) **agentique**.
 
 En français simple : un programme qui permet de **poser des questions à une IA sur tes propres documents**, et d'obtenir des réponses basées uniquement sur le contenu de ces documents — sans connexion internet, sans envoyer tes données sur un serveur externe.
 
@@ -16,24 +16,27 @@ En français simple : un programme qui permet de **poser des questions à une IA
 | Tourne sur les serveurs d'OpenAI | Tourne entièrement sur ta machine |
 | Tes données partent sur internet | Tes données restent privées |
 | Peut inventer des réponses sur n'importe quel sujet | Ne répond que si l'info est dans tes fichiers |
-| Interface fournie par OpenAI | Interface Streamlit hébergée en local |
+| Interface fournie par OpenAI | Interface Open WebUI hébergée en local |
 
 ---
 
 ## Le cas d'usage concret
 
-Tu as des fichiers PDF de cours universitaires :
+Tu as des fichiers PDF de brochures universitaires :
 - `Brochure-2024-2025.pdf` (ENS DMA)
 - `Brochure Master2526_1.pdf` (Sorbonne)
 
-Tu poses la question dans l'interface Streamlit : *"Quels sont les cours obligatoires de L3 à l'ENS DMA ?"*
+Tu poses la question dans l'interface Open WebUI : *"Quels sont les cours obligatoires de L3 à l'ENS DMA ?"*
 
-Le système :
-1. Cherche dans tes PDFs les passages les plus pertinents (recherche hybride : sémantique + mots-clés)
-2. Fusionne les deux listes de résultats avec la méthode RRF (Reciprocal Rank Fusion)
-3. Re-classe les 10 meilleurs passages avec un cross-encoder (re-ranker) plus précis
-4. Envoie les 5 meilleurs passages au LLM gemma2:2b
-5. Le LLM rédige une réponse basée uniquement sur ces passages
+Le système agentique :
+1. Identifie que la question concerne `Brochure-2024-2025.pdf` (ENS)
+2. Génère une réponse fictive (HyDE) pour mieux orienter la recherche sémantique
+3. Cherche dans ce fichier les passages les plus pertinents (recherche hybride : sémantique MMR + BM25)
+4. Fusionne les deux listes de résultats avec RRF (Reciprocal Rank Fusion)
+5. Re-classe les 10 meilleurs passages avec un cross-encoder
+6. Évalue si les 5 chunks retenus sont suffisants pour répondre
+7. Si non : reformule la requête et relance une recherche ciblée
+8. Génère la réponse en s'appuyant uniquement sur les passages trouvés
 
 ---
 
@@ -47,14 +50,15 @@ Sans le "R", le LLM répondrait de mémoire (et inventerait). Avec le "R", il es
 
 ---
 
-## Les quatre modes d'utilisation
+## Les cinq modes d'utilisation
 
 | Mode | Commande | Usage |
 |---|---|---|
-| Interface web | `python -m streamlit run src/app.py --server.headless true` | Usage normal |
-| Terminal | `python src/ask.py` | Debug — affiche tous les logs de retrieval |
+| Interface chat | `uvicorn api_server:app` + Open WebUI | Usage normal |
+| Terminal RAG classique | `python src/ask.py` | Debug — affiche tous les logs de retrieval |
+| Terminal agentique | `python src/agent.py` | Debug agentique — plus lent, plus précis |
 | Indexation | `python src/ingest.py` | À relancer si tu changes tes documents |
-| Évaluation | `python src/evaluate.py` | Mesure la qualité du pipeline sur 40 questions |
+| Évaluation | `python src/run_agentic_all.py` puis `python src/evaluate_ragas.py` | Mesure la qualité sur 40 questions |
 
 ---
 
@@ -62,20 +66,23 @@ Sans le "R", le LLM répondrait de mémoire (et inventerait). Avec le "R", il es
 
 - Ce n'est pas ChatGPT — il ne répond pas à des questions générales hors documents
 - Ce n'est pas un moteur de recherche — il génère une réponse rédigée, pas une liste de liens
-- Ce n'est pas un RAG agentique — le pipeline est fixe, il ne décide pas dynamiquement de chercher différemment
 - Ce n'est pas infaillible — si l'information n'est pas dans les documents, il ne peut pas répondre correctement
 
 ---
 
 ## Ce qui rend ce RAG avancé
 
+### Pipeline de retrieval
+
 La plupart des RAG basiques font : question → recherche sémantique → LLM. Ce projet va plus loin :
 
 ```
 Question
     │
-    ├── Recherche sémantique (20 candidats)
-    ├── Recherche BM25/lexicale (20 candidats)
+    ├── HyDE : génère une réponse fictive pour orienter la recherche sémantique
+    │
+    ├── Recherche sémantique MMR (20 candidats diversifiés)
+    ├── Recherche BM25/lexicale normalisée (20 candidats)
     │
     ▼
 Fusion RRF → 10 candidats
@@ -87,4 +94,44 @@ Re-ranker CrossEncoder → 5 meilleurs
 LLM → Réponse
 ```
 
-Chaque étape améliore la précision par rapport à la précédente.
+### Pipeline agentique (LangGraph)
+
+Au-delà du RAG classique, le pipeline agentique ajoute une boucle de contrôle :
+
+```
+Question
+    │
+    ▼
+identify_sources
+    → le LLM choisit quel(s) document(s) concernent la question
+    │
+    ▼
+retrieve
+    → pipeline RAG hybride sur la/les source(s) ciblée(s)
+    │
+    ▼
+grade_documents
+    → le LLM évalue si les chunks sont suffisants pour répondre
+    │
+    ├── OUI → generate → Réponse
+    │
+    └── NON (si < MAX_ATTEMPTS=2 tentatives)
+            │
+            ▼
+        rewrite_query
+            → le LLM reformule la requête sur ce qui manque
+            │
+            └── retrieve (nouvelle tentative)
+```
+
+### Contextual retrieval
+
+Chaque chunk est préfixé d'une ligne de contexte avant d'être indexé :
+```
+[Brochure-2024-2025.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
+
+## Cours communs de L3
+Les quatre cours obligatoires sont...
+```
+
+Cette ligne permet à l'embedding ET à BM25 de comprendre le contexte structurel d'un chunk isolé — sans elle, un chunk extrait de son document ne dit pas de lui-même dans quel établissement ou quelle section il se trouve.

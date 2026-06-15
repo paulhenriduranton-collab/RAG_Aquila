@@ -9,11 +9,13 @@
 | BM25 | Recherche par mots-clés exacts |
 | pymupdf4llm | Extrait les PDFs en Markdown propre, page par page |
 | ftfy | Répare les encodages cassés dans les textes extraits de PDF |
-| gemma2:2b | Génère les réponses ET joue le rôle de juge dans l'évaluation |
+| gemma4:12b | Génère les réponses, joue le rôle de juge d'évaluation, génère le contexte des chunks |
 | ChromaDB | Stocke et recherche les vecteurs |
 | LangChain | Colle tous les composants ensemble |
-| CrossEncoder mmarco | Re-classe les chunks par pertinence réelle (re-ranking) |
-| Streamlit | Interface web locale pour poser des questions |
+| LangGraph | Orchestre le pipeline agentique (machine à états) |
+| CrossEncoder BAAI/bge-reranker-v2-m3 | Re-classe les chunks par pertinence réelle (re-ranking) |
+| RAGAS | Évalue la qualité du pipeline sur 5 métriques standards |
+| Open WebUI + FastAPI | Interface chat locale, serveur API compatible OpenAI |
 
 ---
 
@@ -22,8 +24,8 @@
 **Ce que c'est :** Un logiciel qui fait tourner des modèles d'IA directement sur ton ordinateur, sans connexion internet.
 
 **Ce qu'il fait ici :** Il héberge deux modèles :
-- `bge-m3` pour transformer du texte en vecteurs
-- `gemma2:2b` pour générer les réponses et évaluer les métriques
+- `bge-m3` pour transformer du texte en vecteurs (embeddings)
+- `gemma4:12b` pour générer les réponses, créer les préfixes contextuels des chunks, et évaluer les métriques
 
 **Analogie :** C'est un serveur local — il reçoit des requêtes (`embed ce texte`, `génère une réponse`) et les envoie au bon modèle.
 
@@ -43,7 +45,7 @@
 | mxbai-embed-large | Multilingue | **512 tokens** | Partiel (trop court) |
 | **bge-m3** | **100+ langues dont FR** | **8192 tokens** | **Oui** |
 
-**Important :** Si tu changes de modèle d'embedding, tu dois supprimer `vector_db/` et relancer `ingest.py`. Les vecteurs produits par bge-m3 (1024 dimensions) sont incompatibles avec ceux de nomic-embed-text (768 dimensions).
+**Important :** Le modèle d'embedding doit être **identique** dans `ingest.py` et `ask.py`. Si tu changes de modèle, tu dois supprimer `C:/vector_db_aquila` et relancer `ingest.py`. Les vecteurs produits par bge-m3 (1024 dimensions) sont incompatibles avec ceux d'un autre modèle.
 
 ---
 
@@ -53,15 +55,23 @@
 
 **Ce qu'il fait ici :** En parallèle de la recherche sémantique, BM25 cherche les chunks qui contiennent exactement les mots de la question. Il construit un index lexical à partir de tous les chunks stockés dans ChromaDB (une seule fois par session, puis mis en cache).
 
+**La normalisation BM25 dans ce projet :**
+
+La fonction `_tokenize()` applique une normalisation avant indexation :
+- mise en minuscules
+- suppression des points médians (`étudiant·e·s` → `etudiantes`)
+- décomposition Unicode (NFD) + suppression des diacritiques (accents)
+- extraction des tokens de 2+ caractères (filtre la ponctuation)
+
+Sans cette normalisation, BM25 raterait les mots accentués selon le PDF et ne ferait pas le lien entre "etudiant" et "étudiant".
+
 **La complémentarité avec la recherche sémantique :**
 
 | Recherche sémantique (bge-m3) | Recherche lexicale (BM25) |
 |---|---|
 | Cherche par *sens* | Cherche par *mots exacts* |
 | "espace complet" → trouve "Banach" | "différentielle" → trouve "différentielle" |
-| Bonne sur les concepts | Bonne sur les termes techniques et formules |
-
-**Implémentation :** La bibliothèque `rank_bm25` implémente `BM25Okapi`. Chaque chunk est tokenisé en minuscules (`t.lower().split()`), ce qui signifie que la recherche n'est pas sensible à la casse.
+| Bonne sur les concepts | Bonne sur les termes techniques et sigles |
 
 ---
 
@@ -72,10 +82,11 @@
 **Comment ça fonctionne ici :**
 
 ```python
+# Extraction page par page : chaque page = un Document indépendant
 pages = pymupdf4llm.to_markdown(str(pdf_path), page_chunks=True)
 ```
 
-L'option `page_chunks=True` est importante : chaque page est retournée comme un document indépendant. Cela garantit qu'un tableau qui tient sur une page ne sera jamais coupé en deux morceaux lors du découpage en chunks.
+L'option `page_chunks=True` est importante : chaque page est retournée comme un document indépendant. Cela garantit qu'un tableau qui tient sur une page ne sera jamais coupé entre deux morceaux lors du découpage en chunks.
 
 **Pourquoi pas PyMuPDF brut ?**
 
@@ -100,22 +111,27 @@ pymupdf4llm préserve les titres de sections (`## Chapitre 3`), les tableaux, et
 **Ce qu'il fait ici :** Appliqué immédiatement après l'extraction par pymupdf4llm, sur chaque page :
 
 ```python
+# Répare les accents cassés avant tout traitement
 text = ftfy.fix_text(page["text"])
 ```
 
-Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). ftfy les détecte et les corrige automatiquement avant tout traitement. Sans cette étape, BM25 raterait les mots accentués mal encodés.
+Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). ftfy les détecte et les corrige automatiquement. Sans cette étape, BM25 raterait les mots accentués mal encodés.
 
 ---
 
-## 6. gemma2:2b (modèle de génération et juge d'évaluation)
+## 6. gemma4:12b (modèle principal)
 
-**Ce que c'est :** Un LLM de Google, 2 milliards de paramètres, tournant en local via Ollama.
+**Ce que c'est :** Un LLM de Google, 12 milliards de paramètres, tournant en local via Ollama.
 
-**Ce qu'il fait ici :** Deux rôles distincts :
+**Ce qu'il fait ici :** Quatre rôles distincts :
 
-1. **Génération** — Reçoit le prompt (question + 5 passages + instructions) et génère la réponse en français, uniquement à partir du contexte fourni. Paramétré avec `temperature=0` pour des réponses déterministes, et `num_ctx=4096` pour le contexte.
+1. **HyDE** — Dans `ask.py`, génère une réponse fictive stylistiquement proche des brochures indexées. Cette réponse est utilisée à la place de la question pour la recherche sémantique (meilleure similarité cosinus entre une réponse fictive et les chunks-réponses qu'entre une question et des chunks-réponses).
 
-2. **Juge d'évaluation** — Dans `evaluate.py`, le même LLM évalue la qualité des réponses en répondant à des prompts d'évaluation. Il retourne un score entre 0.0 et 1.0 pour chaque métrique. C'est le même principe que RAGAS, implémenté sans dépendance externe.
+2. **Contextualisation** — Dans `ingest.py`, génère 3 à 6 mots-clés sur le sujet précis de chaque chunk, qui sont préfixés dans le texte indexé pour enrichir l'embedding.
+
+3. **Génération** — Reçoit le prompt (question + 5 passages + instructions) et génère la réponse en français, uniquement à partir du contexte fourni. Paramétré avec `temperature=0` pour des réponses déterministes.
+
+4. **Évaluation RAGAS** — Dans `evaluate_ragas.py`, joue le rôle de juge LLM pour les 5 métriques RAGAS. Le même modèle qui génère les réponses les évalue.
 
 **Comparaison :**
 
@@ -123,9 +139,9 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 |---|---|---|---|
 | gemma2:2b | 1.6 GB | Correcte | Très rapide |
 | llama3.1:8b | 4.7 GB | Bonne | Moyen |
-| gemma2:9b | 5.5 GB | Très bonne | Lent |
+| **gemma4:12b** | **~8 GB** | **Très bonne** | **Lent (Colab GPU recommandé)** |
 
-`gemma2:2b` est suffisant pour extraire et reformuler des informations depuis un contexte fourni. Pour des questions de raisonnement complexe, `llama3.1:8b` donne de meilleurs résultats.
+`gemma4:12b` est nécessaire pour les tâches de raisonnement complexes (grade_documents, rewrite_query dans le pipeline agentique). Pour une utilisation sans GPU, `llama3.1:8b` est un bon compromis.
 
 ---
 
@@ -133,13 +149,15 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 
 **Ce que c'est :** Une base de données spécialisée dans le stockage et la recherche de vecteurs.
 
-**Ce qu'il fait ici :** Stocke les 1024 nombres de chaque chunk dans `vector_db/chroma.sqlite3`. Quand tu poses une question, il calcule les 20 vecteurs les plus proches du vecteur de ta question (similarité cosinus).
+**Ce qu'il fait ici :** Stocke les 1024 nombres de chaque chunk dans `C:/vector_db_aquila/chroma.sqlite3`. Quand tu poses une question, il calcule les vecteurs les plus proches du vecteur de ta question (recherche MMR ou cosinus).
+
+**Pourquoi hors OneDrive ?** SQLite (le moteur de ChromaDB) et la synchronisation cloud sont incompatibles : OneDrive peut verrouiller le fichier `.sqlite3` en cours d'écriture, ce qui corrompt la base. La base est donc stockée dans `C:/vector_db_aquila`.
 
 **La différence avec une base classique :**
 - Base classique : cherche "Banach" → trouve les lignes qui contiennent exactement "Banach"
 - ChromaDB : cherche "espace complet" → trouve les passages sur "Banach", "Cauchy", "convergence"
 
-**L'index BM25 est construit séparément** depuis les textes stockés dans ChromaDB (`vector_db._collection.get(include=["documents", "metadatas"])`), une seule fois par session.
+**L'index BM25 est construit séparément** depuis les textes stockés dans ChromaDB (`vector_db._collection.get(...)`), une seule fois par session.
 
 ---
 
@@ -151,58 +169,99 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 
 | Classe | Usage |
 |---|---|
-| `MarkdownHeaderTextSplitter` | Découpe le texte sur les titres ## et ###, en conservant le contexte hiérarchique |
+| `MarkdownHeaderTextSplitter` | Découpe le texte sur les titres #/##/###, conserve la hiérarchie en métadonnée |
 | `RecursiveCharacterTextSplitter` | Découpe les sections longues en chunks de 1000 caractères (overlap 200) |
 | `OllamaEmbeddings` | Appelle bge-m3 via Ollama pour calculer les embeddings |
 | `Chroma` | Gère la base vectorielle (écriture depuis ingest.py, lecture depuis ask.py) |
-| `OllamaLLM` | Appelle gemma2:2b via Ollama pour la génération et l'évaluation |
+| `OllamaLLM` | Appelle gemma4:12b via Ollama pour la génération et la contextualisation |
 | `TextLoader` | Charge les fichiers .txt |
 | `Docx2txtLoader` | Charge les fichiers .docx |
 
 ---
 
-## 9. CrossEncoder mmarco-mMiniLMv2 (re-ranker)
+## 9. LangGraph (pipeline agentique)
 
-**Ce que c'est :** Un modèle de la bibliothèque `sentence-transformers` (~471 Mo, téléchargé automatiquement depuis HuggingFace au premier lancement).
+**Ce que c'est :** Une librairie de LangChain pour construire des pipelines IA sous forme de graphes de nœuds et d'arêtes, avec état partagé et transitions conditionnelles.
 
-**Nom complet :** `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` — modèle multilingue entraîné sur des paires (question, passage) pour estimer leur pertinence réelle.
+**Ce qu'il fait ici :** Orchestre le pipeline agentique dans `agent.py`. Le graphe :
+
+```
+START
+  │
+  ▼
+identify_sources  →  retrieve  →  grade_documents
+                         ↑              │
+                         │    OUI       ▼
+                    rewrite_query   generate  →  END
+```
+
+L'état du graphe (`AgentState`) est un dictionnaire partagé entre tous les nœuds : question, requête courante, sources ciblées, pool de chunks, verdict de suffisance, nombre de tentatives, réponse finale.
+
+**Pourquoi LangGraph et pas un simple `if` ?** LangGraph permet de visualiser le graphe, de l'interrompre et de l'inspecter à tout moment, et de gérer proprement les boucles conditionnelles avec un état partagé immuable entre les nœuds.
+
+---
+
+## 10. CrossEncoder BAAI/bge-reranker-v2-m3 (re-ranker)
+
+**Ce que c'est :** Un modèle de la bibliothèque `sentence-transformers`, téléchargé automatiquement depuis HuggingFace au premier lancement (~471 Mo).
+
+**Nom complet :** `BAAI/bge-reranker-v2-m3` — modèle multilingue du même laboratoire que bge-m3 (BAAI), cohérent pour une utilisation ensemble.
 
 **Ce qu'il fait ici :** Re-classe les 10 candidats issus de la fusion RRF. Il reçoit des paires `(question, chunk)` et prédit un score de pertinence pour chacune :
 
 ```python
+# Le re-ranker lit chaque paire conjointement — pas séparément comme les embeddings
 pairs = [("Quels sont les cours obligatoires ?", "Les quatre cours communs sont..."),
          ("Quels sont les cours obligatoires ?", "La bibliothèque est ouverte..."), ...]
-scores = reranker.predict(pairs)
-# → [8.4, 0.2, ...]
+scores = reranker.predict(pairs)  # → [8.4, -1.2, ...]
 ```
+
+Les scores sont des logits centrés sur 0 (pas des probabilités). Un score négatif signifie que le modèle juge le chunk hors-sujet. Les chunks sous le seuil `RERANK_THRESHOLD = 0.0` sont écartés.
 
 **Pourquoi c'est plus précis qu'un embedding ?**
 
 Un embedding encode question et chunk **séparément** — il mesure leur proximité dans l'espace vectoriel mais sans voir les deux ensembles. Le CrossEncoder lit la question et le chunk **ensemble** dans un seul passage, ce qui lui permet de comprendre des relations subtiles ("ce passage répond-il vraiment à cette question ?").
 
-**Où il est chargé :** Une seule fois au démarrage du programme, en variable globale dans `ask.py` :
+**Où il est chargé :** Une seule fois au démarrage, en variable globale dans `ask.py` :
 ```python
+# Chargé une fois, réutilisé pour toutes les questions de la session
 reranker = CrossEncoder(RERANK_MODEL)
 ```
 
 ---
 
-## 10. Streamlit (interface web)
+## 11. RAGAS (évaluation)
 
-**Ce que c'est :** Un framework Python pour créer des interfaces web interactives sans écrire de HTML/CSS.
+**Ce que c'est :** Une librairie Python standard pour évaluer les pipelines RAG avec des métriques LLM-judge.
 
-**Ce qu'il fait ici :** Fournit l'interface principale dans `app.py` :
-- Un champ texte pour saisir la question
-- Un bouton "Envoyer" qui déclenche le pipeline RAG
-- Un spinner de chargement pendant le traitement
-- L'affichage de la réponse générée
+**Ce qu'il fait ici :** Dans `evaluate_ragas.py`, il évalue chaque résultat du pipeline agentique sur 5 métriques :
+
+| Métrique | Question posée au juge | Ground truth nécessaire ? |
+|---|---|---|
+| **Faithfulness** | La réponse invente-t-elle des choses absentes des chunks ? | Non |
+| **AnswerRelevancy** | La réponse répond-elle à la question posée ? | Non |
+| **ContextPrecision** | Les chunks récupérés sont-ils pertinents pour cette question ? | Non |
+| **ContextRecall** | Les chunks couvrent-ils tout ce que contient la réponse de référence ? | Oui |
+| **AnswerCorrectness** | La réponse est-elle correcte par rapport à la référence ? | Oui |
+
+RAGAS utilise Ollama (via une API compatible OpenAI sur `http://localhost:11434/v1`) — aucun appel à OpenAI ou à un service externe.
+
+---
+
+## 12. Open WebUI + FastAPI (interface)
+
+**Open WebUI** : Interface web de chat type ChatGPT, hébergée en local. Se connecte à n'importe quelle API compatible OpenAI.
+
+**FastAPI (`api_server.py`)** : Serveur minimal qui expose `ask_question_agentic()` via deux routes :
+- `GET /v1/models` — retourne la liste des modèles disponibles
+- `POST /v1/chat/completions` — reçoit un message, appelle le pipeline agentique, renvoie la réponse au format OpenAI
+
+Cette architecture permet de brancher Open WebUI sur le RAG agentique sans modifier aucun fichier existant.
 
 **Lancement :**
 ```powershell
-python -m streamlit run src/app.py --server.headless true --server.fileWatcherType none
+# Depuis src/ — expose le pipeline agentique sur le port 8001
+uvicorn api_server:app --host 0.0.0.0 --port 8001
 ```
 
-- `--server.headless true` : nécessaire avec Python 3.14 (comportement différent de Streamlit)
-- `--server.fileWatcherType none` : supprime les warnings `torchvision`
-
-L'interface est accessible sur **http://localhost:8501**.
+L'interface est accessible sur **http://localhost:3000** après lancement d'Open WebUI.

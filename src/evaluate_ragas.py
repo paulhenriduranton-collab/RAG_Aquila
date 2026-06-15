@@ -8,7 +8,8 @@ import pandas as pd
 from pathlib import Path
 
 # --- Imports RAGAS (nécessite : pip install ragas) ---
-from ragas import evaluate, EvaluationDataset, SingleTurnSample
+import asyncio
+from ragas import EvaluationDataset, SingleTurnSample
 from ragas.metrics.collections import (
     Faithfulness,        # L'answer est-elle fondée sur le contexte récupéré ?
     AnswerRelevancy,     # L'answer répond-elle à la question posée ?
@@ -102,6 +103,35 @@ def build_metrics(llm, embeddings) -> list:
     ]
 
 
+async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
+    """Score chaque sample individuellement — contourne evaluate() incompatible avec les collections metrics."""
+    rows = []
+    total = len(dataset.samples)
+    for i, sample in enumerate(dataset.samples, 1):
+        row = {}
+        for metric in metrics:
+            try:
+                row[metric.name] = await metric.single_turn_ascore(sample)  # Scoring async natif
+            except Exception as e:
+                row[metric.name] = None
+                print(f"  [WARN] {metric.name} sample {i}/{total} : {e}")
+        print(f"  [{i}/{total}] scoré")
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _run_scoring(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
+    """Lance _score_async en gérant les deux cas : script Python et Jupyter/Colab (event loop déjà active)."""
+    try:
+        return asyncio.run(_score_async(dataset, metrics))       # Cas standard (script Python)
+    except RuntimeError:
+        # Jupyter/Colab : event loop déjà active — nest_asyncio permet l'imbrication
+        import nest_asyncio
+        nest_asyncio.apply()
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(_score_async(dataset, metrics))
+
+
 def print_summary(df: pd.DataFrame) -> None:
     """Affiche un récapitulatif des scores moyens dans le terminal."""
     metric_cols = ["faithfulness", "answer_relevancy", "context_precision",
@@ -164,11 +194,10 @@ def main() -> None:
 
     # Lancement de l'évaluation — peut prendre plusieurs minutes selon le nombre de questions
     print("[4/5] Évaluation en cours (peut durer plusieurs minutes)...")
-    result = evaluate(dataset=dataset, metrics=metrics)
+    df_scores = _run_scoring(dataset, metrics)  # Scoring async sample par sample
 
     # Export CSV enrichi avec id + métadonnées
     print("[5/5] Export des résultats...")
-    df_scores = result.to_pandas()                             # DataFrame des scores RAGAS
     df_meta   = pd.DataFrame(row_meta)                         # DataFrame des identifiants
 
     df_out = pd.concat([df_meta.reset_index(drop=True),

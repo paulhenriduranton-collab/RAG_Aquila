@@ -129,6 +129,12 @@ async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFram
     rows = []
     total = len(dataset.samples)
     for i, sample in enumerate(dataset.samples, 1):
+        # En-tête de la question avec numéro et texte tronqué
+        question_preview = sample.user_input[:120] + "…" if len(sample.user_input) > 120 else sample.user_input
+        print(f"\n{'─' * 60}")
+        print(f"  [{i}/{total}] {question_preview}")
+        print(f"{'─' * 60}")
+
         row = {}
         for metric in metrics:
             try:
@@ -136,18 +142,28 @@ async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFram
                     # ascore() attend les champs séparés, pas un SingleTurnSample
                     kwargs = _build_kwargs(metric.ascore, sample)
                     result = metric.ascore(**kwargs)
-                    row[metric.name] = await result if asyncio.iscoroutine(result) else result
+                    score = await result if asyncio.iscoroutine(result) else result
+                    # MetricResult expose .value — on extrait le float brut pour le CSV
+                    row[metric.name] = score.value if hasattr(score, "value") else score
                 elif hasattr(metric, "score"):
                     kwargs = _build_kwargs(metric.score, sample)
                     result = metric.score(**kwargs)
-                    row[metric.name] = await result if asyncio.iscoroutine(result) else result
+                    score = await result if asyncio.iscoroutine(result) else result
+                    row[metric.name] = score.value if hasattr(score, "value") else score
                 else:
                     row[metric.name] = None
             except Exception as e:
                 row[metric.name] = None
-                if i == 1:  # Log l'erreur seulement sur le premier sample
-                    print(f"  [WARN] {metric.name} : {e}")
-        print(f"  [{i}/{total}] scoré")
+                print(f"  [WARN] {metric.name} : {e}")
+
+            # Affichage du score de la métrique avec barre visuelle
+            val = row[metric.name]
+            if val is None:
+                print(f"  {metric.name:<25}  N/A")
+            else:
+                bar = "█" * int(val * 20)
+                print(f"  {metric.name:<25}  {val:.3f}  {bar}")
+
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -165,23 +181,50 @@ def _run_scoring(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
 
 
 def print_summary(df: pd.DataFrame) -> None:
-    """Affiche un récapitulatif des scores moyens dans le terminal."""
+    """Affiche un récapitulatif par question puis les scores moyens dans le terminal."""
     metric_cols = ["faithfulness", "answer_relevancy", "context_precision",
                    "context_recall", "answer_correctness"]
+    # Abréviations pour tenir dans la ligne
+    abbr = {
+        "faithfulness":       "faith",
+        "answer_relevancy":   "ans_rel",
+        "context_precision":  "ctx_prec",
+        "context_recall":     "ctx_rec",
+        "answer_correctness": "ans_corr",
+    }
+    present = [c for c in metric_cols if c in df.columns]
 
+    # --- Tableau par question ---
+    print("\n" + "=" * 85)
+    print("  RÉSULTATS PAR QUESTION")
+    print("=" * 85)
+
+    # En-tête du tableau
+    header = f"  {'ID':<14}" + "".join(f"  {abbr[c]:>8}" for c in present)
+    print(header)
+    print("  " + "─" * 83)
+
+    for _, row in df.iterrows():
+        # Question tronquée à 14 chars pour tenir dans la colonne ID
+        qid = str(row.get("id", ""))[:14]
+        scores = ""
+        for c in present:
+            val = row[c]
+            scores += f"  {val:>8.3f}" if pd.notna(val) else f"  {'N/A':>8}"
+        print(f"  {qid:<14}{scores}")
+
+    # --- Moyennes globales ---
     print("\n" + "=" * 55)
-    print("  RÉSULTATS RAGAS — SCORES MOYENS")
+    print("  SCORES MOYENS")
     print("=" * 55)
 
-    # Affichage des scores globaux sur toutes les questions évaluées
-    for col in metric_cols:
-        if col in df.columns:
-            mean_val = df[col].mean()
-            if pd.isna(mean_val):  # Scores NaN = metric n'a pas pu être calculée
-                print(f"  {col:<25} N/A")
-                continue
-            bar = "█" * int(mean_val * 20)  # Barre de progression visuelle (20 = 100%)
-            print(f"  {col:<25} {mean_val:.3f}  {bar}")
+    for col in present:
+        mean_val = df[col].mean()
+        if pd.isna(mean_val):
+            print(f"  {col:<25} N/A")
+            continue
+        bar = "█" * int(mean_val * 20)
+        print(f"  {col:<25} {mean_val:.3f}  {bar}")
 
     print(f"\n  Questions évaluées : {len(df)}")
 
@@ -189,7 +232,6 @@ def print_summary(df: pd.DataFrame) -> None:
     if "niveau" in df.columns:
         print("\n  --- Par niveau ---")
         for niveau, grp in df.groupby("niveau"):
-            # Score moyen par niveau (L1 facile / L2 intermédiaire)
             mean_corr = grp["answer_correctness"].mean() if "answer_correctness" in grp else float("nan")
             print(f"  Niveau {niveau} ({len(grp)} qs) → answer_correctness = {mean_corr:.3f}")
 

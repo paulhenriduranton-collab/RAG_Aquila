@@ -15,3 +15,4 @@ fastapi
 uvicorn
 ragas
 datasets
+openai  # Client OpenAI-compatible pour llm_factory (pointe vers Ollama en local)

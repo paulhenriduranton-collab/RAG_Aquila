@@ -16,11 +16,12 @@ from ragas.metrics.collections import (
     ContextRecall,       # Le contexte couvre-t-il l'information de la réponse attendue ?
     AnswerCorrectness,   # L'answer est-elle correcte par rapport à la réponse attendue ?
 )
-from ragas.llms import LangchainLLMWrapper
+from ragas.llms import llm_factory          # Crée un InstructorLLM requis par ragas.metrics.collections
 from ragas.embeddings import LangchainEmbeddingsWrapper
 
-# --- Imports LangChain Ollama ---
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+# --- Imports LangChain / OpenAI / Ollama ---
+from openai import OpenAI                   # Client OpenAI-compatible pour pointer vers Ollama
+from langchain_ollama import OllamaEmbeddings
 
 # =============================================================================
 # CONFIGURATION — modifier ici selon l'environnement
@@ -91,14 +92,14 @@ def build_dataset(results: list[dict]) -> tuple[EvaluationDataset, list[dict]]:
     return dataset, row_meta
 
 
-def build_metrics(llm_wrapper, embed_wrapper) -> list:
-    """Instancie les 5 métriques RAGAS configurées avec le LLM et les embeddings locaux."""
+def build_metrics(llm, embed_wrapper) -> list:
+    """Instancie les 5 métriques RAGAS configurées avec un InstructorLLM et les embeddings locaux."""
     return [
-        Faithfulness(llm=llm_wrapper),                              # Basé uniquement sur le contexte
-        AnswerRelevancy(llm=llm_wrapper, embeddings=embed_wrapper), # Utilise les embeddings
-        ContextPrecision(llm=llm_wrapper),                          # Juge la précision des chunks
-        ContextRecall(llm=llm_wrapper),                             # Couvreture vs ground truth
-        AnswerCorrectness(llm=llm_wrapper),                         # Score global de correction
+        Faithfulness(llm=llm),                              # Basé uniquement sur le contexte
+        AnswerRelevancy(llm=llm, embeddings=embed_wrapper), # Utilise les embeddings
+        ContextPrecision(llm=llm),                          # Juge la précision des chunks
+        ContextRecall(llm=llm),                             # Couvreture vs ground truth
+        AnswerCorrectness(llm=llm),                         # Score global de correction
     ]
 
 
@@ -147,11 +148,18 @@ def main() -> None:
 
     # Initialisation des modèles locaux Ollama
     print(f"[3/5] Initialisation des modèles Ollama ({EVAL_LLM}, {EMBED_MODEL})...")
-    llm_wrapper   = LangchainLLMWrapper(ChatOllama(model=EVAL_LLM, temperature=0))
+
+    # Ollama expose une API compatible OpenAI sur le port 11434 — llm_factory en a besoin
+    # pour produire un InstructorLLM accepté par ragas.metrics.collections
+    ollama_client = OpenAI(
+        base_url="http://localhost:11434/v1",
+        api_key="ollama",  # Valeur fictive : Ollama ne vérifie pas la clé
+    )
+    llm           = llm_factory(EVAL_LLM, client=ollama_client)
     embed_wrapper = LangchainEmbeddingsWrapper(OllamaEmbeddings(model=EMBED_MODEL))
 
     # Instanciation des métriques avec les modèles locaux
-    metrics = build_metrics(llm_wrapper, embed_wrapper)
+    metrics = build_metrics(llm, embed_wrapper)
     print(f"      {len(metrics)} métriques configurées : {[m.name for m in metrics]}")
 
     # Lancement de l'évaluation — peut prendre plusieurs minutes selon le nombre de questions

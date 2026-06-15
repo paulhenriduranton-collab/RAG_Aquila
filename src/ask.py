@@ -27,6 +27,16 @@ K_RERANK = 10     # nombre de chunks passés au re-ranker après la fusion RRF
 K_FINAL = 5       # nombre de chunks gardés après re-ranking — ce sont eux qui vont au LLM
 RRF_K = 60        # constante de la formule RRF — valeur standard, ne pas changer sans raison
 
+# Paramètres MMR (Maximal Marginal Relevance) pour la recherche sémantique
+MMR_FETCH_K = K_RETRIEVE * 4  # nombre de candidats initiaux examinés par MMR avant de sélectionner les K_RETRIEVE plus diversifiés
+MMR_LAMBDA = 0.5              # 1 = pertinence pure (= similarité classique), 0 = diversité pure
+
+# Seuil de pertinence sur le score du cross-encoder (re-ranking) — un chunk en dessous
+# de ce seuil est considéré hors-sujet et écarté, même s'il fait partie des K_FINAL meilleurs.
+# Pour bge-reranker-v2-m3, le score est un logit centré sur 0 (sigmoid(0)=0.5 = pertinence "moyenne") :
+# un score négatif signifie que le modèle juge le chunk non pertinent pour la question.
+RERANK_THRESHOLD = 0.0
+
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
 reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
@@ -42,6 +52,25 @@ def _restart_ollama():
         stderr=subprocess.STDOUT,
     )
     time.sleep(5)
+
+
+QUESTION_RESTART_INTERVAL = 2  # redémarre Ollama toutes les N questions
+
+_question_count = 0
+
+
+def _maybe_restart_ollama(verbose: bool = True):
+    """
+    Redémarre Ollama tous les QUESTION_RESTART_INTERVAL questions pour purger la mémoire
+    accumulée par llama-server (KV-cache non libéré entre les appels), qui cause une
+    dégradation cumulative de la latence au fil d'une session (101s → 1211s observés sur 9 runs).
+    """
+    global _question_count
+    _question_count += 1
+    if _question_count % QUESTION_RESTART_INTERVAL == 0:
+        if verbose:
+            print(f"[Ollama] Redémarrage préventif (question n°{_question_count})...", flush=True)
+        _restart_ollama()
 
 
 def _invoke_with_retry(prompt: str, retries: int = 3) -> str:
@@ -147,17 +176,27 @@ def _merge(
     return [doc_map[key] for key, _ in top], top
 
 
-def _rerank(question: str, docs: list[Document], n: int = K_FINAL) -> list[Document]:
+def _rerank(question: str, docs: list[Document], n: int = K_FINAL, verbose: bool = False) -> list[Document]:
     """
     Re-classe les chunks avec un CrossEncoder plus précis que l'embedding.
     Contrairement à l'embedding (qui encode question et chunk séparément),
     le cross-encoder lit les deux textes ensemble et comprend mieux la pertinence.
+
+    Les chunks dont le score est sous RERANK_THRESHOLD sont écartés (hors-sujet),
+    même s'il en résulte moins de n chunks au final.
     """
     # Forme des paires (question, chunk) — le cross-encoder a besoin des deux en même temps
     pairs = [(question, doc.page_content) for doc in docs]
     scores = reranker.predict(pairs)  # retourne un score de pertinence pour chaque paire
-    ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)
-    return [doc for doc, _ in ranked[:n]]  # garde les n meilleurs
+    ranked = sorted(zip(docs, scores), key=lambda x: x[1], reverse=True)[:n]
+
+    if verbose:
+        print(f"\n[Re-ranking] Scores (seuil = {RERANK_THRESHOLD}) :")
+        for doc, score in ranked:
+            flag = "" if score >= RERANK_THRESHOLD else "  ← écarté (hors-sujet)"
+            print(f"  score={score:.3f}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}{flag}")
+
+    return [doc for doc, score in ranked if score >= RERANK_THRESHOLD]
 
 
 def _fmt(text: str, length: int = 130) -> str:
@@ -211,13 +250,18 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     hyde_query = _hyde(question)
     if verbose:
         print(f"[HyDE] Réponse fictive : {_fmt(hyde_query)}")
-        print(f"\n[Sémantique] Recherche des {K_RETRIEVE} plus proches voisins...")
-    raw_semantic = vector_db.similarity_search_with_relevance_scores(hyde_query, k=K_RETRIEVE, filter=chroma_filter)
+        print(f"\n[Sémantique] Recherche MMR des {K_RETRIEVE} plus proches voisins diversifiés...")
+    # MMR (Maximal Marginal Relevance) : sélectionne des chunks pertinents mais diversifiés entre eux,
+    # en piochant parmi MMR_FETCH_K candidats. Ne renvoie pas de score de similarité (d'où le None).
+    mmr_docs = vector_db.max_marginal_relevance_search(
+        hyde_query, k=K_RETRIEVE, fetch_k=MMR_FETCH_K, lambda_mult=MMR_LAMBDA, filter=chroma_filter
+    )
+    raw_semantic = [(doc, None) for doc in mmr_docs]
 
     if verbose:
         print("[Sémantique] Top 5 :")
-        for i, (doc, score) in enumerate(raw_semantic[:5]):
-            print(f"  #{i+1}  score={score:.3f}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
+        for i, (doc, _) in enumerate(raw_semantic[:5]):
+            print(f"  #{i+1}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
             print(f"        ↳ {_fmt(doc.page_content)}")
 
     # ── 2. Recherche BM25 (lexicale) ─────────────────────────────────────────
@@ -259,10 +303,10 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
 
     # ── 4. Re-ranking ─────────────────────────────────────────────────────────
     # Le cross-encoder reclasse les K_RERANK candidats RRF avec une lecture conjointe (question + chunk)
-    final_docs = _rerank(question, rrf_docs)
+    final_docs = _rerank(question, rrf_docs, verbose=verbose)
 
     if verbose:
-        print(f"\n[Top {K_FINAL} final] :")
+        print(f"\n[Top {K_FINAL} final] ({len(final_docs)} chunk(s) au-dessus du seuil) :")
         for i, doc in enumerate(final_docs):
             print(f"  #{i+1}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
             print(f"        ↳ {_fmt(doc.page_content)}")
@@ -277,6 +321,7 @@ def ask_question(question: str, verbose: bool = True) -> tuple[str, list[Documen
 
     verbose=False désactive tous les logs (utilisé par evaluate.py et app.py).
     """
+    _maybe_restart_ollama(verbose=verbose)
     final_docs = retrieve(question, verbose=verbose)
 
     if not final_docs:

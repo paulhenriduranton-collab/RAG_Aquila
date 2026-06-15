@@ -4,7 +4,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, _rerank, llm, _invoke_with_retry, PROMPT_PATH, BASE_DIR, K_FINAL
+from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -188,6 +188,7 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
     Retourne un tuple (réponse_texte, chunks_utilisés), comme ask_question, pour rester
     interchangeable avec evaluate.py / app.py.
     """
+    _maybe_restart_ollama(verbose=verbose)
     final_state = agent.invoke({
         "question": question,
         "current_query": question,

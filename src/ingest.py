@@ -19,24 +19,24 @@ VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite co
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
 CONTEXT_MODEL = "gemma4:12b"  # LLM pour générer une phrase de contexte par chunk (contextual retrieval)
 MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
+PAGE_OVERLAP_CHARS = 300  # début de la page suivante recopié en fin de chaque page, pour ne pas couper
+                           # une liste/section à cheval sur deux pages (cf. problème "coupure de listes")
 
-# Demande une phrase courte qui situe le chunk (établissement, section, sujet) à partir de la
-# page complète d'où il provient. Cette phrase est ensuite préfixée au chunk avant indexation :
-# un chunk isolé ("stage d'au moins 4 mois") ne dit pas de lui-même à quel établissement il
-# appartient — l'embedding et BM25 ne lisent jamais les métadonnées, seulement le texte indexé.
-CONTEXT_PROMPT = """Ce passage provient du fichier {source}.
-
-Voici la page complète d'où il est extrait :
-{page}
-
-Voici le passage qui sera indexé séparément pour la recherche :
+# Demande une liste de mots-clés sur le SUJET PRÉCIS du chunk (le LLM ne voit que le chunk,
+# pas le document entier — il ne peut donc pas deviner fiablement l'établissement, le niveau
+# ou le parcours si ce n'est pas écrit dans le chunk lui-même). Ces informations structurelles
+# sont ajoutées séparément, de façon déterministe, à partir des métadonnées (source, page,
+# hiérarchie de titres h1/h2/h3 capturée par MarkdownHeaderTextSplitter) — voir _contextualize_chunks.
+CONTEXT_PROMPT = """Voici un passage extrait d'une brochure universitaire :
 {chunk}
 
-Écris une phrase complète (15 mots maximum) qui situe ce passage.
+Donne 3 à 6 mots-clés ou expressions courtes qui résument le SUJET PRÉCIS de ce passage
+(ex: matières, compétences, type d'information : calendrier, ECTS, débouchés, stage...).
 Règles strictes :
-- Commence obligatoirement par le nom de l'établissement extrait du nom de fichier (ex: "ENS.pdf" → commence par "À l'ENS", "Sorbonne.pdf" → commence par "À Sorbonne Université"). N'utilise jamais le nom d'un autre établissement.
-- Mentionne le niveau (Master 1 ou Master 2) et le sujet précis du passage.
-Réponds uniquement par cette phrase, sans préambule ni guillemets."""
+- Uniquement des mots-clés séparés par des virgules, jamais de phrase complète ni de verbe conjugué.
+- Ne reformule PAS le passage : donne des mots-clés, pas un résumé.
+- Ne mentionne pas d'établissement, de niveau (M1/M2) ou de parcours : tu n'as pas cette information.
+Réponds uniquement par la liste de mots-clés, sans phrase ni guillemets."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
@@ -57,6 +57,13 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
             page_content=text,
             metadata={"source": pdf_path.name, "page": page_num + 1},  # +1 pour afficher en 1-indexé
         ))
+
+    # Chevauchement entre pages : recopie le début de chaque page à la fin de la précédente,
+    # pour qu'une liste/section coupée par un saut de page se retrouve complète dans au moins un chunk.
+    for i in range(len(documents) - 1):
+        next_start = documents[i + 1].page_content[:PAGE_OVERLAP_CHARS]
+        documents[i].page_content += "\n\n" + next_start
+
     return documents
 
 
@@ -143,21 +150,39 @@ def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
     return llm.invoke(prompt)
 
 
-def _contextualize_chunks(chunks: list[Document], page_text: str, llm: OllamaLLM) -> list[Document]:
+def _contextualize_chunks(chunks: list[Document], llm: OllamaLLM) -> list[Document]:
     """
-    Demande au LLM, pour chaque chunk final, une phrase de contexte à partir de la page
-    d'origine, et la préfixe au texte avant indexation (technique de "contextual retrieval").
-    Contrairement aux métadonnées (chemin de titres, source), cette phrase fait partie du
-    texte indexé : l'embedding et BM25 la "voient" directement, ce qui aide à désambiguïser
-    un chunk qui, isolé, ne précise pas son établissement ou son sujet.
+    Préfixe chaque chunk avec une ligne de contexte avant indexation (technique de
+    "contextual retrieval") : l'embedding et BM25 ne lisent jamais les métadonnées,
+    seulement le texte indexé — un chunk isolé ne dit pas de lui-même son établissement,
+    sa page ou sa section.
+
+    La ligne de contexte combine deux sources :
+    - Déterministe (sans LLM, donc sans hallucination) : source, page, chemin de titres
+      (h1/h2/h3, capturé par MarkdownHeaderTextSplitter) — donne établissement/niveau/parcours
+      quand cette info est dans la structure du document.
+    - LLM (CONTEXT_PROMPT) : 3-6 mots-clés sur le sujet précis du chunk, une tâche que le
+      LLM peut faire à partir du seul texte du chunk (pas besoin du document entier).
     """
     result = []
     for chunk in chunks:
         source = chunk.metadata.get("source", "document inconnu")  # nom du fichier PDF d'origine
-        prompt = CONTEXT_PROMPT.format(source=source, page=page_text, chunk=chunk.page_content)
-        lines = _invoke_with_retry(llm, prompt).strip().splitlines()
-        context_line = lines[0].strip() if lines else ""
-        new_content = f"{context_line}\n\n{chunk.page_content}" if context_line else chunk.page_content
+        page = chunk.metadata.get("page", "?")
+        section_path = " > ".join(
+            chunk.metadata[h] for h in ("h1", "h2", "h3") if chunk.metadata.get(h)
+        )
+
+        prompt = CONTEXT_PROMPT.format(chunk=chunk.page_content)
+        keywords = _invoke_with_retry(llm, prompt).strip().splitlines()[0].strip()
+
+        parts = [source, f"p.{page}"]
+        if section_path:
+            parts.append(section_path)
+        if keywords:
+            parts.append(keywords)
+        context_line = "[" + " | ".join(parts) + "]"
+
+        new_content = f"{context_line}\n\n{chunk.page_content}"
         result.append(Document(page_content=new_content, metadata=chunk.metadata))
     return result
 
@@ -194,9 +219,10 @@ def _split_documents(documents: list[Document]) -> list[Document]:
        de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
     4. Filtre les chunks dont le contenu utile est trop court (< MIN_CONTENT_SIZE) — évite
        d'envoyer au LLM des chunks ne contenant qu'un numéro de page ou un symbole isolé.
-    5. _contextualize_chunks — ajoute en tête de chaque chunk final une phrase de contexte
-       générée par le LLM à partir de sa page d'origine (établissement / section / sujet),
-       pour que la recherche dispose d'un signal explicite même sur un chunk isolé.
+    5. _contextualize_chunks — ajoute en tête de chaque chunk final une ligne de contexte
+       combinant métadonnées déterministes (source, page, chemin de titres) et mots-clés
+       générés par le LLM sur le sujet précis du chunk, pour que la recherche dispose d'un
+       signal explicite même sur un chunk isolé.
     """
     header_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
@@ -207,8 +233,8 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
     )
-    # num_predict bas : on ne veut qu'une phrase courte, pas une réponse longue (gagne du temps de génération)
-    context_llm = OllamaLLM(model=CONTEXT_MODEL, num_ctx=4096, temperature=0, num_predict=60)
+    # num_predict bas : on ne veut qu'une courte liste de mots-clés, pas une réponse longue (gagne du temps de génération)
+    context_llm = OllamaLLM(model=CONTEXT_MODEL, num_ctx=4096, temperature=0, num_predict=40)
 
     # Reprise sur crash : si un run précédent a été interrompu (ex: crash llama-server),
     # on repart des chunks déjà contextualisés au lieu de tout refaire depuis le début.
@@ -247,8 +273,8 @@ def _split_documents(documents: list[Document]) -> list[Document]:
             sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
 
             if sub_chunks:
-                # Étape 5 : ajoute une phrase de contexte générée par le LLM en tête de chaque chunk
-                sub_chunks = _contextualize_chunks(sub_chunks, doc.page_content, context_llm)
+                # Étape 5 : ajoute une ligne de contexte (métadonnées + mots-clés LLM) en tête de chaque chunk
+                sub_chunks = _contextualize_chunks(sub_chunks, context_llm)
                 all_chunks.extend(sub_chunks)
                 print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
                       f"→ {len(sub_chunks)} chunk(s) contextualisé(s)", flush=True)

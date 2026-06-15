@@ -98,7 +98,7 @@ def build_metrics(llm, embeddings) -> list:
         AnswerRelevancy(llm=llm, embeddings=embeddings),  # Utilise les embeddings
         ContextPrecision(llm=llm),                        # Juge la précision des chunks
         ContextRecall(llm=llm),                           # Couvreture vs ground truth
-        AnswerCorrectness(llm=llm),                       # Score global de correction
+        AnswerCorrectness(llm=llm, embeddings=embeddings), # Score global de correction
     ]
 
 

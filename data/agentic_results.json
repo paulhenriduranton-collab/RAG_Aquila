@@ -1083,5 +1083,525 @@
         "content": "Ce passage décrit la liste des UE pour le parcours Sciences des données à l'Université Sorbonne.\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.5.2 Liste des UE**  \nLes deux premiers semestres du parcours SCDI (niveau master) s'appuient sur la premi`ere ann´ee du master Math´ematiques et Applications `a travers un ensemble de cours fl´ech´es en probabilit´es, statistique, analyse et informatique auxquels s'ajoutent des enseignements sp´ecifiques `a l'ISUP, indiqu´es ci-dessous par le symbole _∗_ .  \nChaque semestre comporte 36 ECTS qui doivent ˆetre valid´es en vue de l'obtention des deux diplˆomes."
       }
     ]
+  },
+  {
+    "id": "L2_SU_008",
+    "question": "Comment sont organisés les examens et les rattrapages du parcours MS2A à Sorbonne Université, et existe-t-il une compensation entre les semestres ?",
+    "reponse_attendue": "Les examens du MS2A ont lieu à l'issue de chaque bloc, en novembre, janvier et avril. Des rattrapages sont organisés en juin pour les étudiant·e·s n'ayant pas obtenu de notes validantes à la première session. Il existe une compensation entre UE, mais il n'y a pas de compensation entre les semestres.",
+    "reponse_llm": "Les examens ont lieu à l'issue de chaque bloc (novembre, janvier et avril) (Source : SORBONNE.pdf). Les rattrapages sont organisés en juin pour les étudiants n'ayant pas obtenu de notes validantes à la première session (Source : SORBONNE.pdf). Il existe une compensation entre UE, mais il n'y a pas de compensation entre les semestres (Source : SORBONNE.pdf).",
+    "duree_secondes": 435.3,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Ce passage concerne les modalités d'admission et d'organisation du Master 2 en Statistique à l'Université Sorbonne.\n\n## **Second semestre (de janvier `a octobre)**  \n- Cours d'ouverture (jusqu'`a fin mars) ;  \n- Stage (`a partir de mi-avril).\n\n## **Examens**  \nLes examens ont lieu `a l'issue de chaque bloc (novembre, janvier et avril). Des rattrapages sont organis´es en juin pour les ´etudiant _·_ e _·_ s n'ayant pas obtenu de notes validantes `a la premi`ere session. Il existe une compensation entre UE. Cependant, il n'y a pas de compensation entre les semestres.\n\n## **7.4.1 Pr´e-rentr´ee**  \nL'objectif de la pr´e-rentr´ee est de r´einstaller les fondamentaux math´ematiques et informatiques des cours `a venir. Les cours sont obligatoires mais non-not´es. Vous devez choisir soit R, soit Python avanc´e.  \n|vanc´e.||\n|---|---|\n|Intitul´e|Volume|\n|Statistique|21h|\n|Optimisation et calcul dif´erentiel|15h|\n|Python|12h|\n|R|12h|\n|Python avanc´e|12h|  \n98"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Sorbonne Université - Master 2 - Spécialité Statistique, apprentissage et algorithmes - Second semestre - Cours d'ouverture jusqu'à fin mars, stage depuis mi-avril, examens à l'issue de chaque bloc (novembre, janvier et\n\n## **Second semestre (de janvier `a octobre)**  \n- Cours d'ouverture (jusqu'`a fin mars) ;  \n- Stage (`a partir de mi-avril).\n\n## **Examens**  \nLes examens ont lieu `a l'issue de chaque bloc (novembre, janvier et avril). Des rattrapages sont organis´es en juin pour les ´etudiant _·_ e _·_ s n'ayant pas obtenu de notes validantes `a la premi`ere session. Il existe une compensation entre UE. Cependant, il n'y a pas de compensation entre les semestres.\n\n## **7.4.1 Pr´e-rentr´ee**  \nL'objectif de la pr´e-rentr´ee est de r´einstaller les fondamentaux math´ematiques et informatiques des cours `a venir. Les cours sont obligatoires mais non-not´es. Vous devez choisir soit R, soit Python avanc´e.  \n|vanc´e.||\n|---|---|\n|Intitul´e|Volume|\n|Statistique|21h|\n|Optimisation et calcul dif´erentiel|15h|\n|Python|12h|\n|R|12h|\n|Python avanc´e|12h|  \n98"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Ce passage concerne l'organisation des cours de la spécialité MS2A à Sorbonne Université.\n\n## **7.4 Organisation**  \nChaque ´etudiant _·_ e concourt pour 60 ECTS annuels : 30 au premier semestre et 30 au second (incluant une UE Stage de 18 ECTS). Il est possible de choisir au plus 36 ECTS par semestre, auquel cas la moyenne retenue est la plus favorable pour l'´etudiant _·_ e.\n\n## **Premier semestre (de septembre `a janvier)**  \n- Pr´e-rentr´ee (d´ebut septembre) ;  \n- –  \n- Cours fondamentaux P´eriode 1 (avant la Toussaint) ;  \n- –  \n- Cours fondamentaux P´eriode 2 (apr`es la Toussaint)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 84,
+        "content": "Sorbonne Université - Master 2 - Parcours Ingénierie Mathématique\n\nMaster 2, Parcours Ing´enierie math´ematique  \nnon apprenti·e·s effectuent un stage long en immersion compl`ete en entreprise ou dans un grand centre de recherche.  \nPendant cette p´eriode les ´etudiant·e·s apprenti·e·s sont `a temps plein dans l'entreprise. Les examens de seconde session (rattrapage) ont lieu d´ebut mai pour les UE du premier semestre (bloc de base et bloc fondamental) et en septembre 2026 pour les UE du seconde semestre (bloc de sp´ecialisation)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "## **Second semestre (de janvier `a octobre)**  \n- Cours d'ouverture (jusqu'`a fin mars) ;  \n- Stage (`a partir de mi-avril).\n\n## **Examens**  \nLes examens ont lieu `a l'issue de chaque bloc (novembre, janvier et avril). Des rattrapages sont organis´es en juin pour les ´etudiant _·_ e _·_ s n'ayant pas obtenu de notes validantes `a la premi`ere session. Il existe une compensation entre UE. Cependant, il n'y a pas de compensation entre les semestres.\n\n## **7.4.1 Pr´e-rentr´ee**  \nL'objectif de la pr´e-rentr´ee est de r´einstaller les fondamentaux math´ematiques et informatiques des cours `a venir. Les cours sont obligatoires mais non-not´es. Vous devez choisir soit R, soit Python avanc´e.  \n|vanc´e.||\n|---|---|\n|Intitul´e|Volume|\n|Statistique|21h|\n|Optimisation et calcul dif´erentiel|15h|\n|Python|12h|\n|R|12h|\n|Python avanc´e|12h|  \n98"
+      }
+    ]
+  },
+  {
+    "id": "L2_SU_009",
+    "question": "Quel niveau de langue les étudiant·e·s du parcours SCDI doivent-ils/elles atteindre en anglais en M1, et comment ce niveau est-il évalué en M2 ?",
+    "reponse_attendue": "En M1, l'étudiant·e du parcours SCDI doit atteindre le niveau B2 du Cadre Européen Commun de Référence pour les Langues (CECRL) dans toutes les compétences (compréhension et production orales et écrites). L'accent est mis sur les compétences de compréhension écrite et orale, qui seront évaluées au TOEIC en M2.",
+    "reponse_llm": "Les étudiant·e·s du parcours SCDI doivent atteindre le niveau B2 du Cadre Européen Commun de Référence pour les Langues (CECRL) dans toutes les compétences en M1 (Source : SORBONNE.pdf), et les compétences de compréhension écrite et orale seront évaluées au Toeic en M2 (Source : SORBONNE.pdf).",
+    "duree_secondes": 577.3,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Ce passage décrit les parcours SCDA et SCDI pour le master Mathématiques et Applications à l'ISUP.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 124,
+        "content": "Ce passage décrit les exigences pédagogiques pour le parcours Sciences des données à l'université Sorbonne.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \nEn M1, l'´etudiant doit atteindre le niveau B2 du Cadre Europ´een Commun de R´ef´erence pour les Langues (CECRL) dans toutes les comp´etences (compr´ehension et production orales et ´ecrites). L'accent est mis sur les comp´etences de compr´ehension ´ecrite et orale qui seront ´evalu´ees au Toeic en M2. Les documents ´etudi´es couvrent des th`emes scientifiques, ´economiques, la vie en entreprise et le monde du travail en g´en´eral. Chaque ´etudiant doit faire une pr´esentation orale de 10 `a 15 minutes sur un th`eme scientifique et diriger le d´ebat qui s'ensuit. Les cours de langues sont dispens´es en petits groupes de niveau, ce qui permet d'encourager la participation de tous et d'adapter le contenu du cours au niveau du groupe. L'enseignement se fait en deux semestres de 30 heures. L'´evaluation se fait en contrˆole continu, avec deux ´epreuves communes `a tous les groupes chaque semestre."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_001",
+    "question": "L'UE 4ACT14 « Fondements mathématiques pour les sciences des données » du parcours M1 SCDI de Sorbonne Université apparaît avec deux valeurs d'ECTS différentes dans la brochure. Lesquelles, et où se trouve chacune ?",
+    "reponse_attendue": "Dans la liste des UE du semestre 2 du parcours SCDI (section 9.5.2), l'UE 4ACT14 « Fondements mathématiques pour les sciences des données » est indiquée à 3 ECTS (marquée d'un astérisque comme enseignement spécifique à l'ISUP). Cependant, dans la section d'annexe décrivant les UE spécifiques à l'ISUP (section 9.5.3), le titre de la même UE indique « (6 ECTS) ». Il y a donc une incohérence entre les deux mentions (3 ECTS vs 6 ECTS) pour la même UE 4ACT14.",
+    "reponse_llm": "L'UE 4ACT14 « Fondements mathématiques pour les sciences des données » apparaît avec les deux valeurs suivantes :\n\n*   **3 ECTS** : cette valeur est mentionnée dans la liste des cours du Semestre 2 (Source : SORBONNE.pdf).\n*   **6 ECTS** : cette valeur est mentionnée dans le passage décrivant spécifiquement le contenu de l'UE « 4ACT14 Fondements mathématiques pour les sciences des données » (Source : SORBONNE.pdf).",
+    "duree_secondes": 369.0,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Ce passage décrit les UE du parcours Sciences des données à l'ISUP au sein du Master 1.\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 124,
+        "content": "Ce passage concerne les fondements mathématiques pour les sciences des données au sein du programme M1 de l'université Sorbonne.\n\n## **4ACT14 Fondements math´ematiques pour les sciences des donn´ees (6 ECTS)**  \nCe cours vise `a d´ecrire quelques fondements math´ematiques en science des donn´ees. La premi`ere partie du cours est centr´ee sur l'optimisation convexe, qui sous-tend de nombreuses tˆaches en science des donn´ees. L'hypoth`ese de convexit´e offre une structure permettant de caract´eriser leurs solutions. La deuxi`eme partie du cours utilise ces r´esultats pour ´etudier des probl`emes statistiques (classification et r´egression). Enfin, si le temps le permet, nous examinerons ´egalement des in´egalit´es de concentration et la mani`ere dont elles sont utilis´ees pour fournir des garanties th´eoriques pour ces probl`emes.  \n123"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 9,
+        "content": "Sorbonne Université, Master 1, UE de 9 ECTS et UE de 3 ECTS\n\nMaster 1  \n- deux UE de 9 ECTS, une UE de 6 ECTS et une UE de 3 ECTS,  \n- une UE de 9 ECTS et trois UE de 6 ECTS,  \n- quatre UE de 6 ECTS et une UE de 3 ECTS (sauf d´ecision des responsables p´edagogiques).  \nLe choix des UE de M1 doit se faire en fonction des goˆuts, des acquis ant´erieurs, et bien entendu en coh´erence avec les souhaits d'orientation en M2. Nous ne proposons pas de parcours-types, et chaque ´etudiant-e est libre de composer son contrat p´edagogique, en accord avec sa directrice ou son directeur d'´etudes (voir plus loin) et les responsables p´edagogiques du M1, et modulo les contraintes d'organisation (compatibilit´es d'emplois du temps, par exemple).  \nN´eanmoins, afin d'´eviter des parcours p´edagogiques th´ematiquement trop ´etroits, cette libert´e dans la composition du contrat p´edagogique est encadr´ee par quelques restrictions qui seront d´etaill´ees au paragraphe 1.6."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_002",
+    "question": "Au niveau M2, quels parcours sont associés au parcours Sciences des données (SCDA et SCDI) de Sorbonne Université, et dans quels chapitres de la brochure ces parcours sont-ils décrits en détail ?",
+    "reponse_attendue": "Au niveau M2, les parcours associés au parcours Sciences des données sont le M2 MS2A (Master 2, Parcours Statistique, Apprentissage et Algorithmes, décrit au Chapitre 7) et les quatre majeures du M2 Ingénierie mathématique — IMPA, IMPC, IFMA et SCDI — décrites au Chapitre 6 (Master 2, parcours Ingénierie mathématique). Le parcours SCDI du M1 a la garantie de pouvoir poursuivre spécifiquement en M2 Ingénierie mathématique, majeure SCDI.",
+    "reponse_llm": "Au niveau M2, les parcours associés au parcours Science des données sont le M2 MS2A et les quatre majeures du M2 Ingénierie mathématique (incluant la majeure SCDI) (Source : SORBONNE.pdf). Ces parcours sont décrits dans « ce chapitre » (Source : SORBONNE.pdf).",
+    "duree_secondes": 758.4,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Ce passage décrit les parcours Science des données au niveau Master 1 et Master 2 de l'Université Sorbonne.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\nAu niveau M2, l'acceptation dans un des parcours propos´es dans le master Math´ematiques et Applications se fait sur dossier. Les ´etudiants du parcours Science des donn´ees ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associ´es au parcours Science des donn´ees, `a savoir le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (voir ce chapitre). Cependant, les r`egles sp´ecifiques `a l'ISUP s'appliquent au parcours SCDI, qui offre aux ´etudiants qui le suivent en M1 la garantie de pouvoir poursuivre en M2 Ing´enierie math´ematique, majeure SCDI (anciennement ISup parcours Data Sciences, voir ce chapitre), qui est la deuxi`eme et derni`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLes enseignements sont presque int´egralement d´elivr´es en fran¸cais, bien que du mat´eriel de cours en anglais soit disponible au niveau M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Au niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des données (SCDA et SCDI) et Applications à Sorbonne Université, Master 1.\n\nParcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_003",
+    "question": "Comparez la durée du stage de fin d'études du Master 2 Probabilités et Finance avec celle du stage obligatoire du M1 SCDI : quelles sont leurs durées respectives, et à quelles périodes de l'année ont-ils lieu ?",
+    "reponse_attendue": "Le stage de fin d'études du Master 2 Probabilités et Finance dure au minimum 5 mois, entre la mi-avril (après la fin de la session de rattrapage) et la fin septembre, et doit impérativement avoir lieu en entreprise. Le stage obligatoire du M1 SCDI dure au minimum 2 mois à plein temps et doit avoir lieu pendant les mois de juin, juillet et août. Le stage du Master 2 Probabilités et Finance est donc nettement plus long (au moins 5 mois, en fin d'année universitaire et pendant l'été) que celui du M1 SCDI (2 mois, uniquement pendant l'été).",
+    "reponse_llm": "Le stage obligatoire du M1 SCDI a une durée de deux mois minimum à plein temps et doit avoir lieu au cours des mois de juin, juillet et août (SORBONNE.pdf). Le stage du Master 2 Probabilités et Finance a une durée de 5 à 6 mois (SORBONNE.pdf) ou d'une durée minimale de 5 mois (SORBONNE.pdf), et se déroule entre la mi-avril et la fin septembre (SORBONNE.pdf).",
+    "duree_secondes": 509.7,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 123,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\n## **Semestre 1**  \n- 4MA311 Probabilit´es approfondies (9 ECTS)  \n- 4MA315 Statistique (9 ECTS)  \n- 4ACT13 Risque statistique et ´echantillonnage (6 ECTS) _∗_  \n- 4ACOIP Orientation et Insertion professionnelle ISUP (OIP ISUP) (3 ECTS) _∗_  \n- 4LVAN1 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT12 Python ISUP (6 ECTS) _∗_ .\n\n## **Semestre 2**  \n- 4MA376 Bases de l'apprentissage statistique (9 ECTS)  \n- 4MA266 Optimisation num´erique et science des donn´ees (6 ECTS)  \n- 4MA277 Bases de l'analyse de donn´ees (6 ECTS)  \n- 4ACT14 Fondements math´ematiques pour les sciences des donn´ees (3 ECTS) _∗_  \n- 4ACT10 Stage ISUP (3 ECTS) _∗_  \n- 4LVAN2 Anglais ISUP (3 ECTS) _∗_  \n- 4ACT11 S´eries temporelles ISUP (6 ECTS) _∗_ .  \nSe reporter au chapitre du M1 (ici) pour la description des UE dont le code est de la forme 4MAXXX.  \nLe stage obligatoire, d'une dur´ee de deux mois minimum `a plein temps, doit avoir lieu au cours des mois de juin, juillet et aoˆut."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 67,
+        "content": "Ce passage concerne le module \"Stage\" du Master 2 en Probabilit´es et Finance à Sorbonne Universit´e.\n\n- Module \"Stage\" (21 ECTS).  \nUn stage de 5 `a 6 mois mois en entreprise d´ebutant le deux`eme lundi avril, apr`es validation du sujet scientifique du stage par l'´equipe p´edagogique. La soutenance a lieu fin septembre en pr´esence du Maˆıtre de stage et d'un membre de l'´equipe p´edagogique."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Ce passage décrit les modalités du second semestre du Master 2 en Probabilité et Finance à l'Université Sorbonne.\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Parcours Sciences des donn´ees (SCDA et SCDI)  \net Applications (voir ce chapitre) puis du M2 choisi s'appliquent. En particulier, il est n´ecessaire de valider 30 ECTS par semestre pour obtenir le diplˆome de master.  \nLes ´etudiants suivant le parcours SCDI sont en outre des ´etudiants de l'ISUP et ils pr´eparent donc, en plus du diplˆome de master Math´ematiques et Applications, le diplˆome universitaire (DU) de statisticien de l'ISUP. Le parcours SCDI peut ˆetre suivi en formation en alternance au niveau M2. L'ann´ee de M1 SCDI pr´epare ainsi les ´etudiant _·_ e _·_ s `a une formation en alternance en M2."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 16,
+        "content": "## Deuxième année  \nLes étudiant·e·s sont inscrit·e·s en première année de master (M1). En parallèle sont proposés des groupes de travail et des cours avancés de niveau recherche assurés par des spécialistes. Au second semestre, les étudiant·e·s dont l'avancement des études est suffisant peuvent effectuer un stage long, éventuellement à l'étranger, dans une université ou une entreprise.  \nTroisième année  \nLa troisième année de la formation est consacrée à la deuxième année de master (M2). L'inscription dans une université est entièrement de la responsabilité de l'élève. Avec le·a tuteur·ice, l'élève décide des compléments à apporter à sa formation : stage, groupes de travail, cours supplémentaires…  \ntravaux personnels réalisés pendant leur scolarité, en y ajoutant une présentation d'un domaine de recherche. Ce mémoire fait l'objet d'une soutenance orale obligatoire pour la validation du diplôme de l'ENS avec mention ès Mathématiques."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_004",
+    "question": "Pour les étudiant·e·s du parcours Agrégation de Mathématiques de Sorbonne Université qui ne sont pas déjà titulaires d'un M2, à quel moment doivent-ils/elles valider leur Master, et qu'est-ce que le « concours spécial docteur » mentionné dans la brochure ?",
+    "reponse_attendue": "Les étudiant·e·s qui ne sont pas déjà titulaires d'un M2 ou d'une équivalence doivent valider leur Master au moment des épreuves d'admissibilité, le jury délibérant suffisamment tôt pour délivrer le Master de sciences et technologies, mention Mathématiques et Applications, parcours Agrégation de Mathématiques, avant la publication de la liste d'admissibilité à l'agrégation. Par ailleurs, depuis la session 2017, un « concours docteur » (appelé Agrégation externe spéciale) a été mis en place, réservé aux détenteurs d'un doctorat (pas nécessairement en mathématiques), avec un aménagement des épreuves.",
+    "reponse_llm": "Les étudiants qui ne sont pas déjà titulaires d'un M2 ou d'une équivalence en arrivant dans la formation doivent valider leur Master au moment des épreuves d'admissibilité (Source : SORBONNE.pdf).\n\nLe « concours spécial docteur » est un concours docteur (appelé Agrégation externe spéciale) mis en place depuis la session 2017, réservé aux détenteurs d'un doctorat (pas nécessairement en mathématiques), et avec un aménagement des épreuves (Source : SORBONNE.pdf).",
+    "duree_secondes": 214.6,
+    "logs": "! Erreur Ollama (an error was encountered while running the model: unexpected EOF (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 116,
+        "content": "Sorbonne Université - Master 2 - Formation agrégation de mathématiques\n\n-  \n- former au m´etier d'enseignant, tant en lyc´ee qu'en classes pr´eparatoires.  \nIl s'agit d'une formation diplˆomante ; en particulier, tous les ´etudiants doivent faire une inscription en Master 2. Ceux qui ne sont pas d´ej`a titulaires d'un M2 ou d'une ´equivalence en arrivant dans la formation, devront valider leur Master au moment des ´epreuves d'admissibilit´e pour avoir une chance de r´eussir le concours. Le jury d´elib´erera donc suffisamment tˆot pour d´elivrer aux laur´eats le Master de sciences et technologies, Mention Math´ematiques et Applications, parcours Agr´egation de Math´ematiques, et ce avant la publication de la liste d'admissibilit´e `a l'agr´egation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 116,
+        "content": "Ce passage concerne les objectifs et les débouchés d'un Master 2 en mathématiques à l'Université Sorbonne.\n\n-  \n- former au m´etier d'enseignant, tant en lyc´ee qu'en classes pr´eparatoires.  \nIl s'agit d'une formation diplˆomante ; en particulier, tous les ´etudiants doivent faire une inscription en Master 2. Ceux qui ne sont pas d´ej`a titulaires d'un M2 ou d'une ´equivalence en arrivant dans la formation, devront valider leur Master au moment des ´epreuves d'admissibilit´e pour avoir une chance de r´eussir le concours. Le jury d´elib´erera donc suffisamment tˆot pour d´elivrer aux laur´eats le Master de sciences et technologies, Mention Math´ematiques et Applications, parcours Agr´egation de Math´ematiques, et ce avant la publication de la liste d'admissibilit´e `a l'agr´egation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 118,
+        "content": "Sorbonne Université - Master 2 - Concours Agrégation de Mathématiques\n\n## **Concours sp´ecial docteur**  \nDepuis la session 2017 a ´et´e mis en place un concours docteur (appel´e Agr´egation externe sp´eciale) r´eserv´e aux d´etenteurs d'un doctorat (pas n´ecessairement en math´ematiques), et avec un am´enagement des ´epreuves, voir par exemple le rapport 2024 de cette agr´egation. Nous accueillons volontiers les ´etudiants visant ce concours."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 116,
+        "content": "-  \n- former au m´etier d'enseignant, tant en lyc´ee qu'en classes pr´eparatoires.  \nIl s'agit d'une formation diplˆomante ; en particulier, tous les ´etudiants doivent faire une inscription en Master 2. Ceux qui ne sont pas d´ej`a titulaires d'un M2 ou d'une ´equivalence en arrivant dans la formation, devront valider leur Master au moment des ´epreuves d'admissibilit´e pour avoir une chance de r´eussir le concours. Le jury d´elib´erera donc suffisamment tˆot pour d´elivrer aux laur´eats le Master de sciences et technologies, Mention Math´ematiques et Applications, parcours Agr´egation de Math´ematiques, et ce avant la publication de la liste d'admissibilit´e `a l'agr´egation."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 118,
+        "content": "Ce passage concerne les concours sp´ecial docteur pour la formation d'un doctorat à l'université Sorbonne.\n\n## **Concours sp´ecial docteur**  \nDepuis la session 2017 a ´et´e mis en place un concours docteur (appel´e Agr´egation externe sp´eciale) r´eserv´e aux d´etenteurs d'un doctorat (pas n´ecessairement en math´ematiques), et avec un am´enagement des ´epreuves, voir par exemple le rapport 2024 de cette agr´egation. Nous accueillons volontiers les ´etudiants visant ce concours."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_005",
+    "question": "Citez deux cours du premier semestre du parcours Master 2 Mathématiques fondamentales de Sorbonne Université portant sur la géométrie ou la topologie, avec leurs enseignants et leur nombre d'ECTS, et indiquez le profil professionnel principal auquel ce parcours prépare.",
+    "reponse_attendue": "Parmi les cours du premier semestre du parcours Mathématiques fondamentales figurent « 5MF41 Surfaces de Riemann » (9 ECTS, enseigné par Elisha Falbel) et « 5MF51 Géométrie différentielle et Riemannienne » (9 ECTS, enseigné par Frederic Naud) ; on peut aussi citer « 5MF43 Introduction aux systèmes dynamiques » (9 ECTS, Patrice Le Calvez), qui aborde la dynamique topologique et la théorie ergodique. Ce parcours prépare principalement aux carrières de chercheur et d'enseignant-chercheur dans les universités et centres de recherche, ainsi qu'à l'enseignement, via la poursuite en doctorat (3 ans d'études doctorales).",
+    "reponse_llm": "",
+    "duree_secondes": 862.6,
+    "logs": "[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 40,
+        "content": "Ce passage décrit les débouchés professionnels d'un master en mathématiques fondamentales à l'Université Sorbonne.\n\n## **2.2 D´ebouch´es professionnels**  \nLe programme fournit une base solide aux futurs chercheurs et enseignants-chercheurs d'universit´es et centres de recherche, ainsi que pour les futurs enseignants. Certains ´etudiants continueront apr`es le master un cursus de 3 ans d'´etudes doctorales.  \nUne partie importante d'´etudiants avec leurs diplˆomes du Master 2 pourront commencer ou avancer leurs carri`eres acad´emiques ou dans le secteur des entreprises.  \nNotons que dans plusieurs grands pays comme l'Allemagne, le Royaume Uni ou les Etats-Unis, un master ou, mieux, une th`ese de math´ematiques est un gage suffisant de puissance et de cr´eativit´e intellectuelles pour ˆetre recrut´e par une entreprise de haute technologie.  \nLes ´etudiants ´etrangers d´evelopperont des collaborations avec la France aussi bien en mati`ere de recherche, d'enseignement que d'autres domaines. Certains d'eux travaillent d´ej`a dans les universit´es ou les centres de recherche."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 44,
+        "content": "Sorbonne Université, Master 2, Thème mathématiques fondamentales\n\n**Pr´erequis :** Il est souhaitable d'avoir suivi un cours de topologie alg´ebrique de niveau M1. Il est aussi souhaitable d'avoir suivi au moins un des cours introductifs \"Homologie, cohomologie et faisceaux\" et \"G´eom´etrie diff´erentielle et riemannienne\"."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 40,
+        "content": "Ce passage décrit les objectifs et la structure du parcours Mathématiques fondamentales au sein de l'Université Sorbonne.\n\n## **Chapitre 2**\n\n## **Master 2, Parcours Math´ematiques fondamentales**\n\n## **2.1 Objectifs et descriptions**  \nLe parcours _Math´ematiques fondamentales_ s'adresse aux ´etudiants titulaires d'un M1 de math´ematiques ou d'un titre ´equivalent.  \nUn large spectre des math´ematiques fondamentales est g´en´eralement couvert, avec des variations selon les ann´ees : th´eorie des nombres, g´eom´etrie alg´ebrique, th´eorie de Lie, topologie, g´eom´etries analytique et diff´erentielle, syst`emes dynamiques, analyse fonctionnelle, analyse harmonique, ´equations aux d´eriv´ees partielles, etc."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 116,
+        "content": "Ce passage concerne les débouchés professionnels d'un Master 2 en mathématiques à l'Université Sorbonne.\n\n## **8.2 D´ebouch´es professionnels**\n\n## **Insertion professionnelle**  \nEnseignement des math´ematiques dans les lyc´ees, classes pr´eparatoires, premi`eres ann´ees de l'enseignement sup´erieur (postes de PRAG).\n\n## **Poursuite d'´etudes**  \nM2 Recherche et Doctorat : carri`ere de chercheur dans des entreprises ou de grands organismes de recherche, carri`ere universitaire d'enseignant-chercheur.  \nChaque ann´ee, une centaine d'agr´eg´es en math´ematiques obtiennent un report pour poursuite d'´etudes. Environ 75 % des enseignants en Classes Pr´eparatoires sont docteurs en math´ematiques.  \n115"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 40,
+        "content": "Sorbonne Université - Master 2 - Théorie des nombres\n\n## **Chapitre 2**\n\n## **Master 2, Parcours Math´ematiques fondamentales**\n\n## **2.1 Objectifs et descriptions**  \nLe parcours _Math´ematiques fondamentales_ s'adresse aux ´etudiants titulaires d'un M1 de math´ematiques ou d'un titre ´equivalent.  \nUn large spectre des math´ematiques fondamentales est g´en´eralement couvert, avec des variations selon les ann´ees : th´eorie des nombres, g´eom´etrie alg´ebrique, th´eorie de Lie, topologie, g´eom´etries analytique et diff´erentielle, syst`emes dynamiques, analyse fonctionnelle, analyse harmonique, ´equations aux d´eriv´ees partielles, etc."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_006",
+    "question": "Quelle est la différence d'orientation entre le parcours M1 SCDA (Sciences des données avancées) et le parcours M1 SCDI (Sciences des données pour l'ingénieur·e) de Sorbonne Université, en termes de débouchés en M2 ?",
+    "reponse_attendue": "Le parcours SCDA, à coloration théorique, prépare particulièrement au M2 parcours MS2A, et ouvre aussi la possibilité de rejoindre l'une des majeures du M2 Ingénierie mathématique. Le parcours SCDI, orienté vers les applications (manipulation de données, mise en œuvre d'algorithmes), a pour débouché naturel en M2 la majeure SCDI du parcours Ingénierie mathématique, qui a la particularité d'être ouverte à l'alternance ; l'année de M1 SCDI prépare donc spécifiquement à cette dernière année en alternance.",
+    "reponse_llm": "Pour le parcours M1 SCDA, les étudiants ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associés au parcours Science des données, soit le M2 MS2A, soit l'une des quatre majeures du M2 Ingénierie mathématique (Source : SORBONNE.pdf).\n\nPour le parcours M1 SCDI, le débouché naturel en M2 est spécifiquement la majeure SCDI du parcours Ingénierie mathématique, qui a la particularité d'être ouverte à l'alternance ; l'année de M1 est ainsi conçue pour préparer particulièrement à cette dernière année en alternance (Source : SORBONNE.pdf).",
+    "duree_secondes": 296.2,
+    "logs": "! Erreur Ollama (an error was encountered while running the model: unexpected EOF (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Ce passage décrit les parcours Science des données au niveau Master 1 et Master 2 de l'Université Sorbonne.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\nAu niveau M2, l'acceptation dans un des parcours propos´es dans le master Math´ematiques et Applications se fait sur dossier. Les ´etudiants du parcours Science des donn´ees ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associ´es au parcours Science des donn´ees, `a savoir le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (voir ce chapitre). Cependant, les r`egles sp´ecifiques `a l'ISUP s'appliquent au parcours SCDI, qui offre aux ´etudiants qui le suivent en M1 la garantie de pouvoir poursuivre en M2 Ing´enierie math´ematique, majeure SCDI (anciennement ISup parcours Data Sciences, voir ce chapitre), qui est la deuxi`eme et derni`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLes enseignements sont presque int´egralement d´elivr´es en fran¸cais, bien que du mat´eriel de cours en anglais soit disponible au niveau M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "Ce passage décrit le parcours Sciences des données pour l'ingénieur (SCDI) au niveau Master 1 de l'ISUP.\n\n## **· 9.5 M1 Sciences des donn´ees pour l'ing´enieur e (SCDI)**  \nLe niveau M1 du parcours SCDI est compos´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques `a l'ISUP. Il constitue la premi`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLe d´ebouch´e naturel de ce parcours en M2 est la majeure SCDI du parcours Ing´enierie math´ematique (voir ce chapitre), qui a la particularit´e d'ˆetre ouverte `a l'alternance. L'ann´ee de M1 pr´epare donc particuli`erement `a cette derni`ere ann´ee en alternance.  \nCe parcours M1-M2 est orient´e vers les applications : en parall`ele des aspects math´ematiques de la science des donn´ees, l'accent est mis sur la manipulation des donn´ees et la mise en œuvre des algorithmes."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 122,
+        "content": "## **· 9.5 M1 Sciences des donn´ees pour l'ing´enieur e (SCDI)**  \nLe niveau M1 du parcours SCDI est compos´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques `a l'ISUP. Il constitue la premi`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLe d´ebouch´e naturel de ce parcours en M2 est la majeure SCDI du parcours Ing´enierie math´ematique (voir ce chapitre), qui a la particularit´e d'ˆetre ouverte `a l'alternance. L'ann´ee de M1 pr´epare donc particuli`erement `a cette derni`ere ann´ee en alternance.  \nCe parcours M1-M2 est orient´e vers les applications : en parall`ele des aspects math´ematiques de la science des donn´ees, l'accent est mis sur la manipulation des donn´ees et la mise en œuvre des algorithmes."
+      }
+    ]
+  },
+  {
+    "id": "L3_SU_007",
+    "question": "Comparez le calendrier annuel du Master 2 Probabilités et Finance avec celui du parcours MS2A : à quels mois correspondent respectivement le premier et le second semestre dans chacun de ces deux parcours ?",
+    "reponse_attendue": "Dans le Master 2 Probabilités et Finance, le premier semestre se déroule de début septembre à fin mars (cours intensifs de tronc commun puis de spécialisation), et le second semestre est consacré, après une phase de cours de janvier à fin mars, au stage en entreprise de la mi-avril à fin septembre. Dans le parcours MS2A, le premier semestre se déroule de septembre à janvier (pré-rentrée puis cours fondamentaux des périodes 1 et 2), et le second semestre se déroule de janvier à octobre (cours d'ouverture jusqu'à fin mars, puis stage à partir de mi-avril). Les deux parcours partagent donc une structure proche, avec un stage commençant à la mi-avril, mais le Master 2 Probabilités et Finance situe l'essentiel de ses cours intensifs sur la période septembre-mars en un seul bloc, alors que le MS2A distingue plus explicitement une période de cours d'ouverture de janvier à mars au sein de son second semestre.",
+    "reponse_llm": "Pour le Master 2 Probabilités et Finance, le second semestre est divisé en deux phases : la première s'étend de janvier à fin mars, et la seconde (consacrée au stage) se déroule entre la mi-avril et la fin septembre (Source : SORBONNE.pdf - Semestre 2 : Spécialisation et Professionnalisation ; Source : SORBONNE.pdf - Sorbonne Université - Master 2 - Semestre 2 : Spécialisation et Professionnalisation).\n\nPour le parcours MS2A, le premier semestre se déroule de septembre à janvier (Source : SORBONNE.pdf - Organisation) et le second semestre peut commencer à partir du mois d'avril (Source : SORBONNE.pdf - Parcours Statistique, Apprentissage et Algorithmes ; Source : SORBONNE.pdf - Sorbonne Université - Master 2 - Parcours Statistique, Apprentissage et Algorithmes).",
+    "duree_secondes": 1028.1,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Ce passage décrit les modalités du second semestre du Master 2 en Probabilité et Finance à l'Université Sorbonne.\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 99,
+        "content": "Ce passage concerne l'organisation des cours de la spécialité MS2A à Sorbonne Université.\n\n## **7.4 Organisation**  \nChaque ´etudiant _·_ e concourt pour 60 ECTS annuels : 30 au premier semestre et 30 au second (incluant une UE Stage de 18 ECTS). Il est possible de choisir au plus 36 ECTS par semestre, auquel cas la moyenne retenue est la plus favorable pour l'´etudiant _·_ e.\n\n## **Premier semestre (de septembre `a janvier)**  \n- Pr´e-rentr´ee (d´ebut septembre) ;  \n- –  \n- Cours fondamentaux P´eriode 1 (avant la Toussaint) ;  \n- –  \n- Cours fondamentaux P´eriode 2 (apr`es la Toussaint)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 115,
+        "content": "Master 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.5.6 Second semestre (stage)**  \nLe stage, encourageant au maximum l'interdisciplinarit´e, peut commencer d`es la fin des cours, c'est-`a-dire `a partir du mois d'avril, et a une dur´ee de 6 mois. L'´evaluation est r´ealis´ee sur la base d'un rapport et d'une soutenance.\n\n## **7.6 Responsables et site**  \n**Responsables :** G´erard Biau, Patrick Gallinari, Sylvain Le Corff, Etienne[´] Roquain et Maxime Sangnier  \n**Secr´etariat :** Laurence Dreyfuss (T´el : 01 44 27 85 45)  \n**Adresse :**  \nSorbonne Universit´e Campus Pierre et Marie Curie Tour 15-25, premier ´etage, bureau 109 Case courrier 202 4 place Jussieu 75005 Paris  \n**Site :** `http://ms2a.lpsm.paris/`  \n114"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2 - Semestre 2 : Spécialisation et Professionnalisation\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 115,
+        "content": "Sorbonne Université - Master 2 - Parcours Statistique, Apprentissage et Algorithmes\n\nMaster 2, Parcours Statistique, Apprentissage et Algorithmes\n\n## **7.5.6 Second semestre (stage)**  \nLe stage, encourageant au maximum l'interdisciplinarit´e, peut commencer d`es la fin des cours, c'est-`a-dire `a partir du mois d'avril, et a une dur´ee de 6 mois. L'´evaluation est r´ealis´ee sur la base d'un rapport et d'une soutenance.\n\n## **7.6 Responsables et site**  \n**Responsables :** G´erard Biau, Patrick Gallinari, Sylvain Le Corff, Etienne[´] Roquain et Maxime Sangnier  \n**Secr´etariat :** Laurence Dreyfuss (T´el : 01 44 27 85 45)  \n**Adresse :**  \nSorbonne Universit´e Campus Pierre et Marie Curie Tour 15-25, premier ´etage, bureau 109 Case courrier 202 4 place Jussieu 75005 Paris  \n**Site :** `http://ms2a.lpsm.paris/`  \n114"
+      }
+    ]
+  },
+  {
+    "id": "L2_TOUS_001",
+    "question": "Comparez la durée minimale du stage exigé pour les élèves de la filière mathématiques de l'ENS avec la durée du stage prévu dans le parcours Probabilités et Finance du Master 2 de Sorbonne Université.",
+    "reponse_attendue": "À l'ENS, la scolarité en mathématiques comprend un stage d'au moins 4 mois, à l'étranger de préférence. Dans le parcours Probabilités et Finance du Master 2 de Sorbonne Université, le stage en entreprise dure de 5 à 6 mois, débutant le deuxième lundi d'avril (après validation du sujet par l'équipe pédagogique) et se terminant par une soutenance fin septembre. Le stage de Sorbonne est donc plus long que le minimum exigé par l'ENS.",
+    "reponse_llm": "Pour la filière mathématiques de l'ENS, le stage doit durer au moins 4 mois (Source : ENS.pdf). Pour le parcours Probabilités et Finance du Master 2 de Sorbonne Université, le stage est prévu pour une durée de 5 à 6 mois (Source : SORBONNE.pdf) avec une durée minimale de 5 mois (Source : SORBONNE.pdf).",
+    "duree_secondes": 296.4,
+    "logs": "! Erreur Ollama (an error was encountered while running the model: unexpected EOF (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 12,
+        "content": "Ce passage concerne la formation en mathématiques à l'ENS pour les étudiants Master 2.\n\n## STAGE  \nLa scolarité en mathématiques comprend un stage d'au moins 4 mois, à l'étranger de préférence. Ce stage a pour but de familiariser l'étudiant·e à un environnement différent.  \nLa plus grande souplesse est laissée aux étudiant·e·s pour ce stage et une certaine initiative demandée en contrepartie. Le positionnement de ce stage dans les trois années en enseignement ou en recherche, le thème scientifique, l'aspect linguistique sont autant de paramètres à prendre en compte et cela nécessite d'y réfléchir bien à l'avance, d'en parler avec les tuteur·ice·s et les directeurs des études du DMA."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 67,
+        "content": "Ce passage concerne le module \"Stage\" du Master 2 en Probabilit´es et Finance à Sorbonne Universit´e.\n\n- Module \"Stage\" (21 ECTS).  \nUn stage de 5 `a 6 mois mois en entreprise d´ebutant le deux`eme lundi avril, apr`es validation du sujet scientifique du stage par l'´equipe p´edagogique. La soutenance a lieu fin septembre en pr´esence du Maˆıtre de stage et d'un membre de l'´equipe p´edagogique."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Ce passage décrit les modalités du second semestre du Master 2 en Probabilité et Finance à l'Université Sorbonne.\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 24,
+        "content": "Sorbonne Université, Master 2, filière mathématiques, cours avancés.\n\n## _**Filière mathématiques**_  \n- Un second cours de M1 complémentaire (peut être remplacé par la validation de 12 ECTS de cours de M2)  \n- La validation de deux « cours avancés » (24 ECTS)  \nChaque cours avancé est composé d'une partie cours sur 6 semaines, validée par un examen, puis d'une partie groupe de travail, validée par un ou plusieurs exposés. Les élèves valident deux « cours avancés » parmi :  \nAnalyse rugueuse (probabilité et analyse)  \nLa régularité elliptique et parabolique (analyse des ÉDP)  \nThéorie géométrique des invariants  \nLes cours avancés sont remplaçables par un stage long (4 mois minimum) ; un stage moins long, commençant au milieu du second semestre, permet d'être dispensé de la partie groupe de travail des cours avancés.  \n**|** _Remarque : Une expérience à l'étranger est requise pour la validation du DENS._ **|**  \n- Le mémoire et l'exposé de 1[e] année pour les élèves inscrit·e·s directement en 2[e] année"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 61,
+        "content": "Sorbonne Université - Master 2 - Semestre 2 : Spécialisation et Professionnalisation\n\n## **Semestre 2 : Sp´ecialisation et Professionnalisation**  \nLe second semestre est constitu´e de deux phases.  \nLors de la premi`ere, de janvier `a fin mars, les ´etudiants doivent  \n– Valider deux cours obligatoires et (au loins) quatre cours d'option organis´es en majeure et mineure.  \n– R´ealiser un projet informatique dans la continuit´e du cours de _Probabilit´es num´eriques et m´ethode de Monte Carlo en Finance_ du tronc commun.  \nLa seconde partie de ce semestre est consacr´ee au stage en entreprise d'une dur´ee minimale de 5 mois entre la mi-avril (apr`es la fin de la session de rattrapage) et la fin septembre. Celui-ci doit imp´erativement avoir lieu en entreprise pour ˆetre valid´e.  \nUn s´eminaire hebdomadaire est enti`erement d´evolu `a la recherche de stage : les entreprises y sont invit´ees `a venir se pr´esenter et `a d´etailler leurs offres de stage. Le programme du s´eminaire est consultable sur le site (cf. infra)."
+      }
+    ]
+  },
+  {
+    "id": "L2_TOUS_002",
+    "question": "Comment l'obligation de valider un enseignement de langue est-elle organisée à l'ENS (DENS) d'une part, et en Master 1 à Sorbonne Université d'autre part ?",
+    "reponse_attendue": "À l'ENS, la validation d'un cours de langue est obligatoire chaque année d'inscription au DENS (soit 3 fois sur les 3 ans de la scolarité) ; ce cours peut être validé via le département des langues de l'ENS (ECLA) ou par un séjour longue durée dans un pays non francophone, et compte parmi les 24 ECTS 'libres' du diplôme. À Sorbonne Université, en Master 1, une UE de langue de 3 ECTS est obligatoire au premier semestre : les étudiant-e-s en présentiel choisissent parmi anglais, allemand, chinois, espagnol, russe ou français langue étrangère (FLE), tandis que les étudiant-e-s à distance doivent suivre une UE d'anglais de 3 ECTS.",
+    "reponse_llm": "À l'ENS (DENS), il est requis de valider un cours de langue par année d'inscription au DENS (Source : ENS.pdf).\n\nEn Master 1 à Sorbonne Université, l'organisation dépend du mode d'enseignement :\n- Pour les étudiants suivant l'enseignement en présence, une unité d'enseignement (UE) de langue de 3 ECTS est requise, à choisir parmi l'anglais, l'allemand, le chinois, l'espagnol, le russe ou le français langue étrangère (FLE) (Source : SORBONNE.pdf).\n- Pour les étudiants inscrits en enseignement à distance, une unité d'enseignement d'anglais de 3 ECTS est requise (Source : SORBONNE.pdf).",
+    "duree_secondes": 222.1,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "Sorbonne Université - Master 1 - Choix des unités d'enseignement du Master 1\n\n## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 8,
+        "content": "Ce passage décrit les choix d'unités d'enseignement pour le Master 1 à l'université Sorbonne-Université.\n\n## **1.2 Choix des unit´es d'enseignement du M1**  \nAu premier semestre (S1), chaque ´etudiant-e doit choisir plusieurs UE fondamentales, trois UE de 9 ECTS, ou une UE de 9 ECTS et trois UE de 6 ECTS. Les 3 ECTS restants pour faire un semestre de 30 ECTS sont constitu´es comme suit :  \n- pour les ´etudiant-e-s suivant l'enseignement en pr´esence, une UE de langue, `a choisir parmi anglais[1] , allemand, chinois, espagnol, russe[2] et fran¸cais langue ´etrang`ere[3] (FLE) de 3 ECTS,  \n- pour les ´etudiant-e-s inscrit-e-s en enseignement `a distance, une UE d'anglais de 3 ECTS.  \nAttention, tout choix de langue diff´erent de l'anglais impliquera des d´emarches compl´ementaires aupr`es du d´epartement des langues[4] , de la part de chaque ´etudiant-e. Les renseignements sont disponibles aupr`es des gestionnaires p´edagogiques du M1."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 117,
+        "content": "Sorbonne Université, Master 1, Choix des UE de Master 1\n\n## **Choix des UE de Master 1**  \nLe choix des Unit´es d'Enseignement en Master 1 d´epend du projet de l'´etudiant, suivant qu'il envisage ou non la poursuite d'´etudes apr`es l'ann´ee de pr´eparation du concours.  \nIl convient de suivre d'une part ses goˆuts et d'autre part d'´eviter d'avoir des lacunes importantes dans un domaine particulier. Les ´etudiants ne doivent donc d´elaisser ni l'alg`ebre, ni la g´eom´etrie, ni l'analyse, ni les probabilit´es. Nous indiquons dans la liste des UE de Master 1, celles qui nous semblent particuli`erement pertinentes."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 11,
+        "content": "Sorbonne Université - Master 2 - Double majeure du DENS\n\n## Promotions antérieures à 2023 :  \nUn candidat ayant obtenu un minimum de 24 ECTS dans une discipline scientifique distincte de celle du master 2 pourra obtenir une spécialité secondaire en sciences (ou mineure) sous réserve de l'accord des directeurs des études des départements concernés.  \nUn candidat ayant obtenu un minimum de 48 ECTS dans une discipline littéraire pourra obtenir une spécialité secondaire en lettres sous réserve de l'accord des directeurs des études des départements concernés.  \n- Doubles majeures du DENS  \nLes doubles majeures du DENS sont délivrées à titre exceptionnel sous les conditions suivantes :  \n- Un cursus complet dans une discipline (au sein d'un département de l'ENS)  \n- Au moins deux années complètes dans la seconde discipline (L3-M1, M1-M2 ou L3-M2 équivalent à 120 ECTS)  \n- Accord des deux départements"
+      }
+    ]
+  },
+  {
+    "id": "L2_TOUS_003",
+    "question": "Sorbonne Université fait-elle partie des établissements partenaires cités dans la brochure de l'ENS pour la délivrance des diplômes nationaux de licence et de master du DMA ?",
+    "reponse_attendue": "Oui. La brochure de l'ENS précise que le DMA fonctionne en partenariat avec Sorbonne Université, l'Université Paris Cité, l'Université Paris-Dauphine – PSL, l'Université Paris-Saclay et l'Université Sorbonne Paris-Nord, et que le cursus inclut la validation de deux diplômes nationaux (licence et master) délivrés par ces universités partenaires. La brochure de Sorbonne Université correspond à l'une de ces universités partenaires (Master Mathématiques et Applications).",
+    "reponse_llm": "Oui, Sorbonne Université fait partie des établissements partenaires cités dans la brochure de l'ENS pour la validation des deux diplômes nationaux : la licence et le master (ENS.pdf).",
+    "duree_secondes": 187.5,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 1\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 4,
+        "content": "Sorbonne Université, Master 1, Théorie des nombres.\n\n**- BROCHURE ENSEIGNEMENT 2024 2025** Ld  \nLe département de mathématiques et applications (DMA) offre une formation en trois ans de haut niveau scientifique, sanctionnée par le Diplôme de l'École Normale Supérieure (DENS) ès Mathématiques. D'effectif sélectionné réduit (une cinquantaine d'étudiant·e·s par an), elle est axée sur les mathématiques et leurs applications. Les objectifs visent à assurer une professionnalisation de haut niveau, une formation par la recherche ainsi qu'une multidisciplinarité équilibrée. En partenariat avec Sorbonne Université, l'Université Paris Cité, l'Université Paris-Dauphine – PSL, l'Université de Paris-Saclay, et l'Université Sorbonne Paris-Nord, le cursus inclut la validation de deux diplômes nationaux : la licence et le master.  \n**|** Direction des études du DMA : Djalil Chafaï et Cyril Houdayer  \n**|** Secrétariat pédagogique : Yue Teng  \n> 45 rue d'Ulm 75230 Paris Cedex 05"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 11,
+        "content": "## INSCRIPTION A L'UNIVERSITE  \nAprès leur admission, les normalien·ne·s s'inscrivent auprès des universités partenaires via le secrétariat enseignement du département de mathématiques de l'ENS. Au cours de ces études, il est en particulier nécessaire d'obtenir les diplômes nationaux de licence et de master délivrés à partir des résultats obtenus aux différents modules d'enseignement selon les modalités suivantes :  \n- Pour la troisième année de licence (L3) et la première année de master (M1), les cours, examens ont lieu au département de mathématiques de l'École Normale Supérieure et les résultats sont transmis aux universités partenaires ;  \n- Pour la seconde année de master (M2), les étudiants s'inscrivent directement dans les universités partenaires qui délivrent les diplômes ;  \nPAGE **10** SUR 78 |"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 127,
+        "content": "Sorbonne Université propose un Master 1 en Mathématiques appliquées à Sorbonne Université et un Master 2 en Ingénierie informatique à l'ENS.\n\n## **10.3 Les Erasmus programmes**  \nSorbonne Universit´e dispose d'un r´eseau tr`es dense d'accords Erasmus qui couvre la plupart des pays d'Europe. Les ´echanges sont particuli`erement actifs avec l'Allemagne (Bonn, Berlin, M¨unich...), l'Espagne, la Grande-Bretagne, l'Italie. Cette liste n'est pas limitative. N'h´esitez pas `a explorer des pays o`u vous avez envie de s´ejourner en fonction de vos motivations et de votre programme d'´etude, et `a en parler avec le coordinateur p´edagogique Laurent Mazliak. Pour en savoir plus consulter  \n```\nhttps://sorbonne.adv-pub.moveonfr.com/home-page-1600/\n```"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 127,
+        "content": "Sorbonne Université, Master 1, Mathématiques appliquées\n\nMobilit´e internationale pour le Master  \nexamens dans l'universit´e d'accueil mais c'est Sorbonne Universit´e qui vous d´elivrera le diplˆome. De ce fait, le rˆole du Coordinateur International sera de valider un _Learning Agreement_ qui fasse le poids par rapport aux cours que vous auriez dˆu suivre `a Sorbonne Universit´e : attendez-vous `a une r´eelle exigence sur ce point et c'est aussi une raison pour laquelle il ne faut pas s'y prendre au dernier moment, surtout si un entretien avec le coordinateur international s'av`ere n´ecessaire."
+      }
+    ]
+  },
+  {
+    "id": "L3_TOUS_001",
+    "question": "Un·e élève de l'ENS qui poursuit, suivant son parcours, un M2 de mathématiques de la modélisation s'inscrit dans une université partenaire qui délivre ce diplôme. Quel chapitre de la brochure de Sorbonne Université correspond à ce M2, et à quelles pages se trouve-t-il ?",
+    "reponse_attendue": "La brochure de l'ENS indique que pour la seconde année de master (M2), les élèves s'inscrivent directement dans les universités partenaires qui délivrent les diplômes, et qu'un des parcours possibles est 'un M2 de mathématiques de la modélisation'. Dans la brochure de Sorbonne Université, ce M2 correspond exactement au Chapitre 5, intitulé « Master 2, Parcours Mathématiques de la modélisation », qui s'étend des pages 67 à 80.",
+    "reponse_llm": "",
+    "duree_secondes": 846.9,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : SORBONNE.pdf\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "SORBONNE.pdf",
+        "page": 125,
+        "content": "Sorbonne Université, Master 1, Parcours Sciences des données (SCDA et SCDI).\n\nParcours Sciences des donn´ees (SCDA et SCDI)\n\n## **9.6 Responsables et sites**  \n**Responsables niveau M1 :** Jean-Patrick Baudry et C´eline Duval.  \n**Secr´etariat :**  \n— SCDA : Mathilde Besnard  \nCampus Jussieu, couloir 15-14, 2e ´etage, bureau 205, t´el. 01 44 27 37 56 mathilde.besnard@sorbonne-universite.fr  \n— SCDI : C´eline Chaussoy Campus Jussieu, couloir 14-24, 3e ´etage, bureau 312, t´el. 01 44 27 33 52 celine.chaussoy@sorbonne-universite.fr\n\n## **Sites utiles :**  \n- Master math´ematiques et applications  \n— M1 SCDA  \n- La fili`ere SCDI de l'ISUP  \nConcernant le niveau M2, voir les chapitres correspondant dans cette brochure, notamment pour le MS2A (lien) et les quatre majeures du M2 Ing´enierie math´ematique (lien).  \n124"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 121,
+        "content": "Sorbonne Université, Master 1, Sciences des données avancées (SCDA).\n\nAu niveau M2, l'acceptation dans un des parcours propos´es dans le master Math´ematiques et Applications se fait sur dossier. Les ´etudiants du parcours Science des donn´ees ont la garantie d'avoir une place dans au moins l'un des parcours de M2 associ´es au parcours Science des donn´ees, `a savoir le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (voir ce chapitre). Cependant, les r`egles sp´ecifiques `a l'ISUP s'appliquent au parcours SCDI, qui offre aux ´etudiants qui le suivent en M1 la garantie de pouvoir poursuivre en M2 Ing´enierie math´ematique, majeure SCDI (anciennement ISup parcours Data Sciences, voir ce chapitre), qui est la deuxi`eme et derni`ere ann´ee de la fili`ere Science des donn´ees de l'ISUP.  \nLes enseignements sont presque int´egralement d´elivr´es en fran¸cais, bien que du mat´eriel de cours en anglais soit disponible au niveau M2."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Sorbonne Université, Master 1, parcours Science des données.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 68,
+        "content": "Sorbonne Université, Master 2, Modélisation mathématique et applications.\n\n- Outils d'analyse, de simulation et de mod´elisation utilis´es en sciences du vivant.  \n- Informatique scientifique, calcul scientifique, calcul parall`ele, conception assist´ee par ordinateur.  \nLes ´etudiants devront ´egalement acqu´erir des connaissances dans les domaines applicatifs vari´es : informatique, biologie, physique, m´ecanique, ´economie...  \nPour la majeure `a l'interface entre les probabilit´es et les EDP, dont le parcours est sp´ecifique, voir Section 5.8.  \n67"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 120,
+        "content": "Ce passage décrit les parcours Science des données au niveau Master 1 et Master 2 de l'Université Sorbonne.\n\nAu niveau M1, le parcours Science des donn´ees se divise entre le parcours Science des donn´ees Avanc´ees (SCDA), constitu´e d'un ensemble de cours choisis parmi ceux ouverts aux ´etudiants du M1 du master Math´ematiques et Applications (voir ce chapitre), et le parcours Science des donn´ees pour l'Ing´enieur.e (SCDI), qui est aussi la premi`ere ann´ee de la fili`ere Science des donn´ees de l'Institut de Statistique de Sorbonne Universit´e (ISUP) et qui est constitu´e d'une majeure du M1 du master Math´ematiques et Applications (voir ce chapitre) compl´et´ee d'enseignements sp´ecifiques. Ces parcours sont d´etaill´es dans les sections ci-dessous.  \nAu niveau M2, les parcours associ´es au parcours Science des donn´ees sont le M2 MS2A (voir ce chapitre) et les quatre majeures du M2 Ing´enierie math´ematique (incluant la majeure SCDI, voir ce chapitre)."
+      }
+    ]
+  },
+  {
+    "id": "L3_TOUS_002",
+    "question": "Combien d'ECTS au total un·e élève doit-il/elle valider pour obtenir le DENS de l'ENS sur ses trois années de scolarité, et combien d'ECTS sont nécessaires pour obtenir le diplôme de master à Sorbonne Université ? Comparez ces deux totaux.",
+    "reponse_attendue": "Pour obtenir le DENS, l'ENS exige la validation de 72 ECTS supplémentaires en plus des 180 ECTS de la L3 et du Master (3 années à 60 ECTS chacune), soit un total de 252 ECTS sur les trois ans. À Sorbonne Université, il est nécessaire de valider 30 ECTS par semestre pour obtenir le diplôme de master, soit 120 ECTS sur les 4 semestres de M1 et M2. Le DENS représente donc 132 ECTS de plus que le seul diplôme de master de Sorbonne, principalement parce qu'il inclut la L3 (60 ECTS) et 72 ECTS d'exigences propres à l'ENS.",
+    "reponse_llm": "",
+    "duree_secondes": 961.7,
+    "logs": "[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 2\n[Agent] Chunks jugés suffisants : oui",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Sorbonne Université, Master 2, Département de Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 10,
+        "content": "Ce passage décrit les conditions pour obtenir le Diplôme d'ENS Majeure Mathématiques.\n\n## LE DIPLOME DE L'ENS MAJEURE MATHEMATIQUES  \nLes normalien·ne·s reçoivent le Diplôme ès Mathématiques de l'ENS (DENS) à l'issue de leur scolarité, pourvu que les conditions suivantes soient satisfaites :  \n- L'inscription au diplôme de l'ENS, obligatoire chaque année  \n- La validation des trois années au DMA suivant les règles exposées dans cette brochure  \n- La validation de 72 ECTS en plus des 180 ECTS de la L3 et du Master :  \n- Au moins 24 ECTS de cours mathématiques[1]  \n- Au moins 24 ECTS dans un ou plusieurs autres départements  \n- dont 12 ECTS de cours **scientifiques** non-mathématiques  \n- Au moins 24 ECTS libres dont ceux des expériences et des cours de langue  \n- Au moins 2 expériences d'ouverture  \n- La formation sur les grands enjeux  \n- La validation d'un cours de langue par année d'inscription au DENS  \n> 1 Les règles du cursus au DMA exigent bien plus que cet attendu minimal de 24 ECTS.  \nPAGE **9** SUR 78"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 20,
+        "content": "Sorbonne Université, Master 1, cours de mathématiques.\n\n**|** _Il est conseillé de valider un minimum de 6 ECTS en première année et 12 ECTS en tout sur les deux premières années en cours scientifiques non-mathématiques._ **|**"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 9,
+        "content": "Sorbonne Université, Master 1, UE de 9 ECTS et UE de 3 ECTS\n\nMaster 1  \n- deux UE de 9 ECTS, une UE de 6 ECTS et une UE de 3 ECTS,  \n- une UE de 9 ECTS et trois UE de 6 ECTS,  \n- quatre UE de 6 ECTS et une UE de 3 ECTS (sauf d´ecision des responsables p´edagogiques).  \nLe choix des UE de M1 doit se faire en fonction des goˆuts, des acquis ant´erieurs, et bien entendu en coh´erence avec les souhaits d'orientation en M2. Nous ne proposons pas de parcours-types, et chaque ´etudiant-e est libre de composer son contrat p´edagogique, en accord avec sa directrice ou son directeur d'´etudes (voir plus loin) et les responsables p´edagogiques du M1, et modulo les contraintes d'organisation (compatibilit´es d'emplois du temps, par exemple).  \nN´eanmoins, afin d'´eviter des parcours p´edagogiques th´ematiquement trop ´etroits, cette libert´e dans la composition du contrat p´edagogique est encadr´ee par quelques restrictions qui seront d´etaill´ees au paragraphe 1.6."
+      }
+    ]
+  },
+  {
+    "id": "L3_TOUS_003",
+    "question": "Dans les filières bi-disciplinaires de l'ENS, le stage de fin de cursus n'a pas le même nombre d'ECTS selon la discipline associée aux mathématiques. Donnez ces valeurs, et indiquez quel parcours du Master 2 Ingénierie mathématique de Sorbonne Université propose également un stage de fin d'études d'au moins 4 mois.",
+    "reponse_attendue": "Dans la filière mathématiques/physique de l'ENS, le stage et l'exposé de fin de cursus valent 24 ECTS (stage co-encadré par des chercheur·euse·s des deux disciplines). Dans la filière mathématiques/informatique, le stage vaut 12 ECTS et l'exposé/mémoire vaut également 12 ECTS. À Sorbonne Université, le parcours Master 2 'Ingénierie mathématique' (qui comprend les majeures IMPA, IMPC, IFMA et SCDI) prévoit lui aussi, pour ses débouchés professionnels, un stage de quatre mois minimum en entreprise (ou une mission en apprentissage).",
+    "reponse_llm": "",
+    "duree_secondes": 1433.4,
+    "logs": "! Erreur Ollama (model runner has unexpectedly stopped, this may be due to resource limitations or an internal error, check ollama server logs for details (status code: 500)) — redémarrage et nouvelle tentative (1/3)...\n[Agent] Source(s) ciblée(s) : toutes (pas de filtre)\n[Agent] Tentative(s) de retrieval : 3\n[Agent] Chunks jugés suffisants : non",
+    "chunks": [
+      {
+        "source": "ENS.pdf",
+        "page": 12,
+        "content": "Ce passage concerne la formation en mathématiques à l'ENS pour les étudiants Master 2.\n\n## STAGE  \nLa scolarité en mathématiques comprend un stage d'au moins 4 mois, à l'étranger de préférence. Ce stage a pour but de familiariser l'étudiant·e à un environnement différent.  \nLa plus grande souplesse est laissée aux étudiant·e·s pour ce stage et une certaine initiative demandée en contrepartie. Le positionnement de ce stage dans les trois années en enseignement ou en recherche, le thème scientifique, l'aspect linguistique sont autant de paramètres à prendre en compte et cela nécessite d'y réfléchir bien à l'avance, d'en parler avec les tuteur·ice·s et les directeurs des études du DMA."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 12,
+        "content": "Sorbonne Université - Master 2 - Théorie des nombres\n\n## STAGE  \nLa scolarité en mathématiques comprend un stage d'au moins 4 mois, à l'étranger de préférence. Ce stage a pour but de familiariser l'étudiant·e à un environnement différent.  \nLa plus grande souplesse est laissée aux étudiant·e·s pour ce stage et une certaine initiative demandée en contrepartie. Le positionnement de ce stage dans les trois années en enseignement ou en recherche, le thème scientifique, l'aspect linguistique sont autant de paramètres à prendre en compte et cela nécessite d'y réfléchir bien à l'avance, d'en parler avec les tuteur·ice·s et les directeurs des études du DMA."
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 28,
+        "content": "Sorbonne Université, Master 2, Mémoire et exposé d'interface mathématiques/biologie (12 ECTS).\n\n|  \nStage et exposé du cursus mathématiques/physique (24 ECTS)  \nCe travail personnel bi-disciplinaire, encadré par un·e enseignant·e de chaque discipline, consiste en :  \n- Un travail bibliographique comparable à l'exposé de première année du cursus mathématiques au cours du second semestre, sous la houlette d'un·e enseignant·e de mathématiques et/ou d'un·e enseignant·e de physique, sur un sujet relié à celui du stage ;  \n- Un stage niveau L3 dans un laboratoire de physique (12 ECTS).  \nStage (12 ECTS) et exposé du cursus mathématiques/informatique (12 ECTS)  \nCe travail personnel bi-disciplinaire, encadré par un·e enseignant·e de chaque discipline, consiste en :  \n- Un travail bibliographique comparable à l'exposé de première année du cursus mathématiques au cours du second semestre, sous la houlette d'un·e enseignant·e de mathématiques et/ou d'un·e enseignant·e d'informatique, sur un sujet relié à celui du stage, se terminant par la rédaction d'un mémoire et une soutenance ;"
+      },
+      {
+        "source": "ENS.pdf",
+        "page": 28,
+        "content": "Ce passage décrit les stages et exposés du cursus mathématiques/physique au sein de l'ENS.\n\n|  \nStage et exposé du cursus mathématiques/physique (24 ECTS)  \nCe travail personnel bi-disciplinaire, encadré par un·e enseignant·e de chaque discipline, consiste en :  \n- Un travail bibliographique comparable à l'exposé de première année du cursus mathématiques au cours du second semestre, sous la houlette d'un·e enseignant·e de mathématiques et/ou d'un·e enseignant·e de physique, sur un sujet relié à celui du stage ;  \n- Un stage niveau L3 dans un laboratoire de physique (12 ECTS).  \nStage (12 ECTS) et exposé du cursus mathématiques/informatique (12 ECTS)  \nCe travail personnel bi-disciplinaire, encadré par un·e enseignant·e de chaque discipline, consiste en :  \n- Un travail bibliographique comparable à l'exposé de première année du cursus mathématiques au cours du second semestre, sous la houlette d'un·e enseignant·e de mathématiques et/ou d'un·e enseignant·e d'informatique, sur un sujet relié à celui du stage, se terminant par la rédaction d'un mémoire et une soutenance ;"
+      },
+      {
+        "source": "SORBONNE.pdf",
+        "page": 67,
+        "content": "Sorbonne Université, Master 2, module \"Stage\".\n\n- Module \"Stage\" (21 ECTS).  \nUn stage de 5 `a 6 mois mois en entreprise d´ebutant le deux`eme lundi avril, apr`es validation du sujet scientifique du stage par l'´equipe p´edagogique. La soutenance a lieu fin septembre en pr´esence du Maˆıtre de stage et d'un membre de l'´equipe p´edagogique."
+      }
+    ]
   }
 ]

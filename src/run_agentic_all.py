@@ -47,6 +47,13 @@ def run_question(entry: dict) -> dict:
         answer, docs = ask_question_agentic(question, verbose=True)
     duration = time.time() - start
 
+    # Affiche les chunks sélectionnés avec leur score de re-ranking
+    print(f"\n[Chunks sélectionnés] {len(docs)} chunk(s) :")
+    for i, doc in enumerate(docs):
+        score = doc.metadata.get("rerank_score")
+        score_str = f"{score:.4f}" if score is not None else "n/a"
+        print(f"  #{i+1}  score={score_str}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
+
     return {
         "id": entry["id"],
         "question": question,
@@ -58,6 +65,7 @@ def run_question(entry: dict) -> dict:
             {
                 "source": doc.metadata.get("source", "?"),
                 "page": doc.metadata.get("page", "?"),
+                "rerank_score": doc.metadata.get("rerank_score"),
                 "content": doc.page_content,
             }
             for doc in docs

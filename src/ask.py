@@ -230,7 +230,13 @@ def _rerank(question: str, docs: list[Document], n: int = K_FINAL, verbose: bool
             flag = "" if score >= RERANK_THRESHOLD else "  ← écarté (hors-sujet)"
             print(f"  score={score:.3f}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}{flag}")
 
-    return [doc for doc, score in ranked if score >= RERANK_THRESHOLD]
+    # Stocke le score dans les métadonnées pour que run_agentic_all.py puisse l'afficher et le sauvegarder
+    result = []
+    for doc, score in ranked:
+        if score >= RERANK_THRESHOLD:
+            doc.metadata["rerank_score"] = round(float(score), 4)
+            result.append(doc)
+    return result
 
 
 def _fmt(text: str, length: int = 130) -> str:

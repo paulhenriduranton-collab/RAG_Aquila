@@ -37,6 +37,13 @@ MMR_LAMBDA = 0.5              # 1 = pertinence pure (= similarité classique), 0
 # un score négatif signifie que le modèle juge le chunk non pertinent pour la question.
 RERANK_THRESHOLD = 0.0
 
+# Seuil de déduplication après fusion RRF — deux chunks dont le recouvrement de tokens
+# (similarité de Jaccard sur les tokens normalisés) dépasse ce seuil sont considérés
+# quasi-identiques : seul le mieux classé (premier dans la liste RRF) est conservé.
+# 0.8 = 80 % des tokens uniques en commun — attrape les passages quasi-copiés mais
+# laisse passer des chunks proches qui couvrent des détails différents.
+DEDUP_THRESHOLD = 0.8
+
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
 reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
@@ -176,6 +183,33 @@ def _merge(
     return [doc_map[key] for key, _ in top], top
 
 
+def _dedup(docs: list[Document], threshold: float = DEDUP_THRESHOLD, verbose: bool = False) -> list[Document]:
+    """
+    Supprime les chunks quasi-identiques après la fusion RRF.
+    Compare les ensembles de tokens normalisés (Jaccard) : si deux chunks partagent
+    plus de `threshold` de leurs tokens uniques, le moins bien classé est écarté.
+    L'ordre d'entrée (classement RRF) détermine lequel est conservé.
+    """
+    kept: list[Document] = []
+    kept_tokens: list[set[str]] = []  # ensembles de tokens des chunks déjà conservés
+
+    for doc in docs:
+        tokens = set(_tokenize(doc.page_content))
+        duplicate = False
+        for seen in kept_tokens:
+            union = tokens | seen
+            if union and len(tokens & seen) / len(union) >= threshold:
+                duplicate = True
+                break
+        if not duplicate:
+            kept.append(doc)
+            kept_tokens.append(tokens)
+        elif verbose:
+            print(f"  [Dedup] écarté (quasi-doublon) : {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')}")
+
+    return kept
+
+
 def _rerank(question: str, docs: list[Document], n: int = K_FINAL, verbose: bool = False) -> list[Document]:
     """
     Re-classe les chunks avec un CrossEncoder plus précis que l'embedding.
@@ -300,6 +334,11 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
 
     if not rrf_docs:
         return []
+
+    # ── 3b. Déduplication ────────────────────────────────────────────────────
+    # Supprime les quasi-doublons avant le re-ranking pour ne pas gaspiller des
+    # slots sur des passages répétés — conserve le mieux classé par RRF de chaque paire.
+    rrf_docs = _dedup(rrf_docs, verbose=verbose)
 
     # ── 4. Re-ranking ─────────────────────────────────────────────────────────
     # Le cross-encoder reclasse les K_RERANK candidats RRF avec une lecture conjointe (question + chunk)

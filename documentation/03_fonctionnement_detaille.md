@@ -72,28 +72,43 @@ Question de l'utilisateur
    ▼                                         ▼
 Recherche SÉMANTIQUE MMR              Recherche LEXICALE (BM25)
 → réponse fictive vectorisée (bge-m3) → question normalisée (sans accents)
-→ MMR : 20 chunks pertinents + diversifiés → 20 chunks avec mots exacts
-   (parmi 80 candidats, lambda=0.5)    BM25 normalisé : accents, points
-K_RETRIEVE = 20                        médians, tokens 2+ chars
+→ MMR : 25 chunks pertinents + diversifiés → 25 chunks avec mots exacts
+   (parmi 100 candidats, lambda=0.5)   BM25 normalisé : accents, points
+K_RETRIEVE = 25                        médians, tokens 2+ chars
    │                                         │
    └──────────────────┬──────────────────────┘
                       ▼
              Fusion RRF (Reciprocal Rank Fusion)
              score(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
              → filtre diversité : max 3 chunks par source (si multi-sources)
-             → 10 candidats sélectionnés  (K_RERANK = 10)
+             → 15 candidats sélectionnés  (K_RERANK = 15)
+                      │
+                      ▼
+             Déduplication (Jaccard sur tokens normalisés)
+             → deux chunks partageant > 80 % de leurs tokens uniques
+               → seul le mieux classé RRF est conservé
+             → évite de gaspiller des slots de re-ranking sur des passages répétés
+             → K_RERANK = 15 compense les 3-5 chunks retirés en moyenne
                       │
                       ▼
              Re-ranking CrossEncoder (BAAI/bge-reranker-v2-m3)
-             → lit chaque paire (question, chunk) ENSEMBLE
+             → lit chaque paire (requête courante, chunk) ENSEMBLE
              → score logit : > 0 = pertinent, < 0 = hors-sujet
              → chunks sous RERANK_THRESHOLD = 0.0 écartés
              → 5 meilleurs gardés  (K_FINAL = 5)
+                      │
+                      ▼
+             Fusion des pools (Option D — seulement au 2ème retrieval)
+             → 3 slots : meilleurs chunks du 1er retrieval (déjà triés)
+             → 2 slots réservés : top 2 des nouveaux chunks,
+               re-rankés sur la requête reformulée (pas la question originale)
+             → garantit que l'info ciblée arrive au LLM même si elle est
+               dans un chunk court qui perdrait face aux chunks généraux
         │
         ▼ [LangGraph] grade_documents
    Le LLM évalue si les chunks accumulés sont suffisants :
    → "OUI" → passe directement à generate
-   → "NON — [ce qui manque]" → passe à rewrite_query si tentatives < MAX_ATTEMPTS=2
+   → "NON — [ce qui manque]" → passe à rewrite_query si tentatives < MAX_ATTEMPTS=1
         │
         ├── OUI ou max tentatives atteint ──────────┐
         │                                            ▼
@@ -102,13 +117,13 @@ K_RETRIEVE = 20                        médians, tokens 2+ chars
         │                                  gemma4:12b, temperature=0, num_ctx=4096
         │                                  → Réponse (Open WebUI ou terminal)
         │
-        └── NON (< 2 tentatives)
+        └── NON (1 reformulation restante)
                 │
                 ▼
         [LangGraph] rewrite_query
         Le LLM reformule la requête sur ce qui manque précisément
                 │
-                └──→ retrieve_node (nouvelle tentative)
+                └──→ retrieve_node (2ème et dernier retrieval)
 
 
 PHASE 3 : ÉVALUATION (à la demande)
@@ -327,20 +342,20 @@ BM25 (étape 2) continue d'utiliser la **question originale** pour les correspon
 
 ### Étape 2 : Recherche sémantique (MMR)
 
-La question fictive (HyDE) est vectorisée par bge-m3. ChromaDB retourne 20 chunks avec MMR (Maximal Marginal Relevance) :
+La question fictive (HyDE) est vectorisée par bge-m3. ChromaDB retourne 25 chunks avec MMR (Maximal Marginal Relevance) :
 
 ```python
-# MMR : pertinents ET diversifiés — évite de retourner 20 extraits du même paragraphe
+# MMR : pertinents ET diversifiés — évite de retourner 25 extraits du même paragraphe
 mmr_docs = vector_db.max_marginal_relevance_search(
     hyde_query,
-    k=K_RETRIEVE,          # K_RETRIEVE = 20 — nombre de résultats voulus
-    fetch_k=MMR_FETCH_K,   # MMR_FETCH_K = 80 — candidats initiaux examinés
+    k=K_RETRIEVE,          # K_RETRIEVE = 25 — nombre de résultats voulus
+    fetch_k=MMR_FETCH_K,   # MMR_FETCH_K = 100 — candidats initiaux examinés (K_RETRIEVE × 4)
     lambda_mult=MMR_LAMBDA, # MMR_LAMBDA = 0.5 — équilibre pertinence/diversité
     filter=chroma_filter,   # filtre sur la source si identify_sources l'a précisé
 )
 ```
 
-MMR pioche parmi 80 candidats et en sélectionne 20 qui maximisent à la fois la pertinence (proches de la question) et la diversité (éloignés les uns des autres). Cela évite que les 20 résultats soient 20 extraits du même paragraphe.
+MMR pioche parmi 100 candidats et en sélectionne 25 qui maximisent à la fois la pertinence (proches de la question) et la diversité (éloignés les uns des autres). Cela évite que les 25 résultats soient 25 extraits du même paragraphe.
 
 ### Étape 3 : Recherche BM25 (lexicale)
 
@@ -354,7 +369,7 @@ top_bm25 = sorted(candidate_indices, key=lambda i: bm25_scores[i], reverse=True)
 
 ### Étape 4 : Fusion RRF (Reciprocal Rank Fusion)
 
-Les deux listes de 20 résultats sont fusionnées. La formule RRF :
+Les deux listes de 25 résultats sont fusionnées. La formule RRF :
 
 ```
 score(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
@@ -364,11 +379,25 @@ Un chunk bien classé dans les deux listes obtient un score élevé. La constant
 
 **Pourquoi RRF plutôt qu'une somme pondérée ?** RRF est indépendant des valeurs brutes des scores (qui varient selon les modèles) — il ne regarde que les positions dans le classement.
 
-**Filtre de diversité :** maximum 3 chunks par document source quand on cherche dans plusieurs sources — évite que les 10 slots soient saturés par des extraits du même PDF. Ce plafond est désactivé (porté à K_RERANK=10) quand `identify_sources` a restreint la recherche à une seule source.
+**Filtre de diversité :** maximum 3 chunks par document source quand on cherche dans plusieurs sources — évite que les 15 slots soient saturés par des extraits du même PDF. Ce plafond est désactivé (porté à K_RERANK=15) quand `identify_sources` a restreint la recherche à une seule source.
+
+### Étape 4bis : Déduplication (Jaccard)
+
+Avant le re-ranking, les quasi-doublons RRF sont supprimés. Deux chunks dont la similarité de Jaccard sur leurs tokens normalisés dépasse `DEDUP_THRESHOLD = 0.8` sont considérés identiques — seul le mieux classé par RRF est gardé :
+
+```python
+# Calcul de la similarité de Jaccard sur les tokens normalisés (sans accents, sans ponctuation)
+tokens_A = set(_tokenize(chunk_A.page_content))
+tokens_B = set(_tokenize(chunk_B.page_content))
+jaccard = len(tokens_A & tokens_B) / len(tokens_A | tokens_B)
+# Si jaccard >= 0.8 → chunk_B écarté (chunk_A mieux classé RRF est déjà dans kept)
+```
+
+**Pourquoi déduplication avant re-ranking ?** La déduplication retire en moyenne 3 à 5 chunks quasi-identiques. Sans elle, ces slots gaspillés réduisent la diversité des chunks envoyés au CrossEncoder. C'est pour compenser cette perte que `K_RERANK` a été augmenté de 10 à 15 : on passe 15 candidats au re-ranker sachant qu'environ 3 à 5 seront des quasi-doublons supprimés en amont.
 
 ### Étape 5 : Re-ranking (CrossEncoder)
 
-Le re-ranker reçoit les 10 candidats RRF. Pour chaque chunk, il forme la paire `(question, chunk)` et la lit ensemble :
+Le re-ranker reçoit les candidats RRF après déduplication (jusqu'à 15, en pratique ~10-12 après dédup). Pour chaque chunk, il forme la paire `(question originale, chunk)` et la lit ensemble :
 
 ```
 Paires envoyées au re-ranker :
@@ -377,6 +406,27 @@ Paires envoyées au re-ranker :
 ```
 
 Les 5 chunks avec les scores les plus élevés sont gardés. Les chunks sous le seuil `RERANK_THRESHOLD = 0.0` sont écartés même s'ils font partie des 5 premiers.
+
+### Étape 5bis : Fusion des pools lors du 2ème retrieval (Option D)
+
+Au 2ème retrieval, le pipeline ne fait pas un re-rank global sur l'ensemble des chunks anciens + nouveaux. Il **réserve des slots** par retrieval :
+
+```
+Pool final (K_FINAL = 5 slots) :
+  3 slots → meilleurs chunks du 1er retrieval  (déjà triés par re-rank, on prend [:3])
+  2 slots → top 2 des nouveaux chunks, re-rankés sur la requête reformulée
+```
+
+**Pourquoi ne pas re-ranker tout le pool ensemble ?** Le CrossEncoder score chaque paire `(requête, chunk)`. Si la requête est la question originale (large), les chunks riches du 1er retrieval dominent toujours. Un chunk court qui contient l'info précise manquante — par exemple une seule ligne `"La durée minimale du stage est de 3 mois"` — perd systématiquement face à des chunks denses sur le sujet général, même s'il répond exactement à ce qui manquait.
+
+**Pourquoi re-ranker les nouveaux chunks sur la requête reformulée (et non la question originale) ?** La requête reformulée est précisément ciblée sur l'info manquante (ex: `"durée minimale stage obligatoire"`). Le CrossEncoder peut alors correctement scorer `(requête ciblée, chunk court)` comme très pertinent, alors que la même paire avec la question originale donnerait un score médiocre.
+
+```python
+# agent.py — retrieve_node au 2ème retrieval
+old_top = state["docs"][:K_FINAL - 2]                                # top 3 du 1er retrieval
+new_top = _rerank(state["current_query"], new_docs_deduped, n=2)     # top 2 du 2ème retrieval, scorés sur la requête reformulée
+final   = old_top + [d for d in new_top if d not in old_top]        # 5 chunks au total
+```
 
 ### Étape 6 : Évaluation des chunks (grade_documents)
 
@@ -392,7 +442,7 @@ GRADE_PROMPT = """Ces extraits contiennent-ils l'information nécessaire ?
 # "NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale"
 ```
 
-Si insuffisant et si le nombre de tentatives est sous `MAX_ATTEMPTS=2`, le pipeline reformule la requête et relance un retrieval.
+Si insuffisant et si le nombre de tentatives est sous `MAX_ATTEMPTS=1`, le pipeline reformule la requête et relance un retrieval. Il y a donc au maximum 2 retrievals : l'initial et une reformulation ciblée.
 
 ### Étape 7 : Génération
 

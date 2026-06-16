@@ -11,8 +11,8 @@ from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollam
 DOCUMENTS_DIR = BASE_DIR / "documents"
 
 # Nombre max de reformulations de requête avant de générer quand même avec ce qu'on a.
-# 1 = au pire 2 tentatives de retrieval (~2x plus de temps que le RAG classique en cas de boucle).
-MAX_ATTEMPTS = 2
+# 1 = exactement 2 retrievals possibles : l'initial + 1 reformulation ciblée.
+MAX_ATTEMPTS = 1
 
 SOURCE_PROMPT = """Voici la liste des documents disponibles dans la base : {sources}
 
@@ -96,14 +96,25 @@ def identify_sources(state: AgentState) -> dict:
 
 
 def retrieve_node(state: AgentState) -> dict:
-    """Lance le retrieval, accumule les chunks, puis re-rank le pool pour garder les K_FINAL meilleurs."""
+    """Lance le retrieval et construit le pool final selon le numéro de tentative."""
     new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
     existing_contents = {d.page_content for d in state["docs"]}
-    merged = state["docs"] + [d for d in new_docs if d.page_content not in existing_contents]
-    # Re-rank le pool complet sur la question originale pour garder les K_FINAL meilleurs
-    # (évite de dépasser le contexte du LLM quand le pool grandit après plusieurs retrievals)
-    final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
+    new_docs_deduped = [d for d in new_docs if d.page_content not in existing_contents]
+
+    if state["attempts"] == 0:
+        # 1er retrieval : re-rank libre sur tous les chunks récupérés
+        merged = state["docs"] + new_docs_deduped
+        final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
+    else:
+        # 2ème retrieval — Option D : 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
+        # Garantit que les chunks ciblant l'info manquante arrivent au LLM même s'ils auraient
+        # perdu face aux chunks généraux du 1er retrieval dans un re-rank global.
+        old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
+        new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
+        seen = {d.page_content for d in old_top}
+        final = old_top + [d for d in new_top if d.page_content not in seen]
+
     return {"docs": final, "attempts": state["attempts"] + 1}
 
 

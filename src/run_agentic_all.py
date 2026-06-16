@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -14,6 +15,7 @@ from agent import ask_question_agentic
 
 DATASET_PATH = Path(__file__).resolve().parent.parent / "data" / "questions.json"
 OUTPUT_PATH = DATASET_PATH.parent / "agentic_results.json"
+PUSH_EVERY = 5  # sauvegarde sur GitHub toutes les N questions pour ne pas tout perdre si Colab coupe
 
 
 class _Tee(io.TextIOBase):
@@ -31,6 +33,19 @@ class _Tee(io.TextIOBase):
     def flush(self):
         for stream in self._streams:
             stream.flush()
+
+
+def _git_push_results(n: int, total: int):
+    """Push agentic_results.json sur GitHub pour ne pas perdre la progression si Colab coupe."""
+    repo = OUTPUT_PATH.parent.parent  # racine du repo
+    try:
+        subprocess.run(["git", "-C", str(repo), "add", str(OUTPUT_PATH)], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-m", f"chore: sauvegarde résultats ({n}/{total})"], check=True)
+        subprocess.run(["git", "-C", str(repo), "pull", "--rebase", "origin", "main"], check=True)
+        subprocess.run(["git", "-C", str(repo), "push"], check=True)
+        print(f"  → pushé sur GitHub ({n}/{total})")
+    except subprocess.CalledProcessError as e:
+        print(f"  ! push échoué (non bloquant) : {e}")
 
 
 def run_question(entry: dict) -> dict:
@@ -98,6 +113,8 @@ def main():
             # Sauvegarde après chaque question : un crash ou un Ctrl+C en pleine nuit ne perd rien
             OUTPUT_PATH.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
             print(f"  → sauvegardé ({len(results)}/{len(dataset)})")
+            if len(results) % PUSH_EVERY == 0:
+                _git_push_results(len(results), len(dataset))
     except KeyboardInterrupt:
         print("\n\nInterrompu — résultats partiels sauvegardés.")
 

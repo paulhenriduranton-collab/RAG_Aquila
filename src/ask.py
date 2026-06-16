@@ -22,8 +22,8 @@ GEN_MODEL = "gemma4:12b"  # LLM utilisé pour HyDE et la génération finale
 RERANK_MODEL = "BAAI/bge-reranker-v2-m3"  # cross-encoder multilingue — cohérent avec bge-m3 (même labo)
 
 # Paramètres du pipeline de retrieval
-K_RETRIEVE = 20   # nombre de candidats récupérés par chaque méthode (sémantique ET BM25) avant fusion
-K_RERANK = 10     # nombre de chunks passés au re-ranker après la fusion RRF
+K_RETRIEVE = 25   # nombre de candidats récupérés par chaque méthode (sémantique ET BM25) avant fusion
+K_RERANK = 15     # nombre de chunks passés au re-ranker après la fusion RRF — augmenté à 15 pour compenser la déduplication qui peut retirer 3-5 quasi-doublons avant le re-ranking
 K_FINAL = 5       # nombre de chunks gardés après re-ranking — ce sont eux qui vont au LLM
 RRF_K = 60        # constante de la formule RRF — valeur standard, ne pas changer sans raison
 

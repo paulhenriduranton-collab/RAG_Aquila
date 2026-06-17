@@ -28,16 +28,27 @@ FINAL_OVERLAP_CHARS = 200  # overlap copié systématiquement entre tous les chu
 # ou le parcours si ce n'est pas écrit dans le chunk lui-même). Ces informations structurelles
 # sont ajoutées séparément, de façon déterministe, à partir des métadonnées (source, page,
 # hiérarchie de titres h1/h2/h3 capturée par MarkdownHeaderTextSplitter) — voir _contextualize_chunks.
-CONTEXT_PROMPT = """Voici un passage extrait d'une brochure universitaire :
+CONTEXT_PROMPT = """Passage :
 {chunk}
 
-Donne 3 à 6 mots-clés ou expressions courtes qui résument le SUJET PRÉCIS de ce passage
-(ex: matières, compétences, type d'information : calendrier, ECTS, débouchés, stage...).
-Règles strictes :
-- Uniquement des mots-clés séparés par des virgules, jamais de phrase complète ni de verbe conjugué.
-- Ne reformule PAS le passage : donne des mots-clés, pas un résumé.
-- Ne mentionne pas d'établissement, de niveau (M1/M2) ou de parcours : tu n'as pas cette information.
-Réponds uniquement par la liste de mots-clés, sans phrase ni guillemets."""
+SORTIE ATTENDUE : une liste de 3 à 6 mots-clés séparés par des virgules. Rien d'autre.
+
+EXEMPLES VALIDES :
+algèbre linéaire, ECTS, semestre 1, prérequis
+stage, durée minimale, validation, étranger
+enseignant référent, filière, informatique
+
+EXEMPLES INVALIDES (ne jamais produire) :
+Ce passage décrit... → INTERDIT
+Ce passage concerne... → INTERDIT
+Le texte présente... → INTERDIT
+Toute phrase avec un verbe conjugué → INTERDIT
+
+Règles :
+- Noms et expressions nominales uniquement, jamais de verbe conjugué.
+- Pas de guillemets, pas de tirets, pas de numérotation.
+- Ne pas mentionner d'établissement ni de niveau (M1/M2) : non disponible dans ce passage.
+Réponds par la liste uniquement."""
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:

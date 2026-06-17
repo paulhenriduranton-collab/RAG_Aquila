@@ -35,7 +35,7 @@ MMR_LAMBDA = 0.5              # 1 = pertinence pure (= similarité classique), 0
 # de ce seuil est considéré hors-sujet et écarté, même s'il fait partie des K_FINAL meilleurs.
 # Pour bge-reranker-v2-m3, le score est un logit centré sur 0 (sigmoid(0)=0.5 = pertinence "moyenne") :
 # un score négatif signifie que le modèle juge le chunk non pertinent pour la question.
-RERANK_THRESHOLD = 0.0
+RERANK_THRESHOLD = 0.5
 
 # Seuil de déduplication après fusion RRF — deux chunks dont le recouvrement de tokens
 # (similarité de Jaccard sur les tokens normalisés) dépasse ce seuil sont considérés
@@ -183,18 +183,33 @@ def _merge(
     return [doc_map[key] for key, _ in top], top
 
 
+def _body(text: str) -> str:
+    """
+    Retire la ligne de contexte '[source | p.X | ...]' ajoutée par _contextualize_chunks
+    avant de comparer les chunks. Sans ça, deux chunks identiques dont le LLM a généré
+    des mots-clés différents (ex: 'filière, maths' vs 'Ce passage décrit...') ont un
+    Jaccard réduit par les tokens du préfixe et échappent à la déduplication.
+    """
+    parts = text.split("\n\n", 1)
+    first = parts[0].strip()
+    if first.startswith("[") and first.endswith("]"):
+        return parts[1] if len(parts) > 1 else ""
+    return text
+
+
 def _dedup(docs: list[Document], threshold: float = DEDUP_THRESHOLD, verbose: bool = False) -> list[Document]:
     """
     Supprime les chunks quasi-identiques après la fusion RRF.
-    Compare les ensembles de tokens normalisés (Jaccard) : si deux chunks partagent
-    plus de `threshold` de leurs tokens uniques, le moins bien classé est écarté.
+    Compare les ensembles de tokens normalisés (Jaccard) sur le CONTENU uniquement
+    (sans la ligne de contexte '[...]') : si deux chunks partagent plus de `threshold`
+    de leurs tokens uniques, le moins bien classé est écarté.
     L'ordre d'entrée (classement RRF) détermine lequel est conservé.
     """
     kept: list[Document] = []
     kept_tokens: list[set[str]] = []  # ensembles de tokens des chunks déjà conservés
 
     for doc in docs:
-        tokens = set(_tokenize(doc.page_content))
+        tokens = set(_tokenize(_body(doc.page_content)))  # compare sur le contenu sans le préfixe [...]
         duplicate = False
         for seen in kept_tokens:
             union = tokens | seen

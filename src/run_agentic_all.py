@@ -39,9 +39,11 @@ def _git_push_results(n: int, total: int):
     """Push agentic_results.json sur GitHub pour ne pas perdre la progression si Colab coupe."""
     repo = OUTPUT_PATH.parent.parent  # racine du repo
     try:
+        # Fetch + rebase AVANT de commiter pour éviter les conflits de rebase post-commit
+        subprocess.run(["git", "-C", str(repo), "fetch", "origin", "main"], check=True)
+        subprocess.run(["git", "-C", str(repo), "rebase", "origin/main"], check=True)
         subprocess.run(["git", "-C", str(repo), "add", str(OUTPUT_PATH)], check=True)
         subprocess.run(["git", "-C", str(repo), "commit", "-m", f"chore: sauvegarde résultats ({n}/{total})"], check=True)
-        subprocess.run(["git", "-C", str(repo), "pull", "--rebase", "origin", "main"], check=True)
         subprocess.run(["git", "-C", str(repo), "push"], check=True)
         print(f"  → pushé sur GitHub ({n}/{total})")
     except subprocess.CalledProcessError as e:

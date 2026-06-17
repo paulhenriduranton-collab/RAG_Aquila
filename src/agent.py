@@ -19,30 +19,34 @@ DOCUMENTS_DIR = BASE_DIR / "documents"
 # 1 = exactement 2 retrievals possibles : l'initial + 1 reformulation ciblée.
 MAX_ATTEMPTS = 1
 
-SOURCE_AND_DIFFICULTY_PROMPT = """Voici la liste des documents disponibles dans la base : {sources}
+SOURCE_AND_DIFFICULTY_PROMPT = """Voici la liste des documents disponibles : {sources}
 
-Voici la question posée : {question}
+Question : {question}
 
-Réponds en DEUX lignes exactement, dans cet ordre :
+Réponds dans ce format exact, sans rien d'autre :
 
-SOURCES: [le(s) nom(s) de fichier(s) exact(s) séparés par une virgule, ou le mot TOUS]
+SOURCES: [nom(s) de fichier(s) ou TOUS]
 DIFFICULTE: [1, 2 ou 3]
+SOUS-REQUETE-1: [uniquement si DIFFICULTE est 3]
+SOUS-REQUETE-2: [uniquement si DIFFICULTE est 3 et que la question compare deux entités distinctes]
 
-Règles pour SOURCES :
-- Si la question mentionne explicitement un établissement ou un diplôme propre à un établissement, indique le fichier correspondant.
-- Si la question compare plusieurs établissements ou ne mentionne aucun établissement précis, écris TOUS.
+Règles SOURCES :
+- Établissement ou diplôme explicite → fichier correspondant
+- Comparaison ou aucun établissement précis → TOUS
 
-Règles pour DIFFICULTE :
-- 1 = factuelle simple : cherche une valeur unique (nom, date, nombre, durée, liste courte) dans un seul document. Réponse en une phrase.
-- 2 = synthèse : demande une explication, un fonctionnement, ou plusieurs informations d'un même document.
-- 3 = complexe : comparaison entre documents, raisonnement croisé, ou question ouverte sans réponse directe.
+Règles DIFFICULTE :
+- 1 = factuelle : valeur unique (nom, date, nombre, liste courte), réponse en une phrase
+- 2 = synthèse : explication, fonctionnement, plusieurs infos d'un même document
+- 3 = comparaison entre documents ou sections, raisonnement croisé, question sans réponse directe
+
+Règles SOUS-REQUETE (uniquement si DIFFICULTE: 3) :
+- Décompose en 2 sous-requêtes indépendantes, chacune ciblant une seule entité ou section
+- Si la question ne compare qu'une seule chose, écris une seule SOUS-REQUETE-1
 
 Exemples :
-Question : "Qui dirige le DMA en 2024-2025 ?" → SOURCES: ENS.pdf\nDIFFICULTE: 1
-Question : "Comment fonctionne le système de tutorat ?" → SOURCES: ENS.pdf\nDIFFICULTE: 2
-Question : "Quelles sont les différences entre les stages ENS et Sorbonne ?" → SOURCES: TOUS\nDIFFICULTE: 3
-
-Ne réponds rien d'autre que ces deux lignes."""
+Question : "Qui dirige le DMA ?" → SOURCES: ENS.pdf\nDIFFICULTE: 1
+Question : "Comment fonctionne le tutorat ?" → SOURCES: ENS.pdf\nDIFFICULTE: 2
+Question : "Compare les ECTS L3 et M1 ENS" → SOURCES: ENS.pdf\nDIFFICULTE: 3\nSOUS-REQUETE-1: ECTS cours L3 première année ENS tableau\nSOUS-REQUETE-2: ECTS cours fondamentaux M1 ENS tableau"""
 
 GRADE_PROMPT = """Voici une question et des extraits de documents récupérés pour y répondre.
 
@@ -79,6 +83,7 @@ class AgentState(TypedDict):
     sources: list[str] | None   # source(s) identifiée(s) par identify_sources, ou None = chercher partout
     difficulty: int             # 1=factuel, 2=synthèse, 3=complexe — peut être remonté dynamiquement
     initial_difficulty: int     # difficulté classifiée par identify_sources — pour les logs
+    sub_queries: list[str]       # sous-requêtes issues de decompose_query (vide si difficulté < 3)
     docs: list[Document]        # pool cumulatif de tous les chunks récupérés (tous retrievals confondus)
     sufficient: bool            # verdict du dernier passage dans grade_documents
     grade_verdict: str          # verdict complet du grade (ex: "NON — durée du stage absente")
@@ -104,7 +109,8 @@ def identify_sources(state: AgentState) -> dict:
 
     # Parsing ligne par ligne — robuste aux sauts de ligne et aux espaces superflus
     identified = None
-    difficulty = 2  # fallback : pipeline standard si le LLM dévie du format
+    difficulty = 2  # fallback
+    sub_queries = []
     for line in raw.splitlines():
         line = line.strip()
         if line.upper().startswith("SOURCES:"):
@@ -116,27 +122,57 @@ def identify_sources(state: AgentState) -> dict:
             val = line.split(":", 1)[1].strip()
             if val in ("1", "2", "3"):
                 difficulty = int(val)
+        elif line.upper().startswith("SOUS-REQUETE-"):
+            val = line.split(":", 1)[1].strip() if ":" in line else ""
+            if val:
+                sub_queries.append(val)
 
-    return {"sources": identified, "difficulty": difficulty, "initial_difficulty": difficulty, "current_query": state["question"], "attempts": 0}
+    # Pour difficulté 3 sans sous-requêtes parsées, fallback sur la question originale
+    if difficulty == 3 and not sub_queries:
+        sub_queries = [state["question"]]
+
+    return {
+        "sources": identified,
+        "difficulty": difficulty,
+        "initial_difficulty": difficulty,
+        "current_query": state["question"],
+        "sub_queries": sub_queries,
+        "attempts": 0,
+    }
 
 
 def retrieve_node(state: AgentState) -> dict:
     """Lance le retrieval et construit le pool final selon le numéro de tentative.
-    HyDE est désactivé pour les questions de difficulté 1 (économise un appel LLM)."""
+    HyDE est désactivé pour les questions de difficulté 1 (économise un appel LLM).
+    Pour le 1er retrieval d'une question décomposée (difficulté 3), on lance une
+    requête par sous-question puis on fusionne et re-rank sur la question originale."""
     use_hyde = state["difficulty"] > 1
+
+    if state["attempts"] == 0 and state["sub_queries"]:
+        # Retrieval multi-sous-requêtes : HyDE désactivé car les sous-requêtes sont déjà
+        # des phrases ciblées générées par le LLM — elles remplissent le même rôle que HyDE.
+        all_docs: list[Document] = []
+        seen_content: set[str] = set()
+        for sq in state["sub_queries"]:
+            for doc in retrieve(sq, sources=state["sources"], verbose=False, use_hyde=False):
+                if doc.page_content not in seen_content:
+                    seen_content.add(doc.page_content)
+                    all_docs.append(doc)
+        # Re-rank global sur la question originale pour trier le pool fusionné
+        final = _rerank(state["question"], all_docs) if len(all_docs) > K_FINAL else all_docs
+        return {"docs": final, "attempts": 1}
+
     new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
     existing_contents = {d.page_content for d in state["docs"]}
     new_docs_deduped = [d for d in new_docs if d.page_content not in existing_contents]
 
     if state["attempts"] == 0:
-        # 1er retrieval : re-rank libre sur tous les chunks récupérés
+        # 1er retrieval standard (difficulté 1 ou 2) : re-rank libre sur tous les chunks
         merged = state["docs"] + new_docs_deduped
         final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
     else:
-        # 2ème retrieval — Option D : 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
-        # Garantit que les chunks ciblant l'info manquante arrivent au LLM même s'ils auraient
-        # perdu face aux chunks généraux du 1er retrieval dans un re-rank global.
+        # 2ème retrieval — 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
         old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
         new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
         seen = {d.page_content for d in old_top}
@@ -276,6 +312,7 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "sources": None,
         "difficulty": 2,
         "initial_difficulty": 2,  # écrasé par identify_sources
+        "sub_queries": [],
         "docs": [],
         "sufficient": False,
         "grade_verdict": "",
@@ -289,6 +326,9 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         final_d = final_state["difficulty"]
         upgrade_str = f" → remontée à 3 (pipeline complet)" if final_d > init_d else ""
         print(f"[Agent] Difficulté : {init_d} — {diff_labels.get(init_d, '?')}{upgrade_str}")
+        if final_state["sub_queries"]:
+            for i, sq in enumerate(final_state["sub_queries"], 1):
+                print(f"[Agent] Sous-requête {i} : {sq}")
         print(f"[Agent] Source(s) ciblée(s) : {', '.join(final_state['sources']) if final_state['sources'] else 'toutes (pas de filtre)'}")
         print(f"[Agent] Tentative(s) de retrieval : {final_state['attempts']}")
         if final_d > 1 or final_state["attempts"] > 1:

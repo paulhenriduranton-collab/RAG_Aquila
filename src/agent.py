@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import TypedDict
 
@@ -5,6 +6,10 @@ from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
 from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
+
+# Détecte les marqueurs de coupure de page produits par pymupdf4llm
+# Exemples : "i— PAGE **19** SUR 78 >", "PAGE 9 SUR 78"
+TRUNCATION_RE = re.compile(r'(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+SUR\s+\d+', re.IGNORECASE)
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -50,10 +55,12 @@ Extraits récupérés :
 Ces extraits contiennent-ils l'information nécessaire pour répondre correctement à la question ?
 - Si oui, réponds uniquement : OUI
 - Si non, réponds : NON — [explique en 1 phrase ce qui manque précisément dans les extraits]
+- Si un extrait est marqué [⚠ TRONQUÉ], considère que la liste ou la phrase est incomplète et réponds NON en précisant que la suite manque.
 
 Exemples de réponse NON :
 NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale
-NON — aucun extrait ne précise les conditions géographiques requises"""
+NON — aucun extrait ne précise les conditions géographiques requises
+NON — l'extrait est tronqué, les cours du 2ème semestre et le stage sont absents"""
 
 REWRITE_PROMPT = """La recherche suivante n'a pas permis de retrouver une information suffisante pour répondre à la question.
 
@@ -70,7 +77,8 @@ class AgentState(TypedDict):
     question: str               # la question originale, ne change jamais
     current_query: str          # la requête de recherche ACTUELLE (peut être reformulée en boucle)
     sources: list[str] | None   # source(s) identifiée(s) par identify_sources, ou None = chercher partout
-    difficulty: int             # 1=factuel, 2=synthèse, 3=complexe — détermine le pipeline utilisé
+    difficulty: int             # 1=factuel, 2=synthèse, 3=complexe — peut être remonté dynamiquement
+    initial_difficulty: int     # difficulté classifiée par identify_sources — pour les logs
     docs: list[Document]        # pool cumulatif de tous les chunks récupérés (tous retrievals confondus)
     sufficient: bool            # verdict du dernier passage dans grade_documents
     grade_verdict: str          # verdict complet du grade (ex: "NON — durée du stage absente")
@@ -109,7 +117,7 @@ def identify_sources(state: AgentState) -> dict:
             if val in ("1", "2", "3"):
                 difficulty = int(val)
 
-    return {"sources": identified, "difficulty": difficulty, "current_query": state["question"], "attempts": 0}
+    return {"sources": identified, "difficulty": difficulty, "initial_difficulty": difficulty, "current_query": state["question"], "attempts": 0}
 
 
 def retrieve_node(state: AgentState) -> dict:
@@ -137,11 +145,28 @@ def retrieve_node(state: AgentState) -> dict:
     return {"docs": final, "attempts": state["attempts"] + 1}
 
 
+def _has_truncation(docs: list[Document]) -> bool:
+    """Détecte si un chunk se termine par un marqueur de coupure de page pymupdf4llm."""
+    return any(TRUNCATION_RE.search(doc.page_content[-150:]) for doc in docs)
+
+
+def _annotate_context(docs: list[Document]) -> str:
+    """Construit le contexte pour grade_documents en signalant les chunks tronqués."""
+    parts = []
+    for doc in docs:
+        content = doc.page_content
+        if TRUNCATION_RE.search(content[-150:]):
+            content += "\n[⚠ TRONQUÉ — la liste ou la phrase continue sur la page suivante]"
+        parts.append(content)
+    return "\n\n---\n\n".join(parts)
+
+
 def grade_documents(state: AgentState) -> dict:
-    """Demande au LLM si les chunks accumulés suffisent, et ce qui manque précisément si non."""
+    """Demande au LLM si les chunks accumulés suffisent, et ce qui manque précisément si non.
+    Les chunks tronqués sont annotés pour que le LLM détecte les listes incomplètes."""
     if not state["docs"]:
         return {"sufficient": False, "grade_verdict": "NON — aucun extrait récupéré"}
-    context = "\n\n---\n\n".join(doc.page_content for doc in state["docs"])
+    context = _annotate_context(state["docs"])
     prompt = GRADE_PROMPT.format(question=state["question"], context=context)
     raw = _invoke_with_retry(prompt).strip()
     sufficient = raw.lower().startswith("oui")
@@ -159,6 +184,12 @@ def rewrite_query(state: AgentState) -> dict:
     return {"current_query": new_query}
 
 
+def upgrade_difficulty(state: AgentState) -> dict:
+    """Remonte la difficulté à 3 pour débloquer la reformulation.
+    Appelé quand un retrieval de niveau 1 (troncature détectée) ou 2 (grade NON) s'avère insuffisant."""
+    return {"difficulty": 3}
+
+
 def generate_node(state: AgentState) -> dict:
     """Génère la réponse finale à partir du pool cumulatif de tous les chunks récupérés."""
     if not state["docs"]:
@@ -173,21 +204,28 @@ def generate_node(state: AgentState) -> dict:
 
 def _route_after_retrieve(state: AgentState) -> str:
     """
-    Difficulté 1 : on génère directement après le retrieval, sans grade ni reformulation.
-    Difficulté 2/3 : on passe par grade_documents.
+    Difficulté 1 : vérifie la troncature (sans appel LLM).
+      → troncature détectée : upgrade_difficulty pour débloquer la reformulation
+      → pas de troncature : generate directement
+    Difficulté 2/3 : grade_documents.
     """
     if state["difficulty"] == 1:
+        if _has_truncation(state["docs"]):
+            return "upgrade_difficulty"
         return "generate"
     return "grade_documents"
 
 
 def _route_after_grading(state: AgentState) -> str:
     """
-    Difficulté 2 : on génère quoi qu'il arrive (pas de reformulation — une seule tentative suffit).
-    Difficulté 3 : reformulation possible si chunks insuffisants et tentatives restantes.
+    Suffisant ou quota atteint : generate.
+    Insuffisant + difficulté < 3 : upgrade_difficulty pour débloquer la reformulation.
+    Insuffisant + difficulté 3 + tentatives restantes : rewrite_query.
     """
-    if state["sufficient"] or state["attempts"] > MAX_ATTEMPTS or state["difficulty"] < 3:
+    if state["sufficient"] or state["attempts"] > MAX_ATTEMPTS:
         return "generate"
+    if state["difficulty"] < 3:
+        return "upgrade_difficulty"
     return "rewrite_query"
 
 
@@ -196,6 +234,7 @@ def _build_agent():
     graph.add_node("identify_sources", identify_sources)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("grade_documents", grade_documents)
+    graph.add_node("upgrade_difficulty", upgrade_difficulty)
     graph.add_node("rewrite_query", rewrite_query)
     graph.add_node("generate", generate_node)
 
@@ -204,13 +243,14 @@ def _build_agent():
     graph.add_conditional_edges(
         "retrieve",
         _route_after_retrieve,
-        {"generate": "generate", "grade_documents": "grade_documents"},
+        {"generate": "generate", "grade_documents": "grade_documents", "upgrade_difficulty": "upgrade_difficulty"},
     )
     graph.add_conditional_edges(
         "grade_documents",
         _route_after_grading,
-        {"generate": "generate", "rewrite_query": "rewrite_query"},
+        {"generate": "generate", "upgrade_difficulty": "upgrade_difficulty", "rewrite_query": "rewrite_query"},
     )
+    graph.add_edge("upgrade_difficulty", "rewrite_query")
     graph.add_edge("rewrite_query", "retrieve")
     graph.add_edge("generate", END)
 
@@ -234,7 +274,8 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "question": question,
         "current_query": question,
         "sources": None,
-        "difficulty": 2,  # valeur par défaut écrasée par identify_sources
+        "difficulty": 2,
+        "initial_difficulty": 2,  # écrasé par identify_sources
         "docs": [],
         "sufficient": False,
         "grade_verdict": "",
@@ -243,11 +284,14 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
     })
 
     if verbose:
-        diff_labels = {1: "1 — factuel (2 appels LLM)", 2: "2 — synthèse (4 appels LLM)", 3: "3 — complexe (4-6 appels LLM)"}
-        print(f"[Agent] Difficulté détectée : {diff_labels.get(final_state['difficulty'], final_state['difficulty'])}")
+        diff_labels = {1: "factuel", 2: "synthèse", 3: "complexe"}
+        init_d = final_state["initial_difficulty"]
+        final_d = final_state["difficulty"]
+        upgrade_str = f" → remontée à 3 (pipeline complet)" if final_d > init_d else ""
+        print(f"[Agent] Difficulté : {init_d} — {diff_labels.get(init_d, '?')}{upgrade_str}")
         print(f"[Agent] Source(s) ciblée(s) : {', '.join(final_state['sources']) if final_state['sources'] else 'toutes (pas de filtre)'}")
         print(f"[Agent] Tentative(s) de retrieval : {final_state['attempts']}")
-        if final_state["difficulty"] > 1:
+        if final_d > 1 or final_state["attempts"] > 1:
             print(f"[Agent] Chunks jugés suffisants : {'oui' if final_state['sufficient'] else 'non'}")
 
     return final_state["answer"], final_state["docs"]

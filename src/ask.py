@@ -258,7 +258,7 @@ def _hyde(question: str) -> str:
     return _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 
 
-def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True) -> list[Document]:
+def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
     sémantique → BM25 → RRF → re-ranking.
@@ -267,6 +267,8 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     (le nom du fichier, ex: "ENS.pdf") figure dans cette liste. Utilisé par le RAG
     agentique (agent.py) pour cibler un document précis et éviter les confusions
     inter-documents (ex: la durée de stage ENS vs Sorbonne).
+    use_hyde=False : utilise la question brute pour la recherche sémantique au lieu d'une
+    réponse fictive — économise un appel LLM pour les questions factuelles (difficulté 1).
     verbose=False désactive tous les logs (utile pour l'évaluation silencieuse).
     Retourne la liste des K_FINAL chunks les plus pertinents.
     """
@@ -281,15 +283,20 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
         print(f"\n[DB] {vector_db._collection.count()} chunks dans la base")
         if sources:
             print(f"[Filtre] Recherche restreinte aux source(s) : {', '.join(sources)}")
-        print(f"\n[HyDE] Génération de la réponse hypothétique...")
 
-    # ── 1. Recherche sémantique (HyDE) ────────────────────────────────────────
-    # On embed une réponse fictive plutôt que la question brute : une réponse est stylistiquement
-    # plus proche des chunks indexés qu'une question, ce qui améliore la similarité cosinus.
-    # BM25 (étape 2) continue d'utiliser la question originale pour les correspondances exactes.
-    hyde_query = _hyde(question)
+    # ── 1. Recherche sémantique ───────────────────────────────────────────────
+    if use_hyde:
+        if verbose:
+            print(f"\n[HyDE] Génération de la réponse hypothétique...")
+        hyde_query = _hyde(question)
+        if verbose:
+            print(f"[HyDE] Réponse fictive : {_fmt(hyde_query)}")
+    else:
+        hyde_query = question
+        if verbose:
+            print("\n[HyDE] Ignoré — question factuelle (difficulté 1), recherche sémantique sur la question brute.")
+
     if verbose:
-        print(f"[HyDE] Réponse fictive : {_fmt(hyde_query)}")
         print(f"\n[Sémantique] Recherche MMR des {K_RETRIEVE} plus proches voisins diversifiés...")
     # MMR (Maximal Marginal Relevance) : sélectionne des chunks pertinents mais diversifiés entre eux,
     # en piochant parmi MMR_FETCH_K candidats. Ne renvoie pas de score de similarité (d'où le None).

@@ -14,20 +14,30 @@ DOCUMENTS_DIR = BASE_DIR / "documents"
 # 1 = exactement 2 retrievals possibles : l'initial + 1 reformulation ciblée.
 MAX_ATTEMPTS = 1
 
-SOURCE_PROMPT = """Voici la liste des documents disponibles dans la base : {sources}
+SOURCE_AND_DIFFICULTY_PROMPT = """Voici la liste des documents disponibles dans la base : {sources}
 
 Voici la question posée : {question}
 
-Quel(s) document(s) de cette liste sont nécessaires pour répondre à cette question ?
-- Si la question mentionne explicitement un établissement (ex: ENS, Sorbonne Université) ou un diplôme propre à un établissement (ex: DENS), choisis le document de cet établissement.
-- Si la question compare plusieurs établissements, ou ne mentionne aucun établissement et pourrait concerner n'importe lequel, écris "TOUS".
+Réponds en DEUX lignes exactement, dans cet ordre :
+
+SOURCES: [le(s) nom(s) de fichier(s) exact(s) séparés par une virgule, ou le mot TOUS]
+DIFFICULTE: [1, 2 ou 3]
+
+Règles pour SOURCES :
+- Si la question mentionne explicitement un établissement ou un diplôme propre à un établissement, indique le fichier correspondant.
+- Si la question compare plusieurs établissements ou ne mentionne aucun établissement précis, écris TOUS.
+
+Règles pour DIFFICULTE :
+- 1 = factuelle simple : cherche une valeur unique (nom, date, nombre, durée, liste courte) dans un seul document. Réponse en une phrase.
+- 2 = synthèse : demande une explication, un fonctionnement, ou plusieurs informations d'un même document.
+- 3 = complexe : comparaison entre documents, raisonnement croisé, ou question ouverte sans réponse directe.
 
 Exemples :
-Question : "Quelle est la durée totale de la formation du Diplôme de l'ENS ès Mathématiques (DENS) ?" → ENS.pdf
-Question : "Combien d'ECTS faut-il valider en Master 2 à Sorbonne Université ?" → SORBONNE.pdf
-Question : "Quelles sont les différences entre les stages de l'ENS et de Sorbonne Université ?" → TOUS
+Question : "Qui dirige le DMA en 2024-2025 ?" → SOURCES: ENS.pdf\nDIFFICULTE: 1
+Question : "Comment fonctionne le système de tutorat ?" → SOURCES: ENS.pdf\nDIFFICULTE: 2
+Question : "Quelles sont les différences entre les stages ENS et Sorbonne ?" → SOURCES: TOUS\nDIFFICULTE: 3
 
-Réponds uniquement par le(s) nom(s) de fichier(s) exact(s) séparés par une virgule, ou par "TOUS"."""
+Ne réponds rien d'autre que ces deux lignes."""
 
 GRADE_PROMPT = """Voici une question et des extraits de documents récupérés pour y répondre.
 
@@ -60,6 +70,7 @@ class AgentState(TypedDict):
     question: str               # la question originale, ne change jamais
     current_query: str          # la requête de recherche ACTUELLE (peut être reformulée en boucle)
     sources: list[str] | None   # source(s) identifiée(s) par identify_sources, ou None = chercher partout
+    difficulty: int             # 1=factuel, 2=synthèse, 3=complexe — détermine le pipeline utilisé
     docs: list[Document]        # pool cumulatif de tous les chunks récupérés (tous retrievals confondus)
     sufficient: bool            # verdict du dernier passage dans grade_documents
     grade_verdict: str          # verdict complet du grade (ex: "NON — durée du stage absente")
@@ -74,30 +85,38 @@ def _available_sources() -> list[str]:
 
 def identify_sources(state: AgentState) -> dict:
     """
-    Demande au LLM quel(s) document(s) sont concernés par la question, en lui donnant
-    la liste réelle des fichiers présents dans documents/ (découverte dynamique — aucun
-    nom d'établissement n'est codé en dur, donc ça reste valable si on ajoute des brochures).
-    Si la réponse ne correspond à aucun nom connu, ou si elle dit "TOUS", on ne filtre pas
-    (sources=None) : retrieve() cherchera alors dans toute la base.
+    Combine en un seul appel LLM l'identification de la/les source(s) ET la classification
+    de difficulté (1=factuel, 2=synthèse, 3=complexe). Zéro coût supplémentaire par rapport
+    à l'ancienne version — la difficulté est parsée depuis la même réponse.
+    Fallback : sources=None (cherche partout) et difficulty=2 si le LLM ne suit pas le format.
     """
     available = _available_sources()
-    prompt = SOURCE_PROMPT.format(sources=", ".join(available), question=state["question"])
+    prompt = SOURCE_AND_DIFFICULTY_PROMPT.format(sources=", ".join(available), question=state["question"])
     raw = _invoke_with_retry(prompt).strip()
 
-    if "tous" in raw.lower():
-        identified = None
-    else:
-        # Ne garde que les noms qui correspondent réellement à un fichier existant
-        # (le LLM peut halluciner un nom approchant — on ne lui fait pas confiance aveuglément)
-        matched = [name for name in available if name.lower() in raw.lower()]
-        identified = matched or None
+    # Parsing ligne par ligne — robuste aux sauts de ligne et aux espaces superflus
+    identified = None
+    difficulty = 2  # fallback : pipeline standard si le LLM dévie du format
+    for line in raw.splitlines():
+        line = line.strip()
+        if line.upper().startswith("SOURCES:"):
+            val = line.split(":", 1)[1].strip()
+            if "tous" not in val.lower():
+                matched = [name for name in available if name.lower() in val.lower()]
+                identified = matched or None
+        elif line.upper().startswith("DIFFICULTE:"):
+            val = line.split(":", 1)[1].strip()
+            if val in ("1", "2", "3"):
+                difficulty = int(val)
 
-    return {"sources": identified, "current_query": state["question"], "attempts": 0}
+    return {"sources": identified, "difficulty": difficulty, "current_query": state["question"], "attempts": 0}
 
 
 def retrieve_node(state: AgentState) -> dict:
-    """Lance le retrieval et construit le pool final selon le numéro de tentative."""
-    new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False)
+    """Lance le retrieval et construit le pool final selon le numéro de tentative.
+    HyDE est désactivé pour les questions de difficulté 1 (économise un appel LLM)."""
+    use_hyde = state["difficulty"] > 1
+    new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
     existing_contents = {d.page_content for d in state["docs"]}
     new_docs_deduped = [d for d in new_docs if d.page_content not in existing_contents]
@@ -152,15 +171,22 @@ def generate_node(state: AgentState) -> dict:
     return {"answer": _invoke_with_retry(prompt)}
 
 
+def _route_after_retrieve(state: AgentState) -> str:
+    """
+    Difficulté 1 : on génère directement après le retrieval, sans grade ni reformulation.
+    Difficulté 2/3 : on passe par grade_documents.
+    """
+    if state["difficulty"] == 1:
+        return "generate"
+    return "grade_documents"
+
+
 def _route_after_grading(state: AgentState) -> str:
     """
-    Conditionne la suite du graphe après grade_documents :
-    - chunks suffisants → on génère directement
-    - chunks insuffisants mais il reste des tentatives → on reformule et on recherche à nouveau
-    - chunks insuffisants et plus de tentatives → on génère quand même avec ce qu'on a
-      (mieux qu'une boucle infinie ou qu'un échec sec)
+    Difficulté 2 : on génère quoi qu'il arrive (pas de reformulation — une seule tentative suffit).
+    Difficulté 3 : reformulation possible si chunks insuffisants et tentatives restantes.
     """
-    if state["sufficient"] or state["attempts"] > MAX_ATTEMPTS:
+    if state["sufficient"] or state["attempts"] > MAX_ATTEMPTS or state["difficulty"] < 3:
         return "generate"
     return "rewrite_query"
 
@@ -175,7 +201,11 @@ def _build_agent():
 
     graph.add_edge(START, "identify_sources")
     graph.add_edge("identify_sources", "retrieve")
-    graph.add_edge("retrieve", "grade_documents")
+    graph.add_conditional_edges(
+        "retrieve",
+        _route_after_retrieve,
+        {"generate": "generate", "grade_documents": "grade_documents"},
+    )
     graph.add_conditional_edges(
         "grade_documents",
         _route_after_grading,
@@ -204,6 +234,7 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "question": question,
         "current_query": question,
         "sources": None,
+        "difficulty": 2,  # valeur par défaut écrasée par identify_sources
         "docs": [],
         "sufficient": False,
         "grade_verdict": "",
@@ -212,9 +243,12 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
     })
 
     if verbose:
+        diff_labels = {1: "1 — factuel (2 appels LLM)", 2: "2 — synthèse (4 appels LLM)", 3: "3 — complexe (4-6 appels LLM)"}
+        print(f"[Agent] Difficulté détectée : {diff_labels.get(final_state['difficulty'], final_state['difficulty'])}")
         print(f"[Agent] Source(s) ciblée(s) : {', '.join(final_state['sources']) if final_state['sources'] else 'toutes (pas de filtre)'}")
         print(f"[Agent] Tentative(s) de retrieval : {final_state['attempts']}")
-        print(f"[Agent] Chunks jugés suffisants : {'oui' if final_state['sufficient'] else 'non'}")
+        if final_state["difficulty"] > 1:
+            print(f"[Agent] Chunks jugés suffisants : {'oui' if final_state['sufficient'] else 'non'}")
 
     return final_state["answer"], final_state["docs"]
 

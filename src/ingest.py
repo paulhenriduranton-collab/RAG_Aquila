@@ -350,6 +350,7 @@ def main():
     print(f"{len(chunks)} chunk(s) créé(s).")
 
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+    VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)  # les bindings Rust de ChromaDB ne créent pas le dossier s'il n'existe pas
     batch_size = 50  # envoi par lots pour ne pas saturer Ollama (évite les timeouts sur grosses bases)
     db = None
     for i in range(0, len(chunks), batch_size):

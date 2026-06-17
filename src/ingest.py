@@ -18,9 +18,10 @@ DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fi
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
 CONTEXT_MODEL = "gemma4:12b"  # LLM pour générer une phrase de contexte par chunk (contextual retrieval)
-MIN_CHUNK_SIZE = 400  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
+MIN_CHUNK_SIZE = 500  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
 PAGE_OVERLAP_CHARS = 300  # début de la page suivante recopié en fin de chaque page, pour ne pas couper
                            # une liste/section à cheval sur deux pages (cf. problème "coupure de listes")
+FINAL_OVERLAP_CHARS = 200  # overlap copié systématiquement entre tous les chunks adjacents d'une même page
 
 # Demande une liste de mots-clés sur le SUJET PRÉCIS du chunk (le LLM ne voit que le chunk,
 # pas le document entier — il ne peut donc pas deviner fiablement l'établissement, le niveau
@@ -120,6 +121,31 @@ def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) 
             )
         merged.append(buffer)
     return merged
+
+
+def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVERLAP_CHARS) -> list[Document]:
+    """
+    Copie les `overlap` derniers caractères du chunk i au début du chunk i+1, pour tous
+    les chunks adjacents d'une même page. RecursiveCharacterTextSplitter ne produit de
+    l'overlap que quand il coupe un chunk > chunk_size — deux chunks courts (< 1000 chars)
+    n'ont donc aucun recouvrement entre eux. Sans cet overlap, une information qui tombe
+    exactement à la frontière entre deux chunks (ex: "Enseignant référent : Marc Lelarge"
+    juste après une description de filière) risque d'être isolée et mal retrouvée.
+    Le cross-page est déjà géré par PAGE_OVERLAP_CHARS dans _load_pdf — cette fonction
+    ne s'applique qu'à l'intérieur d'une même page.
+    Les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD dans ask.py.
+    """
+    if len(chunks) <= 1:
+        return chunks
+    result = [chunks[0]]
+    for i in range(1, len(chunks)):
+        # Copie la queue du chunk précédent en tête du chunk courant
+        tail = chunks[i - 1].page_content[-overlap:]
+        result.append(Document(
+            page_content=tail + "\n\n" + chunks[i].page_content,
+            metadata=chunks[i].metadata,
+        ))
+    return result
 
 
 def _restart_ollama():
@@ -223,6 +249,11 @@ def _split_documents(documents: list[Document]) -> list[Document]:
        de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
     4. Filtre les chunks dont le contenu utile est trop court (< MIN_CONTENT_SIZE) — évite
        d'envoyer au LLM des chunks ne contenant qu'un numéro de page ou un symbole isolé.
+    4b. _add_overlap_between_chunks — copie les FINAL_OVERLAP_CHARS derniers chars du chunk i
+       au début du chunk i+1 pour tous les chunks adjacents, intra ET inter-page. Appliqué
+       après la boucle sur tous les all_chunks finaux. Évite de perdre une information à la
+       frontière entre deux chunks (ex: "Enseignant référent : Marc Lelarge" après une
+       description de filière).
     5. _contextualize_chunks — ajoute en tête de chaque chunk final une ligne de contexte
        combinant métadonnées déterministes (source, page, chemin de titres) et mots-clés
        générés par le LLM sur le sujet précis du chunk, pour que la recherche dispose d'un
@@ -286,6 +317,12 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         # Checkpoint : sauvegarde la progression pour pouvoir reprendre après un crash llama-server
         with open(checkpoint_path, "wb") as f:
             pickle.dump({"chunks": all_chunks, "next_index": i + 1}, f)
+
+    # Étape 4b : overlap systématique entre tous les chunks adjacents (intra ET inter-page).
+    # Appliqué après la boucle pour couvrir aussi les frontières entre pages. La queue copiée
+    # est les FINAL_OVERLAP_CHARS derniers chars de contenu du chunk i (le préfixe de contexte
+    # "[source | p.X | ...]" est en tête de chunk, donc la queue est du contenu pur).
+    all_chunks = _add_overlap_between_chunks(all_chunks)
 
     return all_chunks
 

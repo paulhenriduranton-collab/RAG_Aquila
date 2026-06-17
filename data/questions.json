@@ -159,13 +159,13 @@
     "id": "L3_ENS_002",
     "niveau": 3,
     "source": "ENS",
-    "question": "Quelles sont les quatre notes de bas de tableau (numérotées de 1 à 4) du tableau des règles d'obtention de la deuxième année (M1), et à quels cours ou groupes de cours du tableau s'appliquent-elles ?",
-    "reponse_attendue": "Les quatre notes du tableau de la deuxième année sont : (1) Comptabilisé pour le M1 si ne compte pas pour la L3 — appliquée au cours d'Analyse complexe parmi les cours fondamentaux de M1 ; (2) Cours accessible dès la 1ère année — appliquée aux cours Analyse fonctionnelle, Géométrie différentielle et Logique parmi les fondamentaux, ainsi qu'à Statistique et Topologie algébrique parmi les complémentaires ; (3) Cours recommandé pour la filière maths/biologie — appliquée au cours Processus stochastiques parmi les fondamentaux ; (4) Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025 — appliquée au cours Spectre des surfaces hyperboliques aléatoires parmi les cours complémentaires.",
+    "question": "Dans le tableau des règles d'obtention de la deuxième année (M1), que signifient les annotations (1), (2), (3) et (4) associées à certains cours, et à quels cours s'applique chacune d'elles ?",
+    "reponse_attendue": "Les quatre annotations du tableau de la deuxième année signifient : (1) « Comptabilisé pour le M1 si ne compte pas pour la L3 » — s'applique au cours d'Analyse complexe parmi les cours fondamentaux de M1 ; (2) « Cours accessible dès la 1ère année » — s'applique aux cours Analyse fonctionnelle, Géométrie différentielle et Logique parmi les fondamentaux, ainsi qu'à Statistique et Topologie algébrique parmi les complémentaires ; (3) « Cours recommandé pour la filière maths/biologie » — s'applique au cours Processus stochastiques parmi les fondamentaux ; (4) « Cours au Collège de France du 6 novembre 2024 au 22 janvier 2025 » — s'applique au cours Spectre des surfaces hyperboliques aléatoires parmi les cours complémentaires.",
     "doc": "Brochure ENS DMA 2024-2025",
     "pages": "Page 22",
-    "section": "Enseignement → Règles d'obtention → Deuxième année → tableau des cours fondamentaux/complémentaires/groupe de travail, avec les exposants (1), (2), (3), (4) sur les noms de cours et les quatre notes explicatives en bas de page.",
-    "type_source": "Tableau structuré avec quatre notes de bas de tableau numérotées, à associer chacune au(x) cours marqué(s) du même chiffre dans le corps du tableau",
-    "difficulte_rag": "Élevée — il faut associer chaque note numérotée à plusieurs cours différents marqués du même exposant dans le tableau, ce qui demande de bien lier le corps du tableau et ses notes de bas de page sans les séparer dans le chunking."
+    "section": "Enseignement → Règles d'obtention → Deuxième année → tableau des cours fondamentaux/complémentaires/groupe de travail, avec les exposants (1), (2), (3), (4) sur les noms de cours et les quatre légendes explicatives en bas du tableau.",
+    "type_source": "Tableau structuré avec quatre annotations numérotées en légende de bas de tableau, à associer chacune au(x) cours marqué(s) du même exposant dans le corps du tableau",
+    "difficulte_rag": "Élevée — il faut associer chaque annotation numérotée à plusieurs cours différents marqués du même exposant dans le tableau, ce qui demande de bien lier le corps du tableau et ses légendes sans les séparer dans le chunking."
   },
   {
     "id": "L3_ENS_003",

@@ -318,6 +318,11 @@ def _split_documents(documents: list[Document]) -> list[Document]:
             # Étape 4 : filtre les chunks dont le contenu utile est trop court
             sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
 
+            # Étape 4a : numérote chaque chunk dans la page (0, 1, 2…) pour pouvoir retrouver
+            # le premier chunk de la page suivante lors de l'expansion de troncature
+            for idx, chunk in enumerate(sub_chunks):
+                chunk.metadata["chunk_index"] = idx
+
             if sub_chunks:
                 # Étape 5 : ajoute une ligne de contexte (métadonnées + mots-clés LLM) en tête de chaque chunk
                 sub_chunks = _contextualize_chunks(sub_chunks, context_llm)

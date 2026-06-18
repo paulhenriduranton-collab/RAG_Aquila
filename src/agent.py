@@ -5,7 +5,10 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
+from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL, VECTOR_DB_DIR, EMBED_MODEL
+
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
 
 # Détecte les marqueurs de coupure de page produits par pymupdf4llm.
 # Pattern 1 — "PAGE **19** SUR 78", "i— PAGE 9 SUR 78" (ENS)
@@ -157,7 +160,9 @@ def retrieve_node(state: AgentState) -> dict:
     HyDE est désactivé pour les questions de difficulté 1 (économise un appel LLM).
     Pour le 1er retrieval d'une question décomposée (difficulté 3), on lance une
     requête par sous-question puis on fusionne et re-rank sur la question originale."""
-    use_hyde = state["difficulty"] > 1
+    # HyDE activé uniquement au 1er retrieve des questions non-factuelles.
+    # Au 2ème retrieve la query est déjà reformulée par rewrite_query → HyDE serait redondant.
+    use_hyde = state["difficulty"] > 1 and state["attempts"] == 0
 
     if state["attempts"] == 0 and state["sub_queries"]:
         # Retrieval multi-sous-requêtes : HyDE désactivé car les sous-requêtes sont déjà
@@ -200,6 +205,44 @@ def _looks_truncated(text: str) -> bool:
 
 def _has_truncation(docs: list[Document]) -> bool:
     return any(_looks_truncated(doc.page_content) for doc in docs)
+
+
+def _expand_truncated(state: AgentState) -> dict:
+    """Pour les questions factuelles (difficulté 1) avec troncature : récupère le premier
+    chunk (chunk_index=0) de la page suivante dans ChromaDB au lieu de reformuler la question.
+    Zéro appel LLM — simple requête metadata (source + page+1 + chunk_index=0)."""
+    docs = list(state["docs"])
+    embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+    vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
+
+    # Collecte les contenus déjà présents pour éviter les doublons
+    existing_contents = {d.page_content for d in docs}
+    insertions: list[tuple[int, Document]] = []
+
+    for i, doc in enumerate(docs):
+        if not _looks_truncated(doc.page_content):
+            continue
+        source = doc.metadata.get("source")
+        page = doc.metadata.get("page")
+        if not source or not page:
+            continue
+
+        # Requête ChromaDB : premier chunk de la page suivante du même document
+        neighbors = vector_db.get(
+            where={"$and": [{"source": source}, {"page": page + 1}, {"chunk_index": 0}]},
+            include=["documents", "metadatas"],
+        )
+        if neighbors["documents"]:
+            text, meta = neighbors["documents"][0], neighbors["metadatas"][0]
+            if text not in existing_contents:
+                insertions.append((i, Document(page_content=text, metadata=meta)))
+                existing_contents.add(text)
+
+    # Insère le voisin juste après chaque chunk tronqué (en partant de la fin pour garder les indices valides)
+    for i, neighbor_doc in reversed(insertions):
+        docs.insert(i + 1, neighbor_doc)
+
+    return {"docs": docs}
 
 
 def _annotate_context(docs: list[Document]) -> str:
@@ -257,13 +300,17 @@ def generate_node(state: AgentState) -> dict:
 def _route_after_retrieve(state: AgentState) -> str:
     """
     Difficulté 1 : vérifie la troncature (sans appel LLM).
-      → troncature détectée : upgrade_difficulty pour débloquer la reformulation
+      → troncature détectée : expand_truncated (récupère les chunks voisins sans reformuler)
       → pas de troncature : generate directement
-    Difficulté 2/3 : grade_documents.
+    Difficulté 2/3, dernier retrieve (attempts > MAX_ATTEMPTS) : generate directement
+      (le grade ne changerait rien, on économise un appel LLM).
+    Difficulté 2/3, 1er retrieve : grade_documents.
     """
     if state["difficulty"] == 1:
         if _has_truncation(state["docs"]):
-            return "upgrade_difficulty"
+            return "expand_truncated"
+        return "generate"
+    if state["attempts"] > MAX_ATTEMPTS:
         return "generate"
     return "grade_documents"
 
@@ -286,6 +333,7 @@ def _build_agent():
     graph.add_node("identify_sources", identify_sources)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("grade_documents", grade_documents)
+    graph.add_node("expand_truncated", _expand_truncated)
     graph.add_node("upgrade_difficulty", upgrade_difficulty)
     graph.add_node("rewrite_query", rewrite_query)
     graph.add_node("generate", generate_node)
@@ -295,8 +343,9 @@ def _build_agent():
     graph.add_conditional_edges(
         "retrieve",
         _route_after_retrieve,
-        {"generate": "generate", "grade_documents": "grade_documents", "upgrade_difficulty": "upgrade_difficulty"},
+        {"generate": "generate", "grade_documents": "grade_documents", "expand_truncated": "expand_truncated"},
     )
+    graph.add_edge("expand_truncated", "generate")
     graph.add_conditional_edges(
         "grade_documents",
         _route_after_grading,

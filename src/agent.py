@@ -293,14 +293,18 @@ def upgrade_difficulty(state: AgentState) -> dict:
 
 def generate_node(state: AgentState) -> dict:
     """Génère la réponse finale à partir du pool cumulatif de tous les chunks récupérés."""
+    # Aucun chunk récupéré → inutile d'appeler le LLM
+    _fallback = "Je ne trouve pas cette information dans les documents fournis."
     if not state["docs"]:
-        return {"answer": "Je ne trouve pas cette information dans les documents fournis."}
+        return {"answer": _fallback}
     context = "\n\n---\n\n".join(
         f"Source : {doc.metadata.get('source', '?')}\n{doc.page_content}"
         for doc in state["docs"]
     )
     prompt = PROMPT_PATH.read_text(encoding="utf-8").format(question=state["question"], context=context)
-    return {"answer": _invoke_with_retry(prompt)}
+    answer = _invoke_with_retry(prompt).strip()
+    # Le LLM peut renvoyer une chaîne vide (timeout silencieux, réponse tronquée…)
+    return {"answer": answer if answer else _fallback}
 
 
 def _route_after_retrieve(state: AgentState) -> str:

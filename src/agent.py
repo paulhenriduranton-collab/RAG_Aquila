@@ -160,7 +160,9 @@ def retrieve_node(state: AgentState) -> dict:
     HyDE est désactivé pour les questions de difficulté 1 (économise un appel LLM).
     Pour le 1er retrieval d'une question décomposée (difficulté 3), on lance une
     requête par sous-question puis on fusionne et re-rank sur la question originale."""
-    use_hyde = state["difficulty"] > 1
+    # HyDE activé uniquement au 1er retrieve des questions non-factuelles.
+    # Au 2ème retrieve la query est déjà reformulée par rewrite_query → HyDE serait redondant.
+    use_hyde = state["difficulty"] > 1 and state["attempts"] == 0
 
     if state["attempts"] == 0 and state["sub_queries"]:
         # Retrieval multi-sous-requêtes : HyDE désactivé car les sous-requêtes sont déjà
@@ -206,16 +208,16 @@ def _has_truncation(docs: list[Document]) -> bool:
 
 
 def _expand_truncated(state: AgentState) -> dict:
-    """Pour les questions factuelles (difficulté 1) avec troncature : récupère les chunks
-    de la page suivante dans ChromaDB au lieu de reformuler la question.
-    Zéro appel LLM — simple requête metadata (source + page+1)."""
+    """Pour les questions factuelles (difficulté 1) avec troncature : récupère le premier
+    chunk (chunk_index=0) de la page suivante dans ChromaDB au lieu de reformuler la question.
+    Zéro appel LLM — simple requête metadata (source + page+1 + chunk_index=0)."""
     docs = list(state["docs"])
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
 
     # Collecte les contenus déjà présents pour éviter les doublons
     existing_contents = {d.page_content for d in docs}
-    insertions: list[tuple[int, list[Document]]] = []
+    insertions: list[tuple[int, Document]] = []
 
     for i, doc in enumerate(docs):
         if not _looks_truncated(doc.page_content):
@@ -225,22 +227,20 @@ def _expand_truncated(state: AgentState) -> dict:
         if not source or not page:
             continue
 
-        # Requête ChromaDB : chunks du même document, page suivante
+        # Requête ChromaDB : premier chunk de la page suivante du même document
         neighbors = vector_db.get(
-            where={"$and": [{"source": source}, {"page": page + 1}]},
+            where={"$and": [{"source": source}, {"page": page + 1}, {"chunk_index": 0}]},
             include=["documents", "metadatas"],
         )
-        neighbor_docs = []
-        for text, meta in zip(neighbors["documents"], neighbors["metadatas"]):
+        if neighbors["documents"]:
+            text, meta = neighbors["documents"][0], neighbors["metadatas"][0]
             if text not in existing_contents:
-                neighbor_docs.append(Document(page_content=text, metadata=meta))
+                insertions.append((i, Document(page_content=text, metadata=meta)))
                 existing_contents.add(text)
-        if neighbor_docs:
-            insertions.append((i, neighbor_docs))
 
-    # Insère les voisins juste après chaque chunk tronqué (en partant de la fin pour garder les indices valides)
-    for i, neighbor_docs in reversed(insertions):
-        docs[i:i+1] = [docs[i]] + neighbor_docs
+    # Insère le voisin juste après chaque chunk tronqué (en partant de la fin pour garder les indices valides)
+    for i, neighbor_doc in reversed(insertions):
+        docs.insert(i + 1, neighbor_doc)
 
     return {"docs": docs}
 
@@ -302,11 +302,15 @@ def _route_after_retrieve(state: AgentState) -> str:
     Difficulté 1 : vérifie la troncature (sans appel LLM).
       → troncature détectée : expand_truncated (récupère les chunks voisins sans reformuler)
       → pas de troncature : generate directement
-    Difficulté 2/3 : grade_documents.
+    Difficulté 2/3, dernier retrieve (attempts > MAX_ATTEMPTS) : generate directement
+      (le grade ne changerait rien, on économise un appel LLM).
+    Difficulté 2/3, 1er retrieve : grade_documents.
     """
     if state["difficulty"] == 1:
         if _has_truncation(state["docs"]):
             return "expand_truncated"
+        return "generate"
+    if state["attempts"] > MAX_ATTEMPTS:
         return "generate"
     return "grade_documents"
 

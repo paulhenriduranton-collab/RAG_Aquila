@@ -5,7 +5,10 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
+from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL, VECTOR_DB_DIR, EMBED_MODEL
+
+from langchain_chroma import Chroma
+from langchain_ollama import OllamaEmbeddings
 
 # Détecte les marqueurs de coupure de page produits par pymupdf4llm.
 # Pattern 1 — "PAGE **19** SUR 78", "i— PAGE 9 SUR 78" (ENS)
@@ -202,6 +205,46 @@ def _has_truncation(docs: list[Document]) -> bool:
     return any(_looks_truncated(doc.page_content) for doc in docs)
 
 
+def _expand_truncated(state: AgentState) -> dict:
+    """Pour les questions factuelles (difficulté 1) avec troncature : récupère les chunks
+    de la page suivante dans ChromaDB au lieu de reformuler la question.
+    Zéro appel LLM — simple requête metadata (source + page+1)."""
+    docs = list(state["docs"])
+    embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+    vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
+
+    # Collecte les contenus déjà présents pour éviter les doublons
+    existing_contents = {d.page_content for d in docs}
+    insertions: list[tuple[int, list[Document]]] = []
+
+    for i, doc in enumerate(docs):
+        if not _looks_truncated(doc.page_content):
+            continue
+        source = doc.metadata.get("source")
+        page = doc.metadata.get("page")
+        if not source or not page:
+            continue
+
+        # Requête ChromaDB : chunks du même document, page suivante
+        neighbors = vector_db.get(
+            where={"$and": [{"source": source}, {"page": page + 1}]},
+            include=["documents", "metadatas"],
+        )
+        neighbor_docs = []
+        for text, meta in zip(neighbors["documents"], neighbors["metadatas"]):
+            if text not in existing_contents:
+                neighbor_docs.append(Document(page_content=text, metadata=meta))
+                existing_contents.add(text)
+        if neighbor_docs:
+            insertions.append((i, neighbor_docs))
+
+    # Insère les voisins juste après chaque chunk tronqué (en partant de la fin pour garder les indices valides)
+    for i, neighbor_docs in reversed(insertions):
+        docs[i:i+1] = [docs[i]] + neighbor_docs
+
+    return {"docs": docs}
+
+
 def _annotate_context(docs: list[Document]) -> str:
     """Construit le contexte pour grade_documents en signalant les chunks tronqués."""
     parts = []
@@ -257,13 +300,13 @@ def generate_node(state: AgentState) -> dict:
 def _route_after_retrieve(state: AgentState) -> str:
     """
     Difficulté 1 : vérifie la troncature (sans appel LLM).
-      → troncature détectée : upgrade_difficulty pour débloquer la reformulation
+      → troncature détectée : expand_truncated (récupère les chunks voisins sans reformuler)
       → pas de troncature : generate directement
     Difficulté 2/3 : grade_documents.
     """
     if state["difficulty"] == 1:
         if _has_truncation(state["docs"]):
-            return "upgrade_difficulty"
+            return "expand_truncated"
         return "generate"
     return "grade_documents"
 
@@ -286,6 +329,7 @@ def _build_agent():
     graph.add_node("identify_sources", identify_sources)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("grade_documents", grade_documents)
+    graph.add_node("expand_truncated", _expand_truncated)
     graph.add_node("upgrade_difficulty", upgrade_difficulty)
     graph.add_node("rewrite_query", rewrite_query)
     graph.add_node("generate", generate_node)
@@ -295,8 +339,9 @@ def _build_agent():
     graph.add_conditional_edges(
         "retrieve",
         _route_after_retrieve,
-        {"generate": "generate", "grade_documents": "grade_documents", "upgrade_difficulty": "upgrade_difficulty"},
+        {"generate": "generate", "grade_documents": "grade_documents", "expand_truncated": "expand_truncated"},
     )
+    graph.add_edge("expand_truncated", "generate")
     graph.add_conditional_edges(
         "grade_documents",
         _route_after_grading,

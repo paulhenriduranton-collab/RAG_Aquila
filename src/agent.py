@@ -71,6 +71,11 @@ Extraits récupérés :
 {context}
 
 Ces extraits contiennent-ils l'information nécessaire pour répondre correctement à la question ?
+
+ATTENTION — Avant de répondre OUI, vérifie :
+- Que l'information trouvée correspond bien à l'entité PRÉCISE de la question (bon cours, bon programme, bon enseignant, bonne année, etc.), et pas à une entité voisine présente dans le même extrait.
+- Qu'un extrait peut contenir des informations de PLUSIEURS sections ou cours différents mélangés. Ne pas attribuer une information (horaires, ECTS, enseignant...) à une entité simplement parce qu'elles apparaissent dans le même extrait.
+
 - Si oui, réponds uniquement : OUI
 - Si non, réponds : NON — [explique en 1 phrase ce qui manque précisément dans les extraits]
 - Si un extrait est marqué [⚠ TRONQUÉ], considère que la liste ou la phrase est incomplète et réponds NON en précisant que la suite manque.
@@ -78,7 +83,8 @@ Ces extraits contiennent-ils l'information nécessaire pour répondre correcteme
 Exemples de réponse NON :
 NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale
 NON — aucun extrait ne précise les conditions géographiques requises
-NON — l'extrait est tronqué, les cours du 2ème semestre et le stage sont absents"""
+NON — l'extrait est tronqué, les cours du 2ème semestre et le stage sont absents
+NON — les horaires présents dans l'extrait appartiennent à un autre cours, pas à celui demandé"""
 
 REWRITE_PROMPT = """La recherche suivante n'a pas permis de retrouver une information suffisante pour répondre à la question.
 

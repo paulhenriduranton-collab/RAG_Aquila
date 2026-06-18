@@ -1,14 +1,16 @@
 import os
 import pickle
+import re
 import subprocess
 import time
+from collections import Counter
 from pathlib import Path
 
 import ftfy          # répare les encodages cassés dans les textes extraits de PDF
 import pymupdf4llm  # convertit les PDF en Markdown structuré (meilleur que l'extraction brute PyMuPDF)
-from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma  # base de données vectorielle locale
-from langchain_ollama import OllamaEmbeddings, OllamaLLM  # génère les embeddings et contextualise les chunks via Ollama
+from langchain_ollama import OllamaEmbeddings, OllamaLLM  # génère les embeddings et fait le split agentic via Ollama
 from langchain_community.document_loaders import TextLoader, Docx2txtLoader  # loaders pour .txt et .docx
 from langchain_core.documents import Document  # objet LangChain : texte + métadonnées
 
@@ -17,111 +19,43 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
-CONTEXT_MODEL = "gemma2:2b"   # LLM pour générer une phrase de contexte par chunk — gemma2:2b suffisant pour l'extraction de mots-clés, 4x plus rapide que gemma4:12b
-MIN_CHUNK_SIZE = 500  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
-# Limite maximale d'overlap si aucune frontière sémantique (titre ou ligne vide) n'est trouvée
-MAX_OVERLAP_CHARS = 800
+SPLIT_MODEL = "gemma2:2b"  # LLM pour le split agentic — gemma2:2b suffisant pour insérer des marqueurs
 
-# Demande une liste de mots-clés sur le SUJET PRÉCIS du chunk (le LLM ne voit que le chunk,
-# pas le document entier — il ne peut donc pas deviner fiablement l'établissement, le niveau
-# ou le parcours si ce n'est pas écrit dans le chunk lui-même). Ces informations structurelles
-# sont ajoutées séparément, de façon déterministe, à partir des métadonnées (source, page,
-# hiérarchie de titres h1/h2/h3 capturée par MarkdownHeaderTextSplitter) — voir _contextualize_chunks.
-CONTEXT_PROMPT = """Passage :
-{chunk}
+# Seuils du pipeline
+MAX_CHUNK_SIZE = 2000         # au-delà, un chunk est redécoupé par le fallback déterministe
+MIN_CONTENT_SIZE = 30         # en dessous, un chunk est éliminé (bruit : numéro de page isolé, etc.)
+MIN_PAGE_SIZE_FOR_SPLIT = 300 # en dessous, la page est gardée telle quelle sans passer par le LLM
+TOC_DOT_RATIO = 0.3          # proportion de lignes à points de suspension pour détecter une table des matières
 
-SORTIE ATTENDUE : une liste de 3 à 6 mots-clés séparés par des virgules. Rien d'autre.
+# Marqueur que le LLM doit insérer entre les sections logiques
+SPLIT_MARKER = "===SPLIT==="
 
-EXEMPLES VALIDES :
-algèbre linéaire, ECTS, semestre 1, prérequis
-stage, durée minimale, validation, étranger
-enseignant référent, filière, informatique
+# Prompt pour le split agentic — le LLM insère des marqueurs sans modifier le texte
+SPLIT_PROMPT = """Texte d'une page de brochure universitaire :
+---
+{page_text}
+---
 
-EXEMPLES INVALIDES (ne jamais produire) :
-Ce passage décrit... → INTERDIT
-Ce passage concerne... → INTERDIT
-Le texte présente... → INTERDIT
-Toute phrase avec un verbe conjugué → INTERDIT
+Insère le marqueur ===SPLIT=== entre chaque section logique distincte (changement de sujet, nouveau paragraphe thématique, nouveau tableau).
+Ne modifie pas le texte. Insère uniquement des marqueurs ===SPLIT=== aux endroits appropriés.
+Ne coupe jamais à l'intérieur d'un tableau (lignes commençant par |).
+Si la page entière porte sur un seul sujet, ne mets aucun marqueur.
 
-Règles :
-- Noms et expressions nominales uniquement, jamais de verbe conjugué.
-- Pas de guillemets, pas de tirets, pas de numérotation.
-- Ne pas mentionner d'établissement ni de niveau (M1/M2) : non disponible dans ce passage.
-Réponds par la liste uniquement."""
+Texte avec marqueurs :"""
 
-
-def _snap_overlap_start(text: str) -> str:
-    """Supprime le fragment de mot tronqué en début de texte d'overlap
-    (ex: 're une formation...' → 'une formation...')."""
-    if not text or text[0] in (" ", "\n"):
-        return text.lstrip()
-    idx = text.find(" ")
-    return text[idx:].lstrip() if idx != -1 else text
-
-
-def _snap_overlap_end(text: str) -> str:
-    """Supprime le fragment de mot tronqué en fin de texte d'overlap
-    (ex: '...d\'eff' → '...d\'')."""
-    if not text or text[-1] in (" ", "\n"):
-        return text.rstrip()
-    idx = text.rfind(" ")
-    return text[:idx] if idx != -1 else text
-
-
-def _overlap_until_next_boundary(text: str) -> str:
-    """Extrait le texte depuis le début jusqu'à la prochaine frontière sémantique
-    (titre Markdown ou ligne vide), au lieu d'un nombre fixe de caractères.
-    Fallback sur MAX_OVERLAP_CHARS si aucune frontière trouvée."""
-    if not text:
-        return ""
-    # Cherche dans les MAX_OVERLAP_CHARS premiers caractères
-    search_text = text[:MAX_OVERLAP_CHARS]
-    boundaries = []
-    # Ligne vide = fin de paragraphe
-    pos = search_text.find("\n\n")
-    if pos > 0:
-        boundaries.append(pos)
-    # Titres Markdown (début de nouvelle section)
-    for marker in ["\n# ", "\n## ", "\n### "]:
-        pos = search_text.find(marker)
-        if pos > 0:
-            boundaries.append(pos)
-    if boundaries:
-        return text[:min(boundaries)]
-    # Aucune frontière : fallback sur la limite maximale, coupé au dernier mot complet
-    return _snap_overlap_end(search_text)
-
-
-def _overlap_from_last_boundary(text: str) -> str:
-    """Extrait le texte depuis la dernière frontière sémantique jusqu'à la fin,
-    au lieu d'un nombre fixe de caractères.
-    Fallback sur MAX_OVERLAP_CHARS si aucune frontière trouvée."""
-    if not text:
-        return ""
-    # Cherche dans les MAX_OVERLAP_CHARS derniers caractères
-    search_text = text[-MAX_OVERLAP_CHARS:] if len(text) > MAX_OVERLAP_CHARS else text
-    boundaries = []
-    # Ligne vide = début d'un nouveau paragraphe
-    pos = search_text.rfind("\n\n")
-    if pos >= 0 and pos < len(search_text) - 2:
-        boundaries.append(pos + 2)
-    # Titres Markdown (début de nouvelle section)
-    for marker in ["\n# ", "\n## ", "\n### "]:
-        pos = search_text.rfind(marker)
-        if pos >= 0 and pos < len(search_text) - len(marker):
-            boundaries.append(pos + 1)
-    if boundaries:
-        # Prend la frontière la plus proche de la fin (dernier paragraphe/section)
-        return search_text[max(boundaries):]
-    # Aucune frontière : fallback sur la limite maximale, coupé au premier mot complet
-    return _snap_overlap_start(search_text)
+# Stopwords français pour l'extraction déterministe de mots-clés
+_STOPWORDS = frozenset(
+    "le la les de du des un une et en est pour dans par sur avec qui que au aux"
+    " ce cette ces son sa ses leur leurs nous vous ils elles on ne pas plus ou"
+    " tout tous toute toutes autre autres même être avoir fait faire peut sont"
+    " a été sera entre dont aussi bien très comme lors d l qu s n c y".split()
+)
 
 
 def _load_pdf(pdf_path: Path) -> list[Document]:
     """
     Convertit un PDF en Markdown via pymupdf4llm, une page à la fois.
     Chaque page devient un Document indépendant avec son numéro de page en métadonnée.
-    Avantage : un tableau qui tient sur une page ne sera jamais coupé entre deux chunks.
     Les pages vides (couverture, pages blanches) sont ignorées.
     """
     pages = pymupdf4llm.to_markdown(str(pdf_path), page_chunks=True)
@@ -130,19 +64,11 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
         text = ftfy.fix_text(page["text"])  # répare les accents cassés (ex: `a → à, ´e → é)
         if not text.strip():  # ignore les pages sans contenu (couvertures, pages blanches)
             continue
-        page_num = page["metadata"].get("page_number", 0)  # numéro de page 0-indexé (int) — la clé est "page_number", pas "page"
+        page_num = page["metadata"].get("page_number", 0)  # numéro de page 0-indexé
         documents.append(Document(
             page_content=text,
             metadata={"source": pdf_path.name, "page": page_num + 1},  # +1 pour afficher en 1-indexé
         ))
-
-    # Chevauchement entre pages : recopie le début de chaque page (jusqu'au prochain titre
-    # ou ligne vide) à la fin de la précédente, pour ne pas couper une section à cheval.
-    for i in range(len(documents) - 1):
-        next_start = _overlap_until_next_boundary(documents[i + 1].page_content)
-        if next_start.strip():
-            documents[i].page_content += "\n\n" + next_start
-
     return documents
 
 
@@ -172,88 +98,87 @@ def load_documents() -> list[Document]:
     return documents
 
 
-def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) -> list[Document]:
+def _is_toc_page(text: str) -> bool:
     """
-    Fusionne avec son voisin tout chunk trop court (ex: une simple ligne de calendrier
-    isolée sous son propre titre, du type "## Fin des cours \n Vendredi 17 janvier 2025").
-    Un chunk de 50-100 caractères est trop pauvre en mots pour être bien classé par la
-    recherche sémantique/BM25 — il se fait systématiquement déclasser par des chunks plus
-    longs et plus riches en mots-clés, même issus d'un autre document.
+    Détecte une page de table des matières en comptant les lignes contenant des points de
+    suspension ('. . .' ou '...'), caractéristiques des entrées de TdM.
     """
-    merged: list[Document] = []
-    buffer: Document | None = None
-    for chunk in chunks:
-        buffer = chunk if buffer is None else Document(
-            page_content=buffer.page_content + "\n\n" + chunk.page_content,
-            metadata=buffer.metadata,
-        )
-        if len(buffer.page_content) >= min_size:
-            merged.append(buffer)
-            buffer = None
-    if buffer is not None:  # reliquat final trop court : on le rattache au chunk précédent
-        if merged:
-            previous = merged.pop()
-            buffer = Document(
-                page_content=previous.page_content + "\n\n" + buffer.page_content,
-                metadata=previous.metadata,
-            )
-        merged.append(buffer)
-    return merged
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return False
+    dot_lines = sum(1 for l in lines if ". . ." in l or "..." in l)
+    return dot_lines / len(lines) > TOC_DOT_RATIO
 
 
-def _strip_context_prefix(text: str) -> tuple[str, str]:
-    """Sépare la ligne de contexte '[source | page | ...]' du contenu brut du chunk."""
-    if text.startswith("["):
-        end = text.find("]\n\n")
-        if end != -1:
-            return text[:end + 1], text[end + 3:]
-    return "", text
+def _clean_page_text(text: str) -> str:
+    """
+    Nettoie le Markdown brut d'une page avant de le passer au LLM :
+    - déduplique les lignes consécutives identiques (ex: "BROCHURE ENSEIGNEMENT 2024 2025" répété)
+    - supprime les lignes vides en excès (max 2 consécutives)
+    """
+    lines = text.splitlines()
+    cleaned = []
+    prev_line = None
+    for line in lines:
+        stripped = line.strip()
+        # Déduplique les lignes consécutives identiques
+        if stripped and stripped == prev_line:
+            continue
+        cleaned.append(line)
+        prev_line = stripped
+    result = "\n".join(cleaned)
+    # Réduit les séquences de plus de 2 lignes vides à 2
+    result = re.sub(r"\n{3,}", "\n\n", result)
+    return result.strip()
 
 
-def _add_overlap_between_chunks(chunks: list[Document]) -> list[Document]:
+def _merge_cross_page_text(documents: list[Document]) -> list[Document]:
     """
-    Overlap bidirectionnel sémantique entre chunks adjacents :
-    - copie la fin du chunk précédent (depuis sa dernière frontière : titre ou ligne vide)
-    - copie le début du chunk suivant (jusqu'à sa prochaine frontière : titre ou ligne vide)
-    L'overlap s'arrête à une frontière sémantique naturelle au lieu d'un nombre fixe de
-    caractères, ce qui évite de couper au milieu d'une phrase ou d'un paragraphe.
-    La ligne de contexte '[source | page | mots-clés]' est toujours gardée en tête du chunk,
-    et les overlaps ne recopient que le contenu brut (sans la ligne de contexte du voisin).
+    Détecte quand une phrase est coupée entre deux pages (la page N ne finit pas par
+    une ponctuation de fin de phrase) et fusionne le début de la page N+1 dans la page N.
+    Le texte fusionné reste aussi dans la page N+1 — le LLM décidera où couper.
     """
-    if len(chunks) <= 1:
-        return chunks
-    # Sépare la ligne de contexte du contenu brut pour chaque chunk
-    split = [_strip_context_prefix(c.page_content) for c in chunks]
-    result = []
-    for i in range(len(chunks)):
-        ctx, content = split[i]
-        parts = []
-        # Ligne de contexte toujours en premier
-        if ctx:
-            parts.append(ctx)
-        # Overlap avant : depuis la dernière frontière sémantique du chunk précédent
-        if i > 0:
-            before = _overlap_from_last_boundary(split[i - 1][1])
-            if before.strip():
-                parts.append(before)
-        parts.append(content)
-        # Overlap après : jusqu'à la prochaine frontière sémantique du chunk suivant
-        if i < len(chunks) - 1:
-            after = _overlap_until_next_boundary(split[i + 1][1])
-            if after.strip():
-                parts.append(after)
-        result.append(Document(
-            page_content="\n\n".join(parts),
-            metadata=chunks[i].metadata,
-        ))
-    return result
+    # Ponctuation qui marque une fin de section (on ne fusionne pas dans ce cas)
+    end_markers = re.compile(r"[.;:!?)\]»]$")
+    # Marqueurs de page insérés par pymupdf4llm (ex: "PAGE 19 SUR 78", "— 12 —")
+    page_marker = re.compile(
+        r"(PAGE\s+\d+\s+SUR\s+\d+|—\s*\d+\s*—|\*\*-\s*BROCHURE\b.*|\d{1,3}\s*$)",
+        re.IGNORECASE,
+    )
+
+    for i in range(len(documents) - 1):
+        # Même source uniquement (pas de fusion entre deux PDF différents)
+        if documents[i].metadata.get("source") != documents[i + 1].metadata.get("source"):
+            continue
+
+        # Dernière ligne non vide, en ignorant les marqueurs de page
+        lines = [l.strip() for l in documents[i].page_content.rstrip().splitlines() if l.strip()]
+        last_content_line = ""
+        for line in reversed(lines):
+            if not page_marker.match(line):
+                last_content_line = line
+                break
+
+        # Si la page ne finit pas par une ponctuation de fin → la phrase continue sur la page suivante
+        if last_content_line and not end_markers.search(last_content_line):
+            next_text = documents[i + 1].page_content
+            # Prend le début de la page suivante jusqu'au premier titre ## ou double saut de ligne
+            boundary = len(next_text)
+            for pattern in ["\n## ", "\n### ", "\n\n"]:
+                pos = next_text.find(pattern)
+                if pos > 0:
+                    boundary = min(boundary, pos)
+            continuation = next_text[:boundary].strip()
+            if continuation:
+                documents[i].page_content += "\n" + continuation
+
+    return documents
 
 
 def _restart_ollama():
     """
-    Tue et relance le serveur Ollama depuis /tmp (même contournement que sur Colab) :
-    llama-server peut crasher en cours de route ("completion error ... EOF") sur les longs
-    runs de contextualisation, sans qu'Ollama ne le redémarre tout seul.
+    Tue et relance le serveur Ollama depuis /tmp (contournement pour Colab) :
+    llama-server peut crasher en cours de route sans qu'Ollama ne le redémarre.
     """
     os.system("pkill -f ollama 2>/dev/null; pkill -f llama-server 2>/dev/null")
     time.sleep(2)
@@ -267,8 +192,8 @@ def _restart_ollama():
 
 
 def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
-    """Réessaie l'appel LLM en redémarrant Ollama entre chaque tentative en cas de crash de llama-server."""
-    for attempt in range(retries + 1):  # +1 : la dernière itération est la tentative finale sans redémarrage
+    """Réessaie l'appel LLM en redémarrant Ollama entre chaque tentative en cas de crash."""
+    for attempt in range(retries + 1):
         try:
             return llm.invoke(prompt)
         except Exception as e:
@@ -276,113 +201,154 @@ def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
                 print(f"    ! Erreur LLM ({e}) — redémarrage et nouvelle tentative ({attempt + 1}/{retries})...", flush=True)
                 _restart_ollama()
             else:
-                raise  # toutes les tentatives épuisées : on laisse remonter l'erreur
+                raise
 
 
-def _contextualize_chunks(chunks: list[Document], llm: OllamaLLM) -> list[Document]:
+def _agentic_split_page(page_text: str, llm: OllamaLLM) -> list[str]:
     """
-    Préfixe chaque chunk avec une ligne de contexte avant indexation (technique de
-    "contextual retrieval") : l'embedding et BM25 ne lisent jamais les métadonnées,
-    seulement le texte indexé — un chunk isolé ne dit pas de lui-même son établissement,
-    sa page ou sa section.
-
-    La ligne de contexte combine deux sources :
-    - Déterministe (sans LLM, donc sans hallucination) : source, page, chemin de titres
-      (h1/h2/h3, capturé par MarkdownHeaderTextSplitter) — donne établissement/niveau/parcours
-      quand cette info est dans la structure du document.
-    - LLM (CONTEXT_PROMPT) : 3-6 mots-clés sur le sujet précis du chunk, une tâche que le
-      LLM peut faire à partir du seul texte du chunk (pas besoin du document entier).
+    Envoie le texte d'une page au LLM qui insère des marqueurs ===SPLIT=== entre les
+    sections logiques. Validation : si le LLM a trop modifié le texte (< 60% préservé),
+    on retourne le texte original sans découpe.
     """
-    result = []
-    for chunk in chunks:
-        source = chunk.metadata.get("source", "document inconnu")  # nom du fichier PDF d'origine
-        page = chunk.metadata.get("page", "?")
-        section_path = " > ".join(
-            chunk.metadata[h] for h in ("h1", "h2", "h3") if chunk.metadata.get(h)
-        )
+    # Pages courtes : pas besoin du LLM
+    if len(page_text.strip()) < MIN_PAGE_SIZE_FOR_SPLIT:
+        return [page_text.strip()]
 
-        prompt = CONTEXT_PROMPT.format(chunk=chunk.page_content)
-        # Récupère la première ligne non vide ; fallback sur "" si le LLM renvoie une réponse vide
-        lines = [l for l in _invoke_with_retry(llm, prompt).strip().splitlines() if l.strip()]
-        keywords = lines[0].strip() if lines else ""
+    prompt = SPLIT_PROMPT.format(page_text=page_text)
+    response = _invoke_with_retry(llm, prompt)
 
-        parts = [source, f"p.{page}"]
-        if section_path:
-            parts.append(section_path)
-        if keywords:
-            parts.append(keywords)
-        context_line = "[" + " | ".join(parts) + "]"
+    # Validation : le LLM ne doit pas avoir trop modifié le texte
+    original_words = set(page_text.lower().split())
+    response_words = set(response.lower().replace(SPLIT_MARKER.lower(), "").split())
+    if original_words:
+        preserved = len(original_words & response_words) / len(original_words)
+    else:
+        preserved = 0
 
-        new_content = f"{context_line}\n\n{chunk.page_content}"
-        result.append(Document(page_content=new_content, metadata=chunk.metadata))
-    return result
+    if preserved < 0.6:
+        # Le LLM a trop modifié le texte — fallback sur le texte original
+        return [page_text.strip()]
+
+    # Découpe sur les marqueurs
+    segments = response.split(SPLIT_MARKER)
+    segments = [s.strip() for s in segments if s.strip()]
+
+    if not segments:
+        return [page_text.strip()]
+
+    return segments
 
 
-MIN_CONTENT_SIZE = 30  # taille minimale du contenu utile d'un chunk (hors phrase de contexte LLM)
-TOC_DOT_RATIO = 0.3   # proportion minimale de lignes avec points de suspension pour détecter une TdM
-
-
-def _is_toc_page(text: str) -> bool:
+def _fallback_split_large(text: str) -> list[str]:
     """
-    Détecte une page de table des matières en comptant les lignes contenant des points de
-    suspension ('. . .' ou '...'), caractéristiques des entrées de TdM type
-    '1.1  Objectifs . . . . . . . . . . 7'. Ces pages n'apportent aucune information
-    récupérable par la recherche : elles listent uniquement des numéros de pages.
+    Découpe déterministe sans overlap pour les chunks encore trop gros après le split LLM.
+    Protège les lignes de tableau Markdown (\n|).
     """
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-    if not lines:
-        return False
-    dot_lines = sum(1 for l in lines if ". . ." in l or "..." in l)
-    return dot_lines / len(lines) > TOC_DOT_RATIO
+    if len(text) <= MAX_CHUNK_SIZE:
+        return [text]
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=MAX_CHUNK_SIZE,
+        chunk_overlap=0,
+        separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " "],
+    )
+    docs = splitter.create_documents([text])
+    return [d.page_content for d in docs]
+
+
+def _extract_section_path(text: str) -> str:
+    """
+    Extrait la hiérarchie de titres Markdown présente dans le texte du chunk.
+    Ex: "## Master > ### Semestre 1" → "Master > Semestre 1"
+    """
+    headers = []
+    for line in text.splitlines():
+        match = re.match(r"^(#{1,3})\s+(.+)", line)
+        if match:
+            title = match.group(2).strip().strip("*")  # retire le gras Markdown **...**
+            if title and title not in headers:
+                headers.append(title)
+    return " > ".join(headers)
+
+
+def _extract_keywords_deterministic(text: str) -> str:
+    """
+    Extrait les mots-clés les plus fréquents du chunk par comptage de fréquence,
+    après suppression des stopwords français. Zéro hallucination.
+    """
+    # Retire la ligne de contexte [source | ...] si déjà présente
+    clean = text
+    if clean.startswith("["):
+        end = clean.find("]\n\n")
+        if end != -1:
+            clean = clean[end + 3:]
+    # Retire les marqueurs de page et les symboles Markdown
+    clean = re.sub(r"^#{1,3}\s+", "", clean, flags=re.MULTILINE)
+    clean = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", clean)
+    clean = re.sub(r"[|_\-=\[\](){}<>#+*/\\]", " ", clean)
+
+    # Tokenise en mots de 3+ caractères, filtre les stopwords et les nombres purs
+    words = re.findall(r"[a-zàâäéèêëïîôùûüÿçœæ]{3,}", clean.lower())
+    words = [w for w in words if w not in _STOPWORDS]
+
+    # Bigrams : paires de mots consécutifs (plus informatifs que les unigrams seuls)
+    bigrams = [f"{words[i]} {words[i+1]}" for i in range(len(words) - 1)]
+
+    # Compte les fréquences (bigrams + unigrams)
+    freq = Counter(bigrams) + Counter(words)
+    # Prend les 5 termes les plus fréquents
+    top = [term for term, _ in freq.most_common(8) if freq[term] >= 1][:5]
+
+    return ", ".join(top)
+
+
+def _contextualize_chunk(chunk: Document, section_path: str, keywords: str) -> Document:
+    """
+    Préfixe le chunk avec une ligne de contexte [source | p.X | section | mots-clés].
+    L'embedding et BM25 ne lisent que le texte — cette ligne rend les métadonnées
+    visibles pour la recherche.
+    """
+    source = chunk.metadata.get("source", "document inconnu")
+    page = chunk.metadata.get("page", "?")
+    parts = [source, f"p.{page}"]
+    if section_path:
+        parts.append(section_path)
+    if keywords:
+        parts.append(keywords)
+    context_line = "[" + " | ".join(parts) + "]"
+    new_content = f"{context_line}\n\n{chunk.page_content}"
+    return Document(page_content=new_content, metadata=chunk.metadata)
 
 
 def _split_documents(documents: list[Document]) -> list[Document]:
     """
-    Pipeline de découpage en cinq étapes :
-    0. Filtre les pages de table des matières (points de suspension > 30 % des lignes) —
-       ces pages ne contiennent que des numéros de pages et polluent la recherche.
-    1. MarkdownHeaderTextSplitter — coupe sur les titres (##, ###) et met le chemin de titres
-       en métadonnée de chaque chunk. Cela permet à l'embedding de savoir dans quelle section
-       se trouve le chunk, évitant les confusions entre sections sémantiquement proches.
-    2. _merge_small_chunks — recolle les sections trop courtes (ex: lignes de calendrier sous
-       des petits titres) avec la suivante, pour éviter des micro-chunks trop pauvres en contexte.
-    3. RecursiveCharacterTextSplitter — coupe les sections encore trop longues en sous-chunks
-       de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
-    4. Filtre les chunks dont le contenu utile est trop court (< MIN_CONTENT_SIZE) — évite
-       d'envoyer au LLM des chunks ne contenant qu'un numéro de page ou un symbole isolé.
-    4b. _add_overlap_between_chunks — overlap sémantique bidirectionnel entre chunks adjacents :
-       copie le texte jusqu'à la prochaine frontière naturelle (titre Markdown ou ligne vide)
-       au lieu d'un nombre fixe de caractères. Appliqué après la boucle sur tous les
-       all_chunks finaux. Évite de couper au milieu d'une phrase ou d'un paragraphe.
-    5. _contextualize_chunks — ajoute en tête de chaque chunk final une ligne de contexte
-       combinant métadonnées déterministes (source, page, chemin de titres) et mots-clés
-       générés par le LLM sur le sujet précis du chunk, pour que la recherche dispose d'un
-       signal explicite même sur un chunk isolé.
+    Pipeline de découpage agentic en 7 étapes :
+    0. Filtre les pages de table des matières
+    1. Nettoie le texte (déduplique le bruit)
+    2. Fusionne les phrases coupées entre pages
+    3. Split agentic : le LLM décide où couper (===SPLIT===)
+    4. Fallback déterministe pour les chunks > 2000 caractères
+    5. Filtre les chunks trop courts (< 30 chars)
+    6. Assigne chunk_index par page (requis par agent.py pour l'expansion de troncature)
+    7. Contextualise : extraction déterministe de section_path + mots-clés, ligne de contexte
     """
-    header_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
-        strip_headers=False,  # garde les titres dans le texte pour que l'embedding les voie
-    )
-    size_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=200,
-        separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
-    )
-    # num_predict bas : on ne veut qu'une courte liste de mots-clés, pas une réponse longue (gagne du temps de génération)
-    context_llm = OllamaLLM(model=CONTEXT_MODEL, num_ctx=4096, temperature=0, num_predict=40)
+    # num_predict élevé : le LLM doit répondre le texte complet de la page avec les marqueurs
+    split_llm = OllamaLLM(model=SPLIT_MODEL, num_ctx=4096, temperature=0, num_predict=2048)
 
-    # Reprise sur crash : si un run précédent a été interrompu (ex: crash llama-server),
-    # on repart des chunks déjà contextualisés au lieu de tout refaire depuis le début.
+    # Reprise sur crash via checkpoint
     checkpoint_path = VECTOR_DB_DIR.parent / "ingest_checkpoint.pkl"
     all_chunks = []
     start_index = 0
     if checkpoint_path.exists():
         with open(checkpoint_path, "rb") as f:
             checkpoint = pickle.load(f)
-        all_chunks = checkpoint["chunks"]
-        start_index = checkpoint["next_index"]
-        print(f"  Reprise du checkpoint : {len(all_chunks)} chunk(s) déjà prêts, "
-              f"document {start_index + 1}/{len(documents)}.", flush=True)
+        # Vérifie la version du pipeline pour invalider les anciens checkpoints
+        if checkpoint.get("pipeline_version") == 2:
+            all_chunks = checkpoint["chunks"]
+            start_index = checkpoint["next_index"]
+            print(f"  Reprise du checkpoint : {len(all_chunks)} chunk(s) déjà prêts, "
+                  f"document {start_index + 1}/{len(documents)}.", flush=True)
+        else:
+            print("  Ancien checkpoint détecté (pipeline v1) — on repart de zéro.", flush=True)
 
     for i, doc in enumerate(documents):
         if i < start_index:
@@ -393,40 +359,44 @@ def _split_documents(documents: list[Document]) -> list[Document]:
             print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
                   f"→ table des matières ignorée", flush=True)
         else:
-            # Étape 1 : découpe par titres → chaque section garde le contexte de son titre
-            header_chunks = header_splitter.split_text(doc.page_content)
-            for hc in header_chunks:
-                hc.metadata.update(doc.metadata)  # recopie source + page dans chaque section
+            # Étape 1 : nettoyage du texte
+            cleaned_text = _clean_page_text(doc.page_content)
 
-            # Étape 2 : fusionne les sections trop courtes avec leur voisine
-            merged_chunks = _merge_small_chunks(header_chunks)
+            # Étape 3 : split agentic — le LLM insère des marqueurs entre les sections logiques
+            segments = _agentic_split_page(cleaned_text, split_llm)
 
-            # Étape 3 : découpe par taille si une section dépasse 1000 caractères
-            sub_chunks = size_splitter.split_documents(merged_chunks)
+            # Étape 4 : fallback pour les segments trop gros
+            final_segments = []
+            for seg in segments:
+                final_segments.extend(_fallback_split_large(seg))
 
-            # Étape 4 : filtre les chunks dont le contenu utile est trop court
-            sub_chunks = [c for c in sub_chunks if len(c.page_content.strip()) >= MIN_CONTENT_SIZE]
+            # Étape 5 : filtre les micro-chunks
+            final_segments = [s for s in final_segments if len(s.strip()) >= MIN_CONTENT_SIZE]
 
-            # Étape 4a : numérote chaque chunk dans la page (0, 1, 2…) pour pouvoir retrouver
-            # le premier chunk de la page suivante lors de l'expansion de troncature
-            for idx, chunk in enumerate(sub_chunks):
-                chunk.metadata["chunk_index"] = idx
+            # Étape 6 : crée les Documents avec métadonnées + chunk_index
+            page_chunks = []
+            for idx, seg in enumerate(final_segments):
+                chunk = Document(
+                    page_content=seg,
+                    metadata={**doc.metadata, "chunk_index": idx},
+                )
+                page_chunks.append(chunk)
 
-            if sub_chunks:
-                # Étape 5 : ajoute une ligne de contexte (métadonnées + mots-clés LLM) en tête de chaque chunk
-                sub_chunks = _contextualize_chunks(sub_chunks, context_llm)
-                all_chunks.extend(sub_chunks)
+            # Étape 7 : contextualisation déterministe (section_path + mots-clés + ligne de contexte)
+            for j, chunk in enumerate(page_chunks):
+                section_path = _extract_section_path(chunk.page_content)
+                keywords = _extract_keywords_deterministic(chunk.page_content)
+                page_chunks[j] = _contextualize_chunk(chunk, section_path, keywords)
+
+            all_chunks.extend(page_chunks)
+
+            if page_chunks:
                 print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
-                      f"→ {len(sub_chunks)} chunk(s) contextualisé(s)", flush=True)
+                      f"→ {len(page_chunks)} chunk(s)", flush=True)
 
-        # Checkpoint : sauvegarde la progression pour pouvoir reprendre après un crash llama-server
+        # Checkpoint : sauvegarde la progression après chaque page
         with open(checkpoint_path, "wb") as f:
-            pickle.dump({"chunks": all_chunks, "next_index": i + 1}, f)
-
-    # Étape 4b : overlap sémantique entre tous les chunks adjacents (intra ET inter-page).
-    # Copie jusqu'à la prochaine frontière naturelle (titre ou ligne vide) au lieu d'un
-    # nombre fixe de caractères — l'overlap a toujours un sens complet.
-    all_chunks = _add_overlap_between_chunks(all_chunks)
+            pickle.dump({"chunks": all_chunks, "next_index": i + 1, "pipeline_version": 2}, f)
 
     return all_chunks
 
@@ -439,21 +409,22 @@ def main():
         return
     print(f"\n{len(documents)} document(s) chargé(s).")
 
+    # Étape 2 : fusion inter-pages (avant le split, pour que le LLM voie les phrases complètes)
+    documents = _merge_cross_page_text(documents)
+
     chunks = _split_documents(documents)
     print(f"{len(chunks)} chunk(s) créé(s).")
 
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
-    VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)  # les bindings Rust de ChromaDB ne créent pas le dossier s'il n'existe pas
-    batch_size = 50  # envoi par lots pour ne pas saturer Ollama (évite les timeouts sur grosses bases)
+    VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)
+    batch_size = 50  # envoi par lots pour ne pas saturer Ollama
     db = None
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i:i + batch_size]
         print(f"Lot {i // batch_size + 1} / {-(-len(chunks) // batch_size)} ({len(batch)} chunks)...", flush=True)
         if db is None:
-            # Premier lot : crée la base Chroma et la sauvegarde sur disque
             db = Chroma.from_documents(batch, embeddings, persist_directory=str(VECTOR_DB_DIR))
         else:
-            # Lots suivants : ajoute les nouveaux documents à la base existante
             db.add_documents(batch)
     print("Index créé dans vector_db/.")
 

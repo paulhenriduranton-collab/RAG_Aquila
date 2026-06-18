@@ -136,24 +136,30 @@ def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) 
 
 def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVERLAP_CHARS) -> list[Document]:
     """
-    Copie les `overlap` derniers caractères du chunk i au début du chunk i+1, pour tous
-    les chunks adjacents d'une même page. RecursiveCharacterTextSplitter ne produit de
-    l'overlap que quand il coupe un chunk > chunk_size — deux chunks courts (< 1000 chars)
-    n'ont donc aucun recouvrement entre eux. Sans cet overlap, une information qui tombe
-    exactement à la frontière entre deux chunks (ex: "Enseignant référent : Marc Lelarge"
-    juste après une description de filière) risque d'être isolée et mal retrouvée.
-    Le cross-page est déjà géré par PAGE_OVERLAP_CHARS dans _load_pdf — cette fonction
-    ne s'applique qu'à l'intérieur d'une même page.
+    Overlap bidirectionnel entre chunks adjacents d'une même page :
+    - copie les `overlap` derniers caractères du chunk i à la fin du chunk i (contexte avant)
+    - copie les `overlap` premiers caractères du chunk i+1 à la fin du chunk i (contexte après)
+    Résout le problème des infos frontières dans les deux sens (ex: "Enseignant référent :
+    Marc Lelarge" juste après une description de filière — sans overlap arrière, le chunk
+    de la filière ne contient pas le nom du référent).
+    Le cross-page est déjà géré par PAGE_OVERLAP_CHARS dans _load_pdf.
     Les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD dans ask.py.
     """
     if len(chunks) <= 1:
         return chunks
-    result = [chunks[0]]
-    for i in range(1, len(chunks)):
-        # Copie la queue du chunk précédent en tête du chunk courant
-        tail = chunks[i - 1].page_content[-overlap:]
+    contents = [c.page_content for c in chunks]
+    result = []
+    for i in range(len(chunks)):
+        parts = []
+        # Overlap avant : fin du chunk précédent → début du chunk courant
+        if i > 0:
+            parts.append(contents[i - 1][-overlap:])
+        parts.append(contents[i])
+        # Overlap après : début du chunk suivant → fin du chunk courant
+        if i < len(chunks) - 1:
+            parts.append(contents[i + 1][:overlap])
         result.append(Document(
-            page_content=tail + "\n\n" + chunks[i].page_content,
+            page_content="\n\n".join(parts),
             metadata=chunks[i].metadata,
         ))
     return result

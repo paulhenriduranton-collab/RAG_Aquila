@@ -7,9 +7,20 @@ from langchain_core.documents import Document
 
 from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
 
-# Détecte les marqueurs de coupure de page produits par pymupdf4llm
-# Exemples : "i— PAGE **19** SUR 78 >", "PAGE 9 SUR 78"
-TRUNCATION_RE = re.compile(r'(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+SUR\s+\d+', re.IGNORECASE)
+# Détecte les marqueurs de coupure de page produits par pymupdf4llm.
+# Pattern 1 — "PAGE **19** SUR 78", "i— PAGE 9 SUR 78" (ENS)
+# Pattern 2 — numéro de page seul sur la dernière ligne : "131" (Sorbonne)
+# Pattern 3 — "- 8 -", "— 12 —" (tirets encadrants)
+# Pattern 4 — "Page 5 of 20", "page 12/30" (formats anglais courants)
+TRUNCATION_RE = re.compile(
+    r'(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+SUR\s+\d+'  # PAGE X SUR Y
+    r'|(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+OF\s+\d+'   # PAGE X OF Y
+    r'|\d+\s*/\s*\d+'                                     # X/Y ou X / Y
+    r'|[-—–]\s*\d+\s*[-—–]',                              # - 8 - ou — 12 —
+    re.IGNORECASE,
+)
+# Numéro de page isolé sur la toute dernière ligne du chunk (ex: "131\n")
+_BARE_PAGE_NUM_RE = re.compile(r'\n(\d{1,4})\s*$')
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -181,9 +192,14 @@ def retrieve_node(state: AgentState) -> dict:
     return {"docs": final, "attempts": state["attempts"] + 1}
 
 
-def _has_truncation(docs: list[Document]) -> bool:
+def _looks_truncated(text: str) -> bool:
     """Détecte si un chunk se termine par un marqueur de coupure de page pymupdf4llm."""
-    return any(TRUNCATION_RE.search(doc.page_content[-150:]) for doc in docs)
+    tail = text[-150:]
+    return bool(TRUNCATION_RE.search(tail) or _BARE_PAGE_NUM_RE.search(tail))
+
+
+def _has_truncation(docs: list[Document]) -> bool:
+    return any(_looks_truncated(doc.page_content) for doc in docs)
 
 
 def _annotate_context(docs: list[Document]) -> str:
@@ -191,7 +207,7 @@ def _annotate_context(docs: list[Document]) -> str:
     parts = []
     for doc in docs:
         content = doc.page_content
-        if TRUNCATION_RE.search(content[-150:]):
+        if _looks_truncated(content):
             content += "\n[⚠ TRONQUÉ — la liste ou la phrase continue sur la page suivante]"
         parts.append(content)
     return "\n\n---\n\n".join(parts)

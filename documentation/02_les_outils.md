@@ -9,13 +9,15 @@
 | BM25 | Recherche par mots-clés exacts |
 | pymupdf4llm | Extrait les PDFs en Markdown propre, page par page |
 | ftfy | Répare les encodages cassés dans les textes extraits de PDF |
-| gemma4:12b | Génère les réponses, joue le rôle de juge d'évaluation, génère le contexte des chunks |
+| gemma2:2b | Génère les mots-clés de contextualisation des chunks (ingestion) |
+| gemma4:12b | Génère les réponses, HyDE, grading, reformulation, évaluation RAGAS |
 | ChromaDB | Stocke et recherche les vecteurs |
 | LangChain | Colle tous les composants ensemble |
 | LangGraph | Orchestre le pipeline agentique (machine à états) |
 | CrossEncoder BAAI/bge-reranker-v2-m3 | Re-classe les chunks par pertinence réelle (re-ranking) |
 | RAGAS | Évalue la qualité du pipeline sur 5 métriques standards |
 | Open WebUI + FastAPI | Interface chat locale, serveur API compatible OpenAI |
+| Gradio | Interface web interactive sur Colab avec surlignage PDF |
 
 ---
 
@@ -23,9 +25,10 @@
 
 **Ce que c'est :** Un logiciel qui fait tourner des modèles d'IA directement sur ton ordinateur, sans connexion internet.
 
-**Ce qu'il fait ici :** Il héberge deux modèles :
+**Ce qu'il fait ici :** Il héberge trois modèles :
 - `bge-m3` pour transformer du texte en vecteurs (embeddings)
-- `gemma4:12b` pour générer les réponses, créer les préfixes contextuels des chunks, et évaluer les métriques
+- `gemma2:2b` pour générer les mots-clés de contextualisation des chunks (ingestion)
+- `gemma4:12b` pour HyDE, le grading des chunks, la reformulation de requêtes et la génération finale
 
 **Analogie :** C'est un serveur local — il reçoit des requêtes (`embed ce texte`, `génère une réponse`) et les envoie au bon modèle.
 
@@ -45,7 +48,7 @@
 | mxbai-embed-large | Multilingue | **512 tokens** | Partiel (trop court) |
 | **bge-m3** | **100+ langues dont FR** | **8192 tokens** | **Oui** |
 
-**Important :** Le modèle d'embedding doit être **identique** dans `ingest.py` et `ask.py`. Si tu changes de modèle, tu dois supprimer `C:/vector_db_aquila` et relancer `ingest.py`. Les vecteurs produits par bge-m3 (1024 dimensions) sont incompatibles avec ceux d'un autre modèle.
+**Important :** Le modèle d'embedding doit être **identique** dans `ingest.py` et `ask.py`. Si tu changes de modèle, tu dois supprimer la base vectorielle et relancer `ingest.py`. Les vecteurs produits par bge-m3 (1024 dimensions) sont incompatibles avec ceux d'un autre modèle.
 
 ---
 
@@ -119,39 +122,60 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 
 ---
 
-## 6. gemma4:12b (modèle principal)
+## 6. gemma2:2b (modèle de contextualisation)
+
+**Ce que c'est :** Un LLM léger de Google, 2 milliards de paramètres, tournant en local via Ollama.
+
+**Ce qu'il fait ici :** Un seul rôle — la **contextualisation** des chunks dans `ingest.py` :
+
+Il génère 3 à 6 mots-clés sur le sujet précis de chaque chunk. Ces mots-clés sont préfixés dans le texte indexé pour enrichir l'embedding et la recherche BM25.
+
+**Pourquoi gemma2:2b et pas gemma4:12b ?** L'extraction de mots-clés est une tâche simple qui ne nécessite pas un modèle de 12 milliards de paramètres. gemma2:2b est **4x plus rapide** — pour ~700 chunks, ça fait la différence entre 15 minutes et 1 heure.
+
+---
+
+## 7. gemma4:12b (modèle principal)
 
 **Ce que c'est :** Un LLM de Google, 12 milliards de paramètres, tournant en local via Ollama.
 
 **Ce qu'il fait ici :** Quatre rôles distincts :
 
-1. **HyDE** — Dans `ask.py`, génère une réponse fictive stylistiquement proche des brochures indexées. Cette réponse est utilisée à la place de la question pour la recherche sémantique (meilleure similarité cosinus entre une réponse fictive et les chunks-réponses qu'entre une question et des chunks-réponses).
+1. **HyDE** — Dans `ask.py`, génère une réponse fictive stylistiquement proche des brochures indexées. Cette réponse est utilisée à la place de la question pour la recherche sémantique (meilleure similarité cosinus). Désactivé pour les questions factuelles de difficulté 1.
 
-2. **Contextualisation** — Dans `ingest.py`, génère 3 à 6 mots-clés sur le sujet précis de chaque chunk, qui sont préfixés dans le texte indexé pour enrichir l'embedding.
+2. **Grading** — Dans `agent.py`, évalue si les chunks récupérés sont suffisants pour répondre à la question, et identifie précisément ce qui manque.
 
-3. **Génération** — Reçoit le prompt (question + 5 passages + instructions) et génère la réponse en français, uniquement à partir du contexte fourni. Paramétré avec `temperature=0` pour des réponses déterministes.
+3. **Reformulation** — Dans `agent.py`, reformule la requête en ciblant ce qui manque selon le verdict du grading.
 
-4. **Évaluation RAGAS** — Dans `evaluate_ragas.py`, joue le rôle de juge LLM pour les 5 métriques RAGAS. Le même modèle qui génère les réponses les évalue.
+4. **Génération** — Reçoit le prompt (question + 5 passages + instructions) et génère la réponse en français, uniquement à partir du contexte fourni. Paramétré avec `temperature=0` pour des réponses déterministes.
+
+5. **Évaluation RAGAS** — Dans `evaluate_ragas.py`, joue le rôle de juge LLM pour les 5 métriques RAGAS.
 
 **Comparaison :**
 
 | Modèle | Taille | Qualité | Vitesse |
 |---|---|---|---|
-| gemma2:2b | 1.6 GB | Correcte | Très rapide |
+| gemma2:2b | 1.6 GB | Correcte (suffisante pour les mots-clés) | Très rapide |
 | llama3.1:8b | 4.7 GB | Bonne | Moyen |
 | **gemma4:12b** | **~8 GB** | **Très bonne** | **Lent (Colab GPU recommandé)** |
 
-`gemma4:12b` est nécessaire pour les tâches de raisonnement complexes (grade_documents, rewrite_query dans le pipeline agentique). Pour une utilisation sans GPU, `llama3.1:8b` est un bon compromis.
+`gemma4:12b` est nécessaire pour les tâches de raisonnement complexes (grade_documents, rewrite_query, génération finale). Pour une utilisation sans GPU, `llama3.1:8b` est un bon compromis.
 
 ---
 
-## 7. ChromaDB
+## 8. ChromaDB
 
 **Ce que c'est :** Une base de données spécialisée dans le stockage et la recherche de vecteurs.
 
-**Ce qu'il fait ici :** Stocke les 1024 nombres de chaque chunk dans `C:/vector_db_aquila/chroma.sqlite3`. Quand tu poses une question, il calcule les vecteurs les plus proches du vecteur de ta question (recherche MMR ou cosinus).
+**Ce qu'il fait ici :** Stocke les 1024 nombres de chaque chunk dans un fichier `chroma.sqlite3`. Quand tu poses une question, il calcule les vecteurs les plus proches du vecteur de ta question (recherche MMR ou cosinus).
 
-**Pourquoi hors OneDrive ?** SQLite (le moteur de ChromaDB) et la synchronisation cloud sont incompatibles : OneDrive peut verrouiller le fichier `.sqlite3` en cours d'écriture, ce qui corrompt la base. La base est donc stockée dans `C:/vector_db_aquila`.
+**Double chemin de la base vectorielle :**
+
+| Contexte | Chemin | Raison |
+|---|---|---|
+| Local (ingest.py) | `C:/vector_db_aquila` | Hors OneDrive — SQLite corrompu par la synchro cloud |
+| Local (ask.py) / Colab | `vector_db/` (dans le repo) | Versionnée dans git pour Colab |
+
+**Pourquoi hors OneDrive en local ?** SQLite (le moteur de ChromaDB) et la synchronisation cloud sont incompatibles : OneDrive peut verrouiller le fichier `.sqlite3` en cours d'écriture, ce qui corrompt la base.
 
 **La différence avec une base classique :**
 - Base classique : cherche "Banach" → trouve les lignes qui contiennent exactement "Banach"
@@ -161,7 +185,7 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 
 ---
 
-## 8. LangChain
+## 9. LangChain
 
 **Ce que c'est :** Une librairie Python qui sert de colle entre tous les composants.
 
@@ -173,13 +197,13 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 | `RecursiveCharacterTextSplitter` | Découpe les sections longues en chunks de 1000 caractères (overlap 200) |
 | `OllamaEmbeddings` | Appelle bge-m3 via Ollama pour calculer les embeddings |
 | `Chroma` | Gère la base vectorielle (écriture depuis ingest.py, lecture depuis ask.py) |
-| `OllamaLLM` | Appelle gemma4:12b via Ollama pour la génération et la contextualisation |
+| `OllamaLLM` | Appelle gemma2:2b (contextualisation) et gemma4:12b (génération) via Ollama |
 | `TextLoader` | Charge les fichiers .txt |
 | `Docx2txtLoader` | Charge les fichiers .docx |
 
 ---
 
-## 9. LangGraph (pipeline agentique)
+## 10. LangGraph (pipeline agentique)
 
 **Ce que c'est :** Une librairie de LangChain pour construire des pipelines IA sous forme de graphes de nœuds et d'arêtes, avec état partagé et transitions conditionnelles.
 
@@ -189,25 +213,31 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 START
   │
   ▼
-identify_sources  →  retrieve  →  grade_documents
-                         ↑              │
-                         │    OUI       ▼
-                    rewrite_query   generate  →  END
+identify_sources  →  retrieve  ─┬─  [diff. 1] → troncation? ─┬─ non → generate → END
+                        ↑       │                              └─ oui → upgrade_difficulty
+                        │       └─  [diff. 2/3] → grade_documents
+                        │                              │
+                        │                    OUI      ▼
+                        │               generate  ←  suffisant?
+                        │                              │
+                        │                             NON
+                        │                              ▼
+                        └── rewrite_query  ←  upgrade_difficulty (si diff < 3)
 ```
 
-L'état du graphe (`AgentState`) est un dictionnaire partagé entre tous les nœuds : question, requête courante, sources ciblées, pool de chunks, verdict de suffisance, nombre de tentatives, réponse finale.
+L'état du graphe (`AgentState`) est un dictionnaire partagé entre tous les nœuds : question, requête courante, sources ciblées, difficulté, sous-requêtes, pool de chunks, verdict de suffisance, nombre de tentatives, réponse finale.
 
 **Pourquoi LangGraph et pas un simple `if` ?** LangGraph permet de visualiser le graphe, de l'interrompre et de l'inspecter à tout moment, et de gérer proprement les boucles conditionnelles avec un état partagé immuable entre les nœuds.
 
 ---
 
-## 10. CrossEncoder BAAI/bge-reranker-v2-m3 (re-ranker)
+## 11. CrossEncoder BAAI/bge-reranker-v2-m3 (re-ranker)
 
 **Ce que c'est :** Un modèle de la bibliothèque `sentence-transformers`, téléchargé automatiquement depuis HuggingFace au premier lancement (~471 Mo).
 
 **Nom complet :** `BAAI/bge-reranker-v2-m3` — modèle multilingue du même laboratoire que bge-m3 (BAAI), cohérent pour une utilisation ensemble.
 
-**Ce qu'il fait ici :** Re-classe les 10 candidats issus de la fusion RRF. Il reçoit des paires `(question, chunk)` et prédit un score de pertinence pour chacune :
+**Ce qu'il fait ici :** Re-classe les candidats issus de la fusion RRF (après déduplication). Il reçoit des paires `(question, chunk)` et prédit un score de pertinence pour chacune :
 
 ```python
 # Le re-ranker lit chaque paire conjointement — pas séparément comme les embeddings
@@ -216,7 +246,9 @@ pairs = [("Quels sont les cours obligatoires ?", "Les quatre cours communs sont.
 scores = reranker.predict(pairs)  # → [8.4, -1.2, ...]
 ```
 
-Les scores sont des logits centrés sur 0 (pas des probabilités). Un score négatif signifie que le modèle juge le chunk hors-sujet. Les chunks sous le seuil `RERANK_THRESHOLD = 0.0` sont écartés.
+Les scores sont des logits centrés sur 0 (pas des probabilités). Un score négatif signifie que le modèle juge le chunk hors-sujet. Les chunks sous le seuil `RERANK_THRESHOLD = 0.5` sont écartés.
+
+**Pourquoi un seuil de 0.5 (et pas 0.0) ?** Pour bge-reranker-v2-m3, sigmoid(0) = 0.5 = pertinence "moyenne". Un seuil de 0.5 est plus sélectif que 0.0 : il ne garde que les chunks jugés clairement pertinents, pas les cas limites.
 
 **Pourquoi c'est plus précis qu'un embedding ?**
 
@@ -230,7 +262,7 @@ reranker = CrossEncoder(RERANK_MODEL)
 
 ---
 
-## 11. RAGAS (évaluation)
+## 12. RAGAS (évaluation)
 
 **Ce que c'est :** Une librairie Python standard pour évaluer les pipelines RAG avec des métriques LLM-judge.
 
@@ -248,7 +280,7 @@ RAGAS utilise Ollama (via une API compatible OpenAI sur `http://localhost:11434/
 
 ---
 
-## 12. Open WebUI + FastAPI (interface)
+## 13. Open WebUI + FastAPI (interface locale)
 
 **Open WebUI** : Interface web de chat type ChatGPT, hébergée en local. Se connecte à n'importe quelle API compatible OpenAI.
 
@@ -265,3 +297,18 @@ uvicorn api_server:app --host 0.0.0.0 --port 8001
 ```
 
 L'interface est accessible sur **http://localhost:3000** après lancement d'Open WebUI.
+
+---
+
+## 14. Gradio (interface Colab)
+
+**Ce que c'est :** Une librairie Python pour créer des interfaces web interactives en quelques lignes.
+
+**Ce qu'il fait ici :** Dans `colab_run.ipynb` (étape 4b), Gradio expose une interface web avec trois panneaux :
+1. **Réponse** — le texte généré par le pipeline agentique
+2. **Chunks récupérés** — détail HTML des chunks avec source, page et score de re-ranking
+3. **Pages PDF** — galerie d'images des pages sources avec le chunk **surligné en bleu**
+
+Le surlignage utilise PyMuPDF (`fitz`) pour chercher des fragments du chunk dans la page PDF et les marquer en bleu.
+
+**Lien public** : Gradio génère automatiquement un lien `.gradio.live` accessible pendant 72h, ce qui permet de partager l'interface avec quelqu'un sans qu'il ait besoin de Colab.

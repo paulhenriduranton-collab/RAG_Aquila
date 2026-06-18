@@ -1,8 +1,24 @@
 # 06 — Problèmes courants et solutions
 
+## `InternalError: Database error: (code: 14) unable to open database file`
+
+**Cause :** Les bindings Rust de ChromaDB (versions récentes) ne créent pas automatiquement le dossier `vector_db/` si celui-ci n'existe pas. SQLite retourne l'erreur `SQLITE_CANTOPEN` (code 14) quand il ne peut pas ouvrir le fichier `.sqlite3` dans un dossier inexistant.
+
+**Ce qui arrive typiquement :** Sur Colab, la cellule supprime l'ancienne `vector_db/` avec `shutil.rmtree`, puis `ingest.main()` essaie de créer une base ChromaDB dans ce dossier supprimé.
+
+**Solution (déjà corrigée dans le code) :** `ingest.py` crée le dossier avant d'appeler ChromaDB :
+```python
+# Ligne 354 de ingest.py
+VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)
+```
+
+Si l'erreur réapparaît, vérifie que tu as bien la dernière version du code (`git pull`).
+
+---
+
 ## `Collection expecting embedding with dimension 768, got 1024`
 
-**Cause :** La base `C:/vector_db_aquila` a été créée avec un modèle d'embedding à 768 dimensions (ex: `nomic-embed-text`), mais le code utilise maintenant `bge-m3` (1024 dimensions). Les deux sont incompatibles.
+**Cause :** La base vectorielle a été créée avec un modèle d'embedding à 768 dimensions (ex: `nomic-embed-text`), mais le code utilise maintenant `bge-m3` (1024 dimensions). Les deux sont incompatibles.
 
 **Solution :**
 ```powershell
@@ -13,14 +29,15 @@ python src/ingest.py
 
 ---
 
-## `model "bge-m3" not found` ou `model "gemma4:12b" not found`
+## `model "bge-m3" not found`, `model "gemma2:2b" not found` ou `model "gemma4:12b" not found`
 
 **Cause :** Le modèle n'est pas encore téléchargé dans Ollama.
 
 **Solution :**
 ```powershell
-ollama pull bge-m3
-ollama pull gemma4:12b
+ollama pull bge-m3      # embeddings (indexation + recherche)
+ollama pull gemma2:2b   # contextualisation des chunks (ingestion)
+ollama pull gemma4:12b  # HyDE, grading, génération finale
 ```
 
 ---
@@ -50,9 +67,10 @@ uvicorn api_server:app --host 0.0.0.0 --port 8001
 
 **Solutions :**
 1. Lance `python src/ask.py` et regarde les logs `[Top 5 final]` — les bons chunks sont-ils sélectionnés ?
-2. Regarde le score du re-ranker dans les logs `[Re-ranking]` — les chunks sont-ils écartés (score < 0) ?
+2. Regarde le score du re-ranker dans les logs `[Re-ranking]` — les chunks sont-ils écartés (score < 0.5) ?
 3. Reformule la question avec des mots présents dans les documents
 4. Utilise le pipeline agentique (`python src/agent.py`) — il reformule automatiquement si le retrieval est insuffisant
+5. Utilise `python src/debug_question.py` pour analyser le retrieval en détail
 
 **Cause 2 :** `ingest.py` n'a pas été relancé après l'ajout d'un document.
 
@@ -121,7 +139,7 @@ python src/ingest.py
 
 **Si tu veux ajuster :**
 ```python
-# Dans src/ask.py, ligne ~57 — augmenter pour moins de redémarrages
+# Dans src/ask.py, ligne ~64 — augmenter pour moins de redémarrages
 QUESTION_RESTART_INTERVAL = 2  # redémarre Ollama toutes les N questions
 ```
 
@@ -132,7 +150,7 @@ QUESTION_RESTART_INTERVAL = 2  # redémarre Ollama toutes les N questions
 **Cause :** Les brochures ENS et Sorbonne ont des sections avec des intitulés similaires (ex: "Organisation", "Calendrier"). bge-m3 peut les confondre si les mots-clés sont proches.
 
 **Ce qui compense :**
-1. Le **contextual retrieval** : le préfixe `[source | p.X | ...]` dans chaque chunk précise son établissement — l'embedding le voit
+1. Le **contextual retrieval** : le préfixe `[ENS.pdf | p.X | ...]` dans chaque chunk précise son établissement — l'embedding le voit
 2. BM25 retrouve les chunks par mots-clés exacts de l'établissement mentionné
 3. Le **pipeline agentique** : `identify_sources` choisit le bon fichier avant de lancer le retrieval
 
@@ -158,17 +176,17 @@ pip install nest_asyncio
 
 ---
 
-## Le conflit git sur `chroma.sqlite3`
+## `rejected ... fetch first` lors du push depuis Colab
 
-**Cause :** `C:/vector_db_aquila` ou un ancien `vector_db/` est versionné dans git alors qu'il ne devrait pas l'être.
+**Cause :** Le remote GitHub a des commits que le clone Colab n'a pas (par exemple un fix poussé depuis ta machine locale).
 
-**Solution :**
-```powershell
-# Retirer du suivi git (sans supprimer les fichiers)
-git rm -r --cached -f vector_db/
+**Solution :** Ajouter `git pull --rebase` avant le push :
+```python
+# Pull les commits distants et rejoue les commits locaux par-dessus
+subprocess.run(["git", "-C", "/content/RAG_Aquila", "pull", "--rebase"], check=True)
+# Puis push
+subprocess.run(["git", "-C", "/content/RAG_Aquila", "push"], check=True)
 ```
-
-Puis vérifier que `vector_db/` et `C:/vector_db_aquila` sont dans `.gitignore`.
 
 ---
 

@@ -7,10 +7,16 @@ La connexion Open WebUI ↔ RAG est déjà configurée, pas besoin de la refaire
 
 Ollama doit être lancé (icône dans la barre des tâches). Sinon, lance-le depuis le menu Démarrer.
 
+Vérifie que les 3 modèles sont disponibles :
+```powershell
+ollama list
+# Tu dois voir : bge-m3, gemma2:2b, gemma4:12b
+```
+
 ## 2. Fenêtre PowerShell n°1 — Serveur RAG agentique
 
 ```powershell
-cd "c:\Users\paulh\OneDrive\Bureau\Projet Aquila"
+cd "c:\Users\benja\OneDrive\Bureau\stage\RAG_Aquila"
 venv\Scripts\Activate.ps1
 cd src
 uvicorn api_server:app --host 0.0.0.0 --port 8001

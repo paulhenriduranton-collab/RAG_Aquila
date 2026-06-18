@@ -20,6 +20,7 @@ des fichiers existants n'est nécessaire.
   pip install -r requirements.txt
   ```
 - Avoir indexé les documents (`python src/ingest.py`) et lancé Ollama
+- Avoir les 3 modèles Ollama (`bge-m3`, `gemma2:2b`, `gemma4:12b`)
 
 ---
 
@@ -30,12 +31,11 @@ des fichiers existants n'est nécessaire.
 ```powershell
 # Depuis le dossier src/ du projet
 cd src
-venv\Scripts\Activate.ps1
 uvicorn api_server:app --host 0.0.0.0 --port 8001
 ```
 
-Ce serveur expose `agent.py` (pipeline agentique : identification de source →
-retrieval hybride → HyDE → BM25 → RRF → re-ranking → évaluation de suffisance →
+Ce serveur expose `agent.py` (pipeline agentique : identification de source + difficulté →
+retrieval hybride → HyDE → BM25 → RRF → déduplication → re-ranking → évaluation de suffisance →
 reformulation si besoin → génération) via une API compatible OpenAI sur le port 8001.
 
 Tu dois voir au lancement :
@@ -78,7 +78,7 @@ Le modèle **`rag-aquila-agentic`** apparaît alors dans le sélecteur en haut d
 - 30 à 90 secondes pour une question simple (1 retrieval suffisant)
 - 2 à 5 minutes pour une question qui déclenche une reformulation de requête
 
-C'est normal — l'agent enchaîne plusieurs appels LLM (identification de source,
+C'est normal — l'agent enchaîne plusieurs appels LLM (identification de source + difficulté,
 HyDE, grading, éventuelle reformulation, génération finale).
 
 ---

@@ -1,13 +1,14 @@
-# 05 — Guide d'utilisation
+# 05 — Guide d'utilisation (en local)
 
 ## Prérequis
 
 - **Python 3.10 à 3.13** (pas 3.14+ — incompatibilité Pillow)
 - **Ollama** installé et lancé (visible dans la barre des tâches ou via `ollama serve`)
-- Les deux modèles Ollama téléchargés :
+- Les trois modèles Ollama téléchargés :
   ```powershell
-  ollama pull bge-m3       # modèle d'embedding multilingue
-  ollama pull gemma4:12b   # LLM de génération et d'évaluation
+  ollama pull bge-m3       # modèle d'embedding multilingue (indexation + recherche)
+  ollama pull gemma2:2b    # LLM léger pour la contextualisation des chunks (ingestion)
+  ollama pull gemma4:12b   # LLM principal pour HyDE, grading et génération
   ```
 
 ---
@@ -37,6 +38,10 @@ Le re-ranker CrossEncoder (~471 Mo) sera téléchargé automatiquement depuis Hu
 
 Copie tes fichiers (PDF, Word ou TXT) dans le dossier `documents/`.
 
+Actuellement le projet contient :
+- `ENS.pdf` — brochure ENS DMA 2024-2025
+- `SORBONNE.pdf` — brochure Master Sorbonne 2025-2026
+
 ### Étape 2 — Indexer les documents
 
 ```powershell
@@ -46,12 +51,12 @@ python src/ingest.py
 Tu verras s'afficher :
 ```
 Chargement des documents...
-  ✓ Brochure-2024-2025.pdf (42 doc(s))
-  ✓ Brochure Master2526_1.pdf (38 doc(s))
+  ✓ ENS.pdf (42 doc(s))
+  ✓ SORBONNE.pdf (38 doc(s))
 
 80 document(s) chargé(s).
-  [1/80] Brochure-2024-2025.pdf p.1 → table des matières ignorée
-  [2/80] Brochure-2024-2025.pdf p.2 → 3 chunk(s) contextualisé(s)
+  [1/80] ENS.pdf p.1 → table des matières ignorée
+  [2/80] ENS.pdf p.2 → 3 chunk(s) contextualisé(s)
   ...
 718 chunk(s) créé(s).
 Lot 1 / 15 (50 chunks)...
@@ -59,11 +64,16 @@ Lot 1 / 15 (50 chunks)...
 Index créé dans vector_db/.
 ```
 
-**Durée :** La contextualisation LLM (étape 5) prend 1 à 3 secondes par chunk via Ollama, soit **20 à 60 minutes** selon ta machine. Sur GPU Colab : 5 à 15 minutes.
+**Durée :** La contextualisation LLM (gemma2:2b, étape 5) prend 1 à 3 secondes par chunk via Ollama, soit **15 à 30 minutes** selon ta machine. Sur GPU Colab : 5 à 15 minutes.
 
 **À ne refaire que si tu ajoutes ou modifies des documents.**
 
 Si le run s'interrompt (crash llama-server), relance simplement `python src/ingest.py` — la reprise repart du dernier checkpoint automatiquement.
+
+**Chemins de la base vectorielle :**
+- En local, `ingest.py` écrit dans `C:/vector_db_aquila` (hors OneDrive pour éviter la corruption SQLite)
+- `ask.py` lit depuis `vector_db/` (dans le repo)
+- Pour synchroniser : copie `C:/vector_db_aquila/*` dans `vector_db/` si nécessaire
 
 ### Étape 3 — Lancer l'interface chat (Open WebUI)
 
@@ -101,24 +111,24 @@ Affiche les logs détaillés de chaque étape :
 [HyDE] Génération de la réponse hypothétique...
 [HyDE] Réponse fictive : Les quatre cours communs obligatoires de L3 sont...
 
-[Sémantique] Recherche MMR des 20 plus proches voisins diversifiés...
+[Sémantique] Recherche MMR des 25 plus proches voisins diversifiés...
 [Sémantique] Top 5 :
-  #1  Brochure-2024-2025.pdf  p.12
-      ↳ [Brochure-2024-2025.pdf | p.12 | DMA > L3 | cours, ECTS, obligatoires]...
+  #1  ENS.pdf  p.12
+      ↳ [ENS.pdf | p.12 | DMA > L3 | cours, ECTS, obligatoires]...
 
 [BM25] Top 5 résultats lexicaux :
-  #1  bm25=16.03  Brochure-2024-2025.pdf  p.12
+  #1  bm25=16.03  ENS.pdf  p.12
 
-[RRF] Top 10 après fusion sémantique + BM25 :
-  rrf=0.0300  Brochure-2024-2025.pdf  p.12
+[RRF] Top 15 après fusion sémantique + BM25 :
+  rrf=0.0300  ENS.pdf  p.12
   ...
 
-[Re-ranking] Scores (seuil = 0.0) :
-  score=8.412  Brochure-2024-2025.pdf  p.12
-  score=-1.203  Brochure Master2526_1.pdf  p.7  ← écarté (hors-sujet)
+[Re-ranking] Scores (seuil = 0.5) :
+  score=8.412  ENS.pdf  p.12
+  score=-1.203  SORBONNE.pdf  p.7  ← écarté (hors-sujet)
 
 [Top 5 final] (3 chunk(s) au-dessus du seuil) :
-  #1  Brochure-2024-2025.pdf  p.12
+  #1  ENS.pdf  p.12
 
 Réponse :
 Les quatre cours obligatoires sont Algèbre 1, Analyse complexe...
@@ -132,14 +142,23 @@ python src/agent.py
 
 Affiche les décisions de l'agent en plus des logs de retrieval :
 ```
-[Agent] Source(s) ciblée(s) : Brochure-2024-2025.pdf
+[Agent] Difficulté : 2 — synthèse
+[Agent] Source(s) ciblée(s) : ENS.pdf
 [Agent] Tentative(s) de retrieval : 1
 [Agent] Chunks jugés suffisants : oui
 ```
 
 ⚠️ Chaque question peut prendre **plusieurs minutes** — plusieurs appels LLM s'enchaînent.
 
-Utilise **Ctrl+C** pour quitter les deux modes.
+### Debug d'une question spécifique (debug_question.py)
+
+```powershell
+python src/debug_question.py
+```
+
+Lance le pipeline de retrieval en mode verbose puis le pipeline agentique complet sur une question prédéfinie (modifiable dans le script). Utile pour analyser pourquoi certains chunks pertinents ne sont pas récupérés.
+
+Utilise **Ctrl+C** pour quitter les modes interactifs.
 
 ---
 
@@ -175,22 +194,25 @@ answer_correctness  → proche de 1.0 = réponse factuellement correcte
 
 ## Sur Google Colab (GPU recommandé)
 
-Ouvre le notebook `colab_run.ipynb` depuis :
+Voir [04_colab.md](04_colab.md) pour les instructions détaillées.
 
-**https://colab.research.google.com/github/paulhenriduranton-collab/RAG_Aquila/blob/main/colab_run.ipynb**
+Lien direct : **https://colab.research.google.com/github/paulhenriduranton-collab/RAG_Aquila/blob/main/colab_run.ipynb**
 
-Avant de lancer : **Exécution → Modifier le type d'exécution → GPU (T4 ou A100)**.
+Avant de lancer : **Exécution → Modifier le type d'exécution → GPU (L4 ou A100)**.
 
 ---
 
 ## Si tu ajoutes de nouveaux documents
 
 ```powershell
-# 1. Supprimer l'ancienne base (les nouveaux vecteurs seraient incohérents avec les anciens)
+# 1. Supprimer l'ancienne base locale (les nouveaux vecteurs seraient incohérents avec les anciens)
 Remove-Item -Recurse -Force "C:\vector_db_aquila"
 
 # 2. Réindexer avec les nouveaux documents
 python src/ingest.py
+
+# 3. (Optionnel) Copier la nouvelle base dans le repo pour Colab
+Copy-Item -Recurse -Force "C:\vector_db_aquila\*" "vector_db\"
 ```
 
 ---
@@ -201,9 +223,10 @@ python src/ingest.py
 ollama list
 ```
 
-Tu dois voir `bge-m3:latest` et `gemma4:12b` dans la liste. Sinon :
+Tu dois voir `bge-m3:latest`, `gemma2:2b` et `gemma4:12b` dans la liste. Sinon :
 ```powershell
 ollama pull bge-m3
+ollama pull gemma2:2b
 ollama pull gemma4:12b
 ```
 
@@ -218,5 +241,6 @@ ollama pull gemma4:12b
 | Interface chat (UI) | `open-webui serve --port 3000` |
 | Mode terminal RAG classique | `python src/ask.py` |
 | Mode terminal agentique | `python src/agent.py` |
+| Debug d'une question | `python src/debug_question.py` |
 | Batch évaluation | `python src/run_agentic_all.py` |
 | Métriques RAGAS | `python src/evaluate_ragas.py` |

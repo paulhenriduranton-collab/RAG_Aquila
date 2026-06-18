@@ -25,8 +25,8 @@ Fichiers PDF/TXT/DOCX  (documents/)
    → chaque chunk sait dans quelle section il se trouve (métadonnée h1/h2/h3)
         │
         ▼ Étape 2 — Fusion des micro-chunks
-   _merge_small_chunks  (MIN_CHUNK_SIZE = 400 caractères)
-   → tout chunk < 400 caractères est fusionné avec son voisin
+   _merge_small_chunks  (MIN_CHUNK_SIZE = 500 caractères)
+   → tout chunk < 500 caractères est fusionné avec son voisin
    → évite les fragments trop courts (lignes de calendrier, etc.)
         │
         ▼ Étape 3 — Découpage par taille
@@ -38,11 +38,18 @@ Fichiers PDF/TXT/DOCX  (documents/)
    → tout chunk dont le contenu utile < 30 caractères est écarté
      (numéros de page isolés, symboles seuls)
         │
-        ▼ Étape 5 — Contextual retrieval (ajout d'un préfixe LLM)
-   _contextualize_chunks  (gemma4:12b via Ollama)
+        ▼ Étape 4b — Overlap systématique entre chunks adjacents
+   _add_overlap_between_chunks  (FINAL_OVERLAP_CHARS = 200)
+   → copie les 200 derniers chars du chunk i au début du chunk i+1
+   → intra ET inter-page, appliqué après la boucle sur tous les chunks
+   → évite de perdre une info à la frontière entre deux chunks
+   → les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD
+        │
+        ▼ Étape 5 — Contextual retrieval (ajout d'un préfixe)
+   _contextualize_chunks  (gemma2:2b via Ollama)
    → chaque chunk est préfixé d'une ligne de contexte :
      [source | p.X | h1 > h2 > h3 | mots-clés LLM]
-   → le LLM ne génère que les mots-clés (3-6 tokens, pas de résumé)
+   → le LLM (gemma2:2b) ne génère que les mots-clés (3-6 tokens, pas de résumé)
    → les informations structurelles (source, page, section) sont
      ajoutées sans LLM pour éviter les hallucinations
    → checkpoint pickle après chaque page (reprise sur crash)
@@ -52,7 +59,9 @@ Fichiers PDF/TXT/DOCX  (documents/)
    → envoi par lots de 50 chunks pour éviter les timeouts Ollama
         │
         ▼
-   Sauvegarde  (ChromaDB → C:/vector_db_aquila/chroma.sqlite3)
+   Sauvegarde  (ChromaDB)
+   → en local : C:/vector_db_aquila (hors OneDrive)
+   → sur Colab : /content/RAG_Aquila/vector_db (override notebook)
 
 
 PHASE 2 : QUESTION/RÉPONSE AGENTIQUE (à chaque question)
@@ -60,13 +69,21 @@ PHASE 2 : QUESTION/RÉPONSE AGENTIQUE (à chaque question)
 Question de l'utilisateur
         │
         ▼ [LangGraph] identify_sources
-   Le LLM choisit quel(s) fichier(s) de documents/ concernent la question.
-   → Si la question mentionne un établissement précis : filtre sur ce fichier
-   → Si la question compare plusieurs établissements : cherche partout
-   → Si la réponse ne correspond à aucun fichier : cherche partout
+   Le LLM (gemma4:12b) choisit quel(s) fichier(s) et classifie la difficulté.
+   → SOURCES : fichier(s) concerné(s) ou TOUS
+   → DIFFICULTE : 1 (factuel), 2 (synthèse), 3 (complexe/comparaison)
+   → SOUS-REQUETES : décomposition si difficulté 3 (1 à 2 sous-requêtes)
+   → Fallback : sources=None, difficulté=2 si le LLM ne suit pas le format
         │
         ▼ [LangGraph] retrieve_node
-   → HyDE : génère une réponse fictive pour la recherche sémantique
+   │
+   ├── Difficulté 3, 1er retrieval : un retrieval par sous-requête (HyDE off)
+   │   → fusion des résultats + re-rank global sur la question originale
+   │
+   ├── Difficulté 1 : HyDE désactivé (économise un appel LLM)
+   │
+   └── Difficulté 2 : HyDE activé → génère une réponse fictive (gemma4:12b)
+   │
    ┌─────────────────────────────────────────┐
    │                                         │
    ▼                                         ▼
@@ -81,10 +98,12 @@ K_RETRIEVE = 25                        médians, tokens 2+ chars
              Fusion RRF (Reciprocal Rank Fusion)
              score(chunk) = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)
              → filtre diversité : max 3 chunks par source (si multi-sources)
+               (désactivé si la recherche est restreinte à une seule source)
              → 15 candidats sélectionnés  (K_RERANK = 15)
                       │
                       ▼
              Déduplication (Jaccard sur tokens normalisés)
+             → compare le CONTENU sans la ligne de contexte '[...]'
              → deux chunks partageant > 80 % de leurs tokens uniques
                → seul le mieux classé RRF est conservé
              → évite de gaspiller des slots de re-ranking sur des passages répétés
@@ -93,35 +112,49 @@ K_RETRIEVE = 25                        médians, tokens 2+ chars
                       ▼
              Re-ranking CrossEncoder (BAAI/bge-reranker-v2-m3)
              → lit chaque paire (requête courante, chunk) ENSEMBLE
-             → score logit : > 0 = pertinent, < 0 = hors-sujet
-             → chunks sous RERANK_THRESHOLD = 0.0 écartés
+             → score logit : > 0.5 = pertinent, < 0.5 = hors-sujet
+             → chunks sous RERANK_THRESHOLD = 0.5 écartés
              → 5 meilleurs gardés  (K_FINAL = 5)
                       │
                       ▼
-             Fusion des pools (Option D — seulement au 2ème retrieval)
+             Fusion des pools (seulement au 2ème retrieval)
              → 3 slots : meilleurs chunks du 1er retrieval (déjà triés)
              → 2 slots réservés : top 2 des nouveaux chunks,
                re-rankés sur la requête reformulée (pas la question originale)
              → garantit que l'info ciblée arrive au LLM même si elle est
                dans un chunk court qui perdrait face aux chunks généraux
         │
-        ▼ [LangGraph] grade_documents
-   Le LLM évalue si les chunks accumulés sont suffisants :
-   → "OUI" → passe directement à generate
-   → "NON — [ce qui manque]" → passe à rewrite_query si tentatives < MAX_ATTEMPTS=1
+        ▼ [LangGraph] _route_after_retrieve
+   │
+   ├── Difficulté 1 : pas de grade_documents (économise un appel LLM)
+   │   → vérifie si un chunk se termine par un marqueur de coupure de page
+   │     (ex: "PAGE 19 SUR 78")
+   │   → si troncature détectée : upgrade_difficulty → rewrite_query → retrieve
+   │   → sinon : generate directement
+   │
+   └── Difficulté 2/3 : grade_documents
         │
-        ├── OUI ou max tentatives atteint ──────────┐
+        ▼ [LangGraph] grade_documents
+   Le LLM (gemma4:12b) évalue si les chunks accumulés sont suffisants :
+   → les chunks tronqués sont annotés [⚠ TRONQUÉ] pour le LLM
+   → "OUI" → passe directement à generate
+   → "NON — [ce qui manque]" → passe à la boucle de reformulation
+        │
+        ├── OUI ou max tentatives atteint (MAX_ATTEMPTS=1)
         │                                            ▼
         │                                  [LangGraph] generate_node
         │                                  Prompt = question + 5 chunks + instructions
         │                                  gemma4:12b, temperature=0, num_ctx=4096
         │                                  → Réponse (Open WebUI ou terminal)
         │
-        └── NON (1 reformulation restante)
+        └── NON + tentatives restantes
+                │
+                ├── difficulté < 3 : upgrade_difficulty → difficulté passe à 3
                 │
                 ▼
         [LangGraph] rewrite_query
-        Le LLM reformule la requête sur ce qui manque précisément
+        Le LLM (gemma4:12b) reformule la requête sur ce qui manque précisément
+        → reçoit : question originale, requête actuelle, verdict du grade
                 │
                 └──→ retrieve_node (2ème et dernier retrieval)
 
@@ -133,6 +166,7 @@ python src/run_agentic_all.py
 → pour chaque question : lance ask_question_agentic() avec verbose=True
 → capture les logs de l'agent (_Tee : écrit sur console ET buffer)
 → sauvegarde après chaque question dans data/agentic_results.json (crash-safe)
+→ push sur GitHub toutes les 5 questions (PUSH_EVERY = 5)
 
 python src/evaluate_ragas.py
 → charge data/agentic_results.json + data/questions.json
@@ -161,7 +195,7 @@ for page in pages:
     page_num = page["metadata"].get("page_number", 0)
     documents.append(Document(
         page_content=text,
-        metadata={"source": pdf_path.name, "page": page_num + 1},  # 1-indexé
+        metadata={"source": pdf_path.name, "page": page_num + 1},  # 1-indexé pour l'affichage
     ))
 ```
 
@@ -214,10 +248,10 @@ Certains chunks sont très courts après le découpage par titres — par exempl
 Vendredi 17 janvier 2025
 ```
 
-Ce chunk fait ~50 caractères. Un chunk aussi court est trop pauvre en mots pour être bien classé. La fonction `_merge_small_chunks` parcourt tous les chunks et fusionne tout chunk de moins de 400 caractères avec son voisin suivant :
+Ce chunk fait ~50 caractères. Un chunk aussi court est trop pauvre en mots pour être bien classé. La fonction `_merge_small_chunks` parcourt tous les chunks et fusionne tout chunk de moins de 500 caractères avec son voisin suivant :
 
 ```python
-MIN_CHUNK_SIZE = 400  # seuil de fusion en caractères
+MIN_CHUNK_SIZE = 500  # seuil de fusion en caractères
 
 buffer = None
 for chunk in chunks:
@@ -261,6 +295,14 @@ Chunk 2 : "[DÉBUT] espace de Banach. Les espaces de Banach jouent un rôle
            central en analyse fonctionnelle..."
 ```
 
+### Étape 4b — Overlap systématique (_add_overlap_between_chunks)
+
+RecursiveCharacterTextSplitter ne produit de l'overlap que quand il coupe un chunk > chunk_size. Deux chunks courts (< 1000 chars) adjacents n'ont donc aucun recouvrement entre eux.
+
+La fonction `_add_overlap_between_chunks` copie les 200 derniers caractères du chunk i au début du chunk i+1 **pour tous les chunks adjacents** (intra ET inter-page). Cela évite de perdre une information qui tombe exactement à la frontière — par exemple "Enseignant référent : Marc Lelarge" juste après une description de filière.
+
+Les doublons générés sont filtrés au retrieval par `DEDUP_THRESHOLD = 0.8` dans `ask.py`.
+
 ### Étape 5 — Contextual retrieval (_contextualize_chunks)
 
 L'embedding et BM25 ne lisent que le texte du chunk — pas ses métadonnées. Un chunk isolé ne dit pas de lui-même dans quel établissement ou quelle section il se trouve.
@@ -268,29 +310,33 @@ L'embedding et BM25 ne lisent que le texte du chunk — pas ses métadonnées. U
 La contextualisation ajoute en tête de chaque chunk une ligne de contexte construite en deux parties :
 
 **Partie déterministe (sans LLM, sans hallucination) :**
-- Nom du fichier source (`Brochure-2024-2025.pdf`)
+- Nom du fichier source (`ENS.pdf`)
 - Numéro de page
 - Chemin de titres capturé par MarkdownHeaderTextSplitter (`DMA > Organisation > Cours`)
 
-**Partie LLM :**
+**Partie LLM (gemma2:2b, pas gemma4:12b) :**
 - 3 à 6 mots-clés sur le sujet précis du chunk (ex: `cours obligatoires, ECTS, L3`)
 - Le LLM ne voit que le chunk, pas le document entier — il ne peut donc générer que des mots-clés sur le contenu, pas sur le contexte global. Les informations structurelles sont ajoutées sans lui.
+- Configuration : `num_predict=40` (limite la sortie à ~40 tokens pour éviter les réponses longues)
 
 Résultat :
 ```
-[Brochure-2024-2025.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
+[ENS.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
 
 ## Cours communs de L3
-Les quatre cours communs obligatoires sont...
+Les quatre cours obligatoires sont...
 ```
 
 **Checkpoint pickle :** La contextualisation appelle le LLM pour chaque chunk (~700 appels pour deux brochures). En cas de crash llama-server en cours de route, la progression est sauvegardée après chaque page. Au prochain lancement d'`ingest.py`, la contextualisation repart du dernier point de sauvegarde.
 
 ### Stockage dans ChromaDB
 
+Avant d'écrire dans ChromaDB, `ingest.py` crée le dossier cible s'il n'existe pas (`VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)`) — les bindings Rust de ChromaDB ne créent pas le dossier automatiquement, ce qui causerait une erreur `SQLITE_CANTOPEN` sur Colab.
+
 Les chunks sont envoyés à ChromaDB par **lots de 50** pour éviter les timeouts Ollama :
 
 ```python
+VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)  # nécessaire pour les bindings Rust de ChromaDB
 batch_size = 50
 for i in range(0, len(chunks), batch_size):
     batch = chunks[i:i + batch_size]
@@ -338,11 +384,13 @@ hyde_query = _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 # → "Les cours obligatoires de L3 comprennent Algèbre 1, Analyse complexe..."
 ```
 
+**HyDE est désactivé pour les questions de difficulté 1** (factuelles). Ces questions cherchent une valeur unique (nom, date, nombre) — la question brute est suffisante pour la recherche sémantique, et on économise un appel LLM.
+
 BM25 (étape 2) continue d'utiliser la **question originale** pour les correspondances exactes.
 
 ### Étape 2 : Recherche sémantique (MMR)
 
-La question fictive (HyDE) est vectorisée par bge-m3. ChromaDB retourne 25 chunks avec MMR (Maximal Marginal Relevance) :
+La question fictive (HyDE) ou la question brute est vectorisée par bge-m3. ChromaDB retourne 25 chunks avec MMR (Maximal Marginal Relevance) :
 
 ```python
 # MMR : pertinents ET diversifiés — évite de retourner 25 extraits du même paragraphe
@@ -364,6 +412,7 @@ L'index BM25 est construit **une seule fois par session** depuis tous les chunks
 ```python
 # Normalise la question avec la même fonction que lors de l'indexation
 bm25_scores = bm25.get_scores(_tokenize(question))
+# Restreint aux sources demandées si identify_sources en a choisi
 top_bm25 = sorted(candidate_indices, key=lambda i: bm25_scores[i], reverse=True)[:K_RETRIEVE]
 ```
 
@@ -383,15 +432,17 @@ Un chunk bien classé dans les deux listes obtient un score élevé. La constant
 
 ### Étape 4bis : Déduplication (Jaccard)
 
-Avant le re-ranking, les quasi-doublons RRF sont supprimés. Deux chunks dont la similarité de Jaccard sur leurs tokens normalisés dépasse `DEDUP_THRESHOLD = 0.8` sont considérés identiques — seul le mieux classé par RRF est gardé :
+Avant le re-ranking, les quasi-doublons RRF sont supprimés. La comparaison se fait sur le **contenu seul** (sans la ligne de contexte `[source | p.X | ...]`), grâce à la fonction `_body()` qui retire le préfixe. Deux chunks dont la similarité de Jaccard sur leurs tokens normalisés dépasse `DEDUP_THRESHOLD = 0.8` sont considérés identiques — seul le mieux classé par RRF est gardé :
 
 ```python
-# Calcul de la similarité de Jaccard sur les tokens normalisés (sans accents, sans ponctuation)
-tokens_A = set(_tokenize(chunk_A.page_content))
-tokens_B = set(_tokenize(chunk_B.page_content))
+# Retire le préfixe de contexte pour comparer le contenu pur
+tokens_A = set(_tokenize(_body(chunk_A.page_content)))
+tokens_B = set(_tokenize(_body(chunk_B.page_content)))
 jaccard = len(tokens_A & tokens_B) / len(tokens_A | tokens_B)
 # Si jaccard >= 0.8 → chunk_B écarté (chunk_A mieux classé RRF est déjà dans kept)
 ```
+
+**Pourquoi comparer sans le préfixe ?** Deux chunks identiques dont le LLM a généré des mots-clés différents (ex: `filière, maths` vs `Ce passage décrit...`) auraient un Jaccard réduit par les tokens du préfixe et échapperaient à la déduplication.
 
 **Pourquoi déduplication avant re-ranking ?** La déduplication retire en moyenne 3 à 5 chunks quasi-identiques. Sans elle, ces slots gaspillés réduisent la diversité des chunks envoyés au CrossEncoder. C'est pour compenser cette perte que `K_RERANK` a été augmenté de 10 à 15 : on passe 15 candidats au re-ranker sachant qu'environ 3 à 5 seront des quasi-doublons supprimés en amont.
 
@@ -405,9 +456,9 @@ Paires envoyées au re-ranker :
 ("Quels sont les cours obligatoires ?", "La bibliothèque est ouverte...")    → logit -1.2
 ```
 
-Les 5 chunks avec les scores les plus élevés sont gardés. Les chunks sous le seuil `RERANK_THRESHOLD = 0.0` sont écartés même s'ils font partie des 5 premiers.
+Les 5 chunks avec les scores les plus élevés sont gardés. Les chunks sous le seuil `RERANK_THRESHOLD = 0.5` sont écartés même s'ils font partie des 5 premiers.
 
-### Étape 5bis : Fusion des pools lors du 2ème retrieval (Option D)
+### Étape 5bis : Fusion des pools lors du 2ème retrieval
 
 Au 2ème retrieval, le pipeline ne fait pas un re-rank global sur l'ensemble des chunks anciens + nouveaux. Il **réserve des slots** par retrieval :
 
@@ -425,24 +476,27 @@ Pool final (K_FINAL = 5 slots) :
 # agent.py — retrieve_node au 2ème retrieval
 old_top = state["docs"][:K_FINAL - 2]                                # top 3 du 1er retrieval
 new_top = _rerank(state["current_query"], new_docs_deduped, n=2)     # top 2 du 2ème retrieval, scorés sur la requête reformulée
-final   = old_top + [d for d in new_top if d not in old_top]        # 5 chunks au total
+final   = old_top + [d for d in new_top if d.page_content not in seen]  # 5 chunks au total
 ```
 
 ### Étape 6 : Évaluation des chunks (grade_documents)
 
-Le pipeline agentique ajoute une étape que le RAG classique n'a pas : demander au LLM si les chunks trouvés sont suffisants pour répondre :
+Le pipeline agentique ajoute une étape que le RAG classique n'a pas : demander au LLM si les chunks trouvés sont suffisants pour répondre. Les chunks tronqués (détectés par le regex `TRUNCATION_RE`) sont annotés `[⚠ TRONQUÉ]` pour que le LLM identifie les listes incomplètes :
 
 ```python
 # Prompt envoyé au LLM avec les chunks accumulés
 GRADE_PROMPT = """Ces extraits contiennent-ils l'information nécessaire ?
 - Si oui, réponds uniquement : OUI
-- Si non, réponds : NON — [explique en 1 phrase ce qui manque]"""
+- Si non, réponds : NON — [explique en 1 phrase ce qui manque]
+- Si un extrait est marqué [⚠ TRONQUÉ], considère que la liste est incomplète"""
 
 # Exemples de réponse NON :
 # "NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale"
 ```
 
-Si insuffisant et si le nombre de tentatives est sous `MAX_ATTEMPTS=1`, le pipeline reformule la requête et relance un retrieval. Il y a donc au maximum 2 retrievals : l'initial et une reformulation ciblée.
+Si insuffisant et si le nombre de tentatives est sous `MAX_ATTEMPTS=1`, le pipeline peut reformuler la requête et relancer un retrieval. Il y a donc au maximum 2 retrievals : l'initial et une reformulation ciblée.
+
+**Court-circuit pour difficulté 1 :** Les questions factuelles simples ne passent pas par `grade_documents` (économie d'un appel LLM). Le seul cas où la boucle se déclenche est si un chunk est tronqué (marqueur de coupure de page détecté).
 
 ### Étape 7 : Génération
 
@@ -477,14 +531,16 @@ Ce script passe les 40 questions au pipeline agentique de façon séquentielle e
     "reponse_attendue": "...",  # ground truth
     "reponse_llm": "...",        # réponse générée par l'agent
     "duree_secondes": 42.3,
-    "logs": "[Agent] Source(s) ciblée(s) : Brochure-2024-2025.pdf\n...",
+    "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n...",
     "chunks": [
-        {"source": "Brochure-2024-2025.pdf", "page": 3, "content": "..."}
+        {"source": "ENS.pdf", "page": 3, "rerank_score": 8.412, "content": "..."}
     ]
 }
 ```
 
 **Reprise sur interruption :** Si le run est interrompu (Ctrl+C, crash), le fichier est lu au prochain lancement et seules les questions manquantes sont traitées.
+
+**Push automatique :** Sur Colab, les résultats sont pushés sur GitHub toutes les 5 questions (`PUSH_EVERY = 5`) pour ne pas perdre la progression si Colab coupe la session.
 
 ### Étape 2 : evaluate_ragas.py
 
@@ -500,7 +556,7 @@ sample = SingleTurnSample(
 )
 ```
 
-RAGAS utilise gemma4:12b et bge-m3 via l'API OpenAI-compatible d'Ollama (`http://localhost:11434/v1`). Aucun appel à l'extérieur.
+RAGAS utilise gemma4:12b (ou gemma2:2b sur Colab pour la rapidité) et bge-m3 via l'API OpenAI-compatible d'Ollama (`http://localhost:11434/v1`). Aucun appel à l'extérieur.
 
 ### Le dataset d'évaluation
 

@@ -13,30 +13,31 @@ En français simple : un programme qui permet de **poser des questions à une IA
 | ChatGPT | Projet RAG Aquila |
 |---|---|
 | Connaît des milliards de pages internet | Ne connaît que TES documents |
-| Tourne sur les serveurs d'OpenAI | Tourne entièrement sur ta machine |
+| Tourne sur les serveurs d'OpenAI | Tourne entièrement sur ta machine (ou sur Colab) |
 | Tes données partent sur internet | Tes données restent privées |
 | Peut inventer des réponses sur n'importe quel sujet | Ne répond que si l'info est dans tes fichiers |
-| Interface fournie par OpenAI | Interface Open WebUI hébergée en local |
+| Interface fournie par OpenAI | Interface Open WebUI locale ou Gradio sur Colab |
 
 ---
 
 ## Le cas d'usage concret
 
 Tu as des fichiers PDF de brochures universitaires :
-- `Brochure-2024-2025.pdf` (ENS DMA)
-- `Brochure Master2526_1.pdf` (Sorbonne)
+- `ENS.pdf` (brochure ENS DMA 2024-2025)
+- `SORBONNE.pdf` (brochure Master Sorbonne 2025-2026)
 
 Tu poses la question dans l'interface Open WebUI : *"Quels sont les cours obligatoires de L3 à l'ENS DMA ?"*
 
 Le système agentique :
-1. Identifie que la question concerne `Brochure-2024-2025.pdf` (ENS)
+1. Identifie que la question concerne `ENS.pdf` et classifie la difficulté (ici : niveau 2, synthèse)
 2. Génère une réponse fictive (HyDE) pour mieux orienter la recherche sémantique
 3. Cherche dans ce fichier les passages les plus pertinents (recherche hybride : sémantique MMR + BM25)
 4. Fusionne les deux listes de résultats avec RRF (Reciprocal Rank Fusion)
-5. Re-classe les 10 meilleurs passages avec un cross-encoder
-6. Évalue si les 5 chunks retenus sont suffisants pour répondre
-7. Si non : reformule la requête et relance une recherche ciblée
-8. Génère la réponse en s'appuyant uniquement sur les passages trouvés
+5. Supprime les quasi-doublons (Jaccard > 80 %)
+6. Re-classe les meilleurs passages avec un cross-encoder (seuil de pertinence 0.5)
+7. Évalue si les 5 chunks retenus sont suffisants pour répondre
+8. Si non : remonte la difficulté, reformule la requête et relance une recherche ciblée
+9. Génère la réponse en s'appuyant uniquement sur les passages trouvés
 
 ---
 
@@ -54,7 +55,8 @@ Sans le "R", le LLM répondrait de mémoire (et inventerait). Avec le "R", il es
 
 | Mode | Commande | Usage |
 |---|---|---|
-| Interface chat | `uvicorn api_server:app` + Open WebUI | Usage normal |
+| Interface chat | `uvicorn api_server:app` + Open WebUI | Usage normal en local |
+| Interface Gradio | `colab_run.ipynb` étape 4b | Usage interactif sur Colab, avec surlignage PDF |
 | Terminal RAG classique | `python src/ask.py` | Debug — affiche tous les logs de retrieval |
 | Terminal agentique | `python src/agent.py` | Debug agentique — plus lent, plus précis |
 | Indexation | `python src/ingest.py` | À relancer si tu changes tes documents |
@@ -80,15 +82,19 @@ La plupart des RAG basiques font : question → recherche sémantique → LLM. C
 Question
     │
     ├── HyDE : génère une réponse fictive pour orienter la recherche sémantique
+    │          (désactivé pour les questions factuelles de difficulté 1)
     │
-    ├── Recherche sémantique MMR (20 candidats diversifiés)
-    ├── Recherche BM25/lexicale normalisée (20 candidats)
-    │
-    ▼
-Fusion RRF → 10 candidats
+    ├── Recherche sémantique MMR (25 candidats diversifiés parmi 100)
+    ├── Recherche BM25/lexicale normalisée (25 candidats)
     │
     ▼
-Re-ranker CrossEncoder → 5 meilleurs
+Fusion RRF → 15 candidats
+    │
+    ▼
+Déduplication Jaccard (seuil 80 %) → ~10-12 candidats
+    │
+    ▼
+Re-ranker CrossEncoder (seuil 0.5) → 5 meilleurs
     │
     ▼
 LLM → Réponse
@@ -96,42 +102,46 @@ LLM → Réponse
 
 ### Pipeline agentique (LangGraph)
 
-Au-delà du RAG classique, le pipeline agentique ajoute une boucle de contrôle :
+Au-delà du RAG classique, le pipeline agentique ajoute une boucle de contrôle intelligente :
 
 ```
 Question
     │
     ▼
 identify_sources
-    → le LLM choisit quel(s) document(s) concernent la question
+    → le LLM choisit quel(s) document(s) et classifie la difficulté (1/2/3)
+    → si difficulté 3 : décompose en sous-requêtes indépendantes
     │
     ▼
 retrieve
     → pipeline RAG hybride sur la/les source(s) ciblée(s)
+    → si difficulté 3 : un retrieval par sous-requête, puis fusion + re-rank global
     │
-    ▼
-grade_documents
-    → le LLM évalue si les chunks sont suffisants pour répondre
+    ├── difficulté 1 → vérifie la troncature des chunks
+    │     → pas de troncature → generate directement (pas d'appel LLM de grading)
+    │     → troncature détectée → upgrade_difficulty → rewrite_query → retrieve
     │
-    ├── OUI → generate → Réponse
-    │
-    └── NON (si < MAX_ATTEMPTS=2 tentatives)
-            │
-            ▼
-        rewrite_query
-            → le LLM reformule la requête sur ce qui manque
-            │
-            └── retrieve (nouvelle tentative)
+    └── difficulté 2/3 → grade_documents
+          → le LLM évalue si les chunks sont suffisants pour répondre
+          │
+          ├── OUI (ou max tentatives atteint) → generate → Réponse
+          │
+          └── NON + tentatives restantes
+                  │
+                  ├── difficulté < 3 → upgrade_difficulty → rewrite_query → retrieve
+                  └── difficulté 3 → rewrite_query → retrieve (2ème et dernier)
 ```
 
 ### Contextual retrieval
 
 Chaque chunk est préfixé d'une ligne de contexte avant d'être indexé :
 ```
-[Brochure-2024-2025.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
+[ENS.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
 
 ## Cours communs de L3
 Les quatre cours obligatoires sont...
 ```
+
+La partie structurelle (source, page, titres) est ajoutée de façon déterministe (sans LLM). Les mots-clés sont générés par **gemma2:2b** (modèle léger, 4x plus rapide que gemma4:12b — suffisant pour l'extraction de mots-clés).
 
 Cette ligne permet à l'embedding ET à BM25 de comprendre le contexte structurel d'un chunk isolé — sans elle, un chunk extrait de son document ne dit pas de lui-même dans quel établissement ou quelle section il se trouve.

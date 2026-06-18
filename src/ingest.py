@@ -19,9 +19,8 @@ VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite co
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
 CONTEXT_MODEL = "gemma2:2b"   # LLM pour générer une phrase de contexte par chunk — gemma2:2b suffisant pour l'extraction de mots-clés, 4x plus rapide que gemma4:12b
 MIN_CHUNK_SIZE = 500  # en dessous de cette taille (en caractères), un chunk est fusionné avec le suivant
-PAGE_OVERLAP_CHARS = 300  # début de la page suivante recopié en fin de chaque page, pour ne pas couper
-                           # une liste/section à cheval sur deux pages (cf. problème "coupure de listes")
-FINAL_OVERLAP_CHARS = 200  # overlap copié systématiquement entre tous les chunks adjacents d'une même page
+# Limite maximale d'overlap si aucune frontière sémantique (titre ou ligne vide) n'est trouvée
+MAX_OVERLAP_CHARS = 800
 
 # Demande une liste de mots-clés sur le SUJET PRÉCIS du chunk (le LLM ne voit que le chunk,
 # pas le document entier — il ne peut donc pas deviner fiablement l'établissement, le niveau
@@ -69,6 +68,55 @@ def _snap_overlap_end(text: str) -> str:
     return text[:idx] if idx != -1 else text
 
 
+def _overlap_until_next_boundary(text: str) -> str:
+    """Extrait le texte depuis le début jusqu'à la prochaine frontière sémantique
+    (titre Markdown ou ligne vide), au lieu d'un nombre fixe de caractères.
+    Fallback sur MAX_OVERLAP_CHARS si aucune frontière trouvée."""
+    if not text:
+        return ""
+    # Cherche dans les MAX_OVERLAP_CHARS premiers caractères
+    search_text = text[:MAX_OVERLAP_CHARS]
+    boundaries = []
+    # Ligne vide = fin de paragraphe
+    pos = search_text.find("\n\n")
+    if pos > 0:
+        boundaries.append(pos)
+    # Titres Markdown (début de nouvelle section)
+    for marker in ["\n# ", "\n## ", "\n### "]:
+        pos = search_text.find(marker)
+        if pos > 0:
+            boundaries.append(pos)
+    if boundaries:
+        return text[:min(boundaries)]
+    # Aucune frontière : fallback sur la limite maximale, coupé au dernier mot complet
+    return _snap_overlap_end(search_text)
+
+
+def _overlap_from_last_boundary(text: str) -> str:
+    """Extrait le texte depuis la dernière frontière sémantique jusqu'à la fin,
+    au lieu d'un nombre fixe de caractères.
+    Fallback sur MAX_OVERLAP_CHARS si aucune frontière trouvée."""
+    if not text:
+        return ""
+    # Cherche dans les MAX_OVERLAP_CHARS derniers caractères
+    search_text = text[-MAX_OVERLAP_CHARS:] if len(text) > MAX_OVERLAP_CHARS else text
+    boundaries = []
+    # Ligne vide = début d'un nouveau paragraphe
+    pos = search_text.rfind("\n\n")
+    if pos >= 0 and pos < len(search_text) - 2:
+        boundaries.append(pos + 2)
+    # Titres Markdown (début de nouvelle section)
+    for marker in ["\n# ", "\n## ", "\n### "]:
+        pos = search_text.rfind(marker)
+        if pos >= 0 and pos < len(search_text) - len(marker):
+            boundaries.append(pos + 1)
+    if boundaries:
+        # Prend la frontière la plus proche de la fin (dernier paragraphe/section)
+        return search_text[max(boundaries):]
+    # Aucune frontière : fallback sur la limite maximale, coupé au premier mot complet
+    return _snap_overlap_start(search_text)
+
+
 def _load_pdf(pdf_path: Path) -> list[Document]:
     """
     Convertit un PDF en Markdown via pymupdf4llm, une page à la fois.
@@ -88,11 +136,12 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
             metadata={"source": pdf_path.name, "page": page_num + 1},  # +1 pour afficher en 1-indexé
         ))
 
-    # Chevauchement entre pages : recopie le début de chaque page à la fin de la précédente,
-    # pour qu'une liste/section coupée par un saut de page se retrouve complète dans au moins un chunk.
+    # Chevauchement entre pages : recopie le début de chaque page (jusqu'au prochain titre
+    # ou ligne vide) à la fin de la précédente, pour ne pas couper une section à cheval.
     for i in range(len(documents) - 1):
-        next_start = _snap_overlap_end(documents[i + 1].page_content[:PAGE_OVERLAP_CHARS])
-        documents[i].page_content += "\n\n" + next_start
+        next_start = _overlap_until_next_boundary(documents[i + 1].page_content)
+        if next_start.strip():
+            documents[i].page_content += "\n\n" + next_start
 
     return documents
 
@@ -161,16 +210,13 @@ def _strip_context_prefix(text: str) -> tuple[str, str]:
     return "", text
 
 
-def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVERLAP_CHARS) -> list[Document]:
+def _add_overlap_between_chunks(chunks: list[Document]) -> list[Document]:
     """
-    Overlap bidirectionnel entre chunks adjacents d'une même page :
-    - copie les `overlap` derniers caractères du chunk i à la fin du chunk i (contexte avant)
-    - copie les `overlap` premiers caractères du chunk i+1 à la fin du chunk i (contexte après)
-    Résout le problème des infos frontières dans les deux sens (ex: "Enseignant référent :
-    Marc Lelarge" juste après une description de filière — sans overlap arrière, le chunk
-    de la filière ne contient pas le nom du référent).
-    Le cross-page est déjà géré par PAGE_OVERLAP_CHARS dans _load_pdf.
-    Les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD dans ask.py.
+    Overlap bidirectionnel sémantique entre chunks adjacents :
+    - copie la fin du chunk précédent (depuis sa dernière frontière : titre ou ligne vide)
+    - copie le début du chunk suivant (jusqu'à sa prochaine frontière : titre ou ligne vide)
+    L'overlap s'arrête à une frontière sémantique naturelle au lieu d'un nombre fixe de
+    caractères, ce qui évite de couper au milieu d'une phrase ou d'un paragraphe.
     La ligne de contexte '[source | page | mots-clés]' est toujours gardée en tête du chunk,
     et les overlaps ne recopient que le contenu brut (sans la ligne de contexte du voisin).
     """
@@ -185,13 +231,17 @@ def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVE
         # Ligne de contexte toujours en premier
         if ctx:
             parts.append(ctx)
-        # Overlap avant : fin du contenu brut du chunk précédent
+        # Overlap avant : depuis la dernière frontière sémantique du chunk précédent
         if i > 0:
-            parts.append(_snap_overlap_start(split[i - 1][1][-overlap:]))
+            before = _overlap_from_last_boundary(split[i - 1][1])
+            if before.strip():
+                parts.append(before)
         parts.append(content)
-        # Overlap après : début du contenu brut du chunk suivant
+        # Overlap après : jusqu'à la prochaine frontière sémantique du chunk suivant
         if i < len(chunks) - 1:
-            parts.append(_snap_overlap_end(split[i + 1][1][:overlap]))
+            after = _overlap_until_next_boundary(split[i + 1][1])
+            if after.strip():
+                parts.append(after)
         result.append(Document(
             page_content="\n\n".join(parts),
             metadata=chunks[i].metadata,
@@ -300,11 +350,10 @@ def _split_documents(documents: list[Document]) -> list[Document]:
        de 1000 caractères, en protégeant les lignes de tableaux Markdown (\n|).
     4. Filtre les chunks dont le contenu utile est trop court (< MIN_CONTENT_SIZE) — évite
        d'envoyer au LLM des chunks ne contenant qu'un numéro de page ou un symbole isolé.
-    4b. _add_overlap_between_chunks — copie les FINAL_OVERLAP_CHARS derniers chars du chunk i
-       au début du chunk i+1 pour tous les chunks adjacents, intra ET inter-page. Appliqué
-       après la boucle sur tous les all_chunks finaux. Évite de perdre une information à la
-       frontière entre deux chunks (ex: "Enseignant référent : Marc Lelarge" après une
-       description de filière).
+    4b. _add_overlap_between_chunks — overlap sémantique bidirectionnel entre chunks adjacents :
+       copie le texte jusqu'à la prochaine frontière naturelle (titre Markdown ou ligne vide)
+       au lieu d'un nombre fixe de caractères. Appliqué après la boucle sur tous les
+       all_chunks finaux. Évite de couper au milieu d'une phrase ou d'un paragraphe.
     5. _contextualize_chunks — ajoute en tête de chaque chunk final une ligne de contexte
        combinant métadonnées déterministes (source, page, chemin de titres) et mots-clés
        générés par le LLM sur le sujet précis du chunk, pour que la recherche dispose d'un
@@ -315,7 +364,7 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         strip_headers=False,  # garde les titres dans le texte pour que l'embedding les voie
     )
     size_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
+        chunk_size=1500,
         chunk_overlap=200,
         separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
     )
@@ -374,10 +423,9 @@ def _split_documents(documents: list[Document]) -> list[Document]:
         with open(checkpoint_path, "wb") as f:
             pickle.dump({"chunks": all_chunks, "next_index": i + 1}, f)
 
-    # Étape 4b : overlap systématique entre tous les chunks adjacents (intra ET inter-page).
-    # Appliqué après la boucle pour couvrir aussi les frontières entre pages. La queue copiée
-    # est les FINAL_OVERLAP_CHARS derniers chars de contenu du chunk i (le préfixe de contexte
-    # "[source | p.X | ...]" est en tête de chunk, donc la queue est du contenu pur).
+    # Étape 4b : overlap sémantique entre tous les chunks adjacents (intra ET inter-page).
+    # Copie jusqu'à la prochaine frontière naturelle (titre ou ligne vide) au lieu d'un
+    # nombre fixe de caractères — l'overlap a toujours un sens complet.
     all_chunks = _add_overlap_between_chunks(all_chunks)
 
     return all_chunks

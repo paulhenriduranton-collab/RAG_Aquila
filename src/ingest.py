@@ -19,27 +19,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # racine du projet
 DOCUMENTS_DIR = BASE_DIR / "documents"             # dossier où déposer les fichiers à indexer
 VECTOR_DB_DIR = Path("C:/vector_db_aquila")        # hors OneDrive — SQLite corrompu par la synchro cloud
 EMBED_MODEL = "bge-m3"  # modèle d'embedding multilingue — doit être le même que dans ask.py
-SPLIT_MODEL = "gemma2:2b"  # LLM pour le split agentic — gemma2:2b suffisant pour insérer des marqueurs
+SPLIT_MODEL = "gemma4:12b"  # LLM pour le split agentic
 
 # Seuils du pipeline
-MAX_CHUNK_SIZE = 2000         # au-delà, un chunk est redécoupé par le fallback déterministe
-MIN_CONTENT_SIZE = 30         # en dessous, un chunk est éliminé (bruit : numéro de page isolé, etc.)
-MIN_PAGE_SIZE_FOR_SPLIT = 300 # en dessous, la page est gardée telle quelle sans passer par le LLM
-TOC_DOT_RATIO = 0.3          # proportion de lignes à points de suspension pour détecter une table des matières
+MAX_CHUNK_SIZE = 1500         # au-delà, un chunk est redécoupé par le fallback déterministe
+MIN_CONTENT_SIZE = 30         # en dessous, un chunk est éliminé (bruit)
+MIN_SECTION_SIZE_FOR_SPLIT = 800  # en dessous, la section est fusionnée avec la suivante
+TOC_DOT_RATIO = 0.3          # proportion de lignes à points de suspension pour détecter une TdM
+
+# Marqueur interne pour retrouver le numéro de page dans le texte concaténé
+_PAGE_MARKER_RE = re.compile(r"<!-- PAGE (\d+) -->")
 
 # Marqueur que le LLM doit insérer entre les sections logiques
 SPLIT_MARKER = "===SPLIT==="
 
-# Prompt pour le split agentic — le LLM insère des marqueurs sans modifier le texte
-SPLIT_PROMPT = """Texte d'une page de brochure universitaire :
+# Prompt pour le split agentic — travaille sur des sections thématiques (pas des pages)
+SPLIT_PROMPT = """Texte d'une section de brochure universitaire :
 ---
-{page_text}
+{section_text}
 ---
 
-Insère le marqueur ===SPLIT=== entre chaque section logique distincte (changement de sujet, nouveau paragraphe thématique, nouveau tableau).
+Insère le marqueur ===SPLIT=== entre chaque sous-section logique distincte (changement de sujet, nouveau paragraphe thématique).
 Ne modifie pas le texte. Insère uniquement des marqueurs ===SPLIT=== aux endroits appropriés.
-Ne coupe jamais à l'intérieur d'un tableau (lignes commençant par |).
-Si la page entière porte sur un seul sujet, ne mets aucun marqueur.
+
+RÈGLE ABSOLUE : ne coupe JAMAIS à l'intérieur d'un tableau. Un tableau commence par une ligne | et finit quand les lignes | s'arrêtent. Le tableau entier doit rester dans le même bloc.
+
+Si la section entière porte sur un seul sujet, ne mets aucun marqueur.
 
 Texte avec marqueurs :"""
 
@@ -52,6 +57,10 @@ _STOPWORDS = frozenset(
 )
 
 
+# ---------------------------------------------------------------------------
+#  Chargement des documents
+# ---------------------------------------------------------------------------
+
 def _load_pdf(pdf_path: Path) -> list[Document]:
     """
     Convertit un PDF en Markdown via pymupdf4llm, une page à la fois.
@@ -61,13 +70,13 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
     pages = pymupdf4llm.to_markdown(str(pdf_path), page_chunks=True)
     documents = []
     for page in pages:
-        text = ftfy.fix_text(page["text"])  # répare les accents cassés (ex: `a → à, ´e → é)
-        if not text.strip():  # ignore les pages sans contenu (couvertures, pages blanches)
+        text = ftfy.fix_text(page["text"])  # répare les accents cassés
+        if not text.strip():
             continue
-        page_num = page["metadata"].get("page_number", 0)  # numéro de page 0-indexé
+        page_num = page["metadata"].get("page_number", 0)
         documents.append(Document(
             page_content=text,
-            metadata={"source": pdf_path.name, "page": page_num + 1},  # +1 pour afficher en 1-indexé
+            metadata={"source": pdf_path.name, "page": page_num + 1},
         ))
     return documents
 
@@ -75,8 +84,8 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
 def load_documents() -> list[Document]:
     """Charge tous les fichiers supportés depuis le dossier documents/."""
     documents = []
-    for file_path in sorted(DOCUMENTS_DIR.iterdir()):  # ordre alphabétique pour la reproductibilité
-        if file_path.name.startswith("."):  # ignore les fichiers cachés (.DS_Store, etc.)
+    for file_path in sorted(DOCUMENTS_DIR.iterdir()):
+        if file_path.name.startswith("."):
             continue
         suffix = file_path.suffix.lower()
         if suffix == ".txt":
@@ -90,7 +99,6 @@ def load_documents() -> list[Document]:
         else:
             print(f"Format ignoré : {file_path.name}")
             continue
-        # Force le nom du fichier dans les métadonnées pour savoir d'où vient chaque chunk
         for doc in loaded:
             doc.metadata["source"] = file_path.name
         documents.extend(loaded)
@@ -98,11 +106,12 @@ def load_documents() -> list[Document]:
     return documents
 
 
+# ---------------------------------------------------------------------------
+#  Nettoyage et pré-traitement
+# ---------------------------------------------------------------------------
+
 def _is_toc_page(text: str) -> bool:
-    """
-    Détecte une page de table des matières en comptant les lignes contenant des points de
-    suspension ('. . .' ou '...'), caractéristiques des entrées de TdM.
-    """
+    """Détecte une page de table des matières (>30% de lignes avec points de suspension)."""
     lines = [l.strip() for l in text.splitlines() if l.strip()]
     if not lines:
         return False
@@ -110,76 +119,136 @@ def _is_toc_page(text: str) -> bool:
     return dot_lines / len(lines) > TOC_DOT_RATIO
 
 
-def _clean_page_text(text: str) -> str:
+def _clean_text(text: str) -> str:
     """
-    Nettoie le Markdown brut d'une page avant de le passer au LLM :
-    - déduplique les lignes consécutives identiques (ex: "BROCHURE ENSEIGNEMENT 2024 2025" répété)
-    - supprime les lignes vides en excès (max 2 consécutives)
+    Nettoie le Markdown brut :
+    - déduplique les lignes consécutives identiques
+    - réduit les lignes vides en excès
     """
     lines = text.splitlines()
     cleaned = []
     prev_line = None
     for line in lines:
         stripped = line.strip()
-        # Déduplique les lignes consécutives identiques
         if stripped and stripped == prev_line:
             continue
         cleaned.append(line)
         prev_line = stripped
     result = "\n".join(cleaned)
-    # Réduit les séquences de plus de 2 lignes vides à 2
     result = re.sub(r"\n{3,}", "\n\n", result)
     return result.strip()
 
 
-def _merge_cross_page_text(documents: list[Document]) -> list[Document]:
+def _concat_pages(pages: list[Document]) -> tuple[str, str]:
     """
-    Détecte quand une phrase est coupée entre deux pages (la page N ne finit pas par
-    une ponctuation de fin de phrase) et fusionne le début de la page N+1 dans la page N.
-    Le texte fusionné reste aussi dans la page N+1 — le LLM décidera où couper.
+    Concatène toutes les pages d'un même document en un seul texte continu.
+    Insère des marqueurs <!-- PAGE X --> entre les pages pour pouvoir retrouver
+    le numéro de page de chaque chunk après découpe.
+    Retourne (texte_concaténé, source).
+    Les pages de table des matières sont exclues.
     """
-    # Ponctuation qui marque une fin de section (on ne fusionne pas dans ce cas)
-    end_markers = re.compile(r"[.;:!?)\]»]$")
-    # Marqueurs de page insérés par pymupdf4llm (ex: "PAGE 19 SUR 78", "— 12 —")
-    page_marker = re.compile(
-        r"(PAGE\s+\d+\s+SUR\s+\d+|—\s*\d+\s*—|\*\*-\s*BROCHURE\b.*|\d{1,3}\s*$)",
-        re.IGNORECASE,
-    )
-
-    for i in range(len(documents) - 1):
-        # Même source uniquement (pas de fusion entre deux PDF différents)
-        if documents[i].metadata.get("source") != documents[i + 1].metadata.get("source"):
+    source = pages[0].metadata["source"]
+    parts = []
+    for doc in pages:
+        if _is_toc_page(doc.page_content):
             continue
+        page_num = doc.metadata["page"]
+        cleaned = _clean_text(doc.page_content)
+        if cleaned:
+            parts.append(f"<!-- PAGE {page_num} -->\n{cleaned}")
+    return "\n\n".join(parts), source
 
-        # Dernière ligne non vide, en ignorant les marqueurs de page
-        lines = [l.strip() for l in documents[i].page_content.rstrip().splitlines() if l.strip()]
-        last_content_line = ""
-        for line in reversed(lines):
-            if not page_marker.match(line):
-                last_content_line = line
-                break
 
-        # Si la page ne finit pas par une ponctuation de fin → la phrase continue sur la page suivante
-        if last_content_line and not end_markers.search(last_content_line):
-            next_text = documents[i + 1].page_content
-            # Prend le début de la page suivante jusqu'au premier titre ## ou double saut de ligne
-            boundary = len(next_text)
-            for pattern in ["\n## ", "\n### ", "\n\n"]:
-                pos = next_text.find(pattern)
-                if pos > 0:
-                    boundary = min(boundary, pos)
-            continuation = next_text[:boundary].strip()
-            if continuation:
-                documents[i].page_content += "\n" + continuation
+def _get_page_for_position(full_text: str, pos: int) -> int:
+    """
+    Retrouve le numéro de page correspondant à une position dans le texte concaténé
+    en cherchant le dernier marqueur <!-- PAGE X --> avant cette position.
+    """
+    last_page = 1
+    for m in _PAGE_MARKER_RE.finditer(full_text):
+        if m.start() <= pos:
+            last_page = int(m.group(1))
+        else:
+            break
+    return last_page
 
-    return documents
 
+def _strip_page_markers(text: str) -> str:
+    """Retire les marqueurs <!-- PAGE X --> du texte final d'un chunk."""
+    return _PAGE_MARKER_RE.sub("", text).strip()
+
+
+# ---------------------------------------------------------------------------
+#  Pré-découpe par titres (déterministe)
+# ---------------------------------------------------------------------------
+
+def _presplit_by_headers(full_text: str, source: str) -> list[Document]:
+    """
+    Découpe le texte concaténé sur les titres Markdown # et ## pour créer des blocs
+    thématiques. Chaque bloc peut couvrir plusieurs pages.
+    Les métadonnées page et source sont déterminées par le premier marqueur de page du bloc.
+    """
+    # Trouve les positions de tous les titres # et ##
+    header_pattern = re.compile(r"^(#{1,2})\s+.+", re.MULTILINE)
+    split_positions = [m.start() for m in header_pattern.finditer(full_text)]
+
+    # Si aucun titre trouvé, le document entier est un seul bloc
+    if not split_positions:
+        page = _get_page_for_position(full_text, 0)
+        return [Document(
+            page_content=_strip_page_markers(full_text),
+            metadata={"source": source, "page": page},
+        )]
+
+    # Ajoute le début du texte si le premier titre n'est pas au début
+    if split_positions[0] > 0:
+        split_positions.insert(0, 0)
+
+    sections = []
+    for idx, start in enumerate(split_positions):
+        end = split_positions[idx + 1] if idx + 1 < len(split_positions) else len(full_text)
+        section_text = full_text[start:end]
+        clean = _strip_page_markers(section_text)
+        if not clean.strip():
+            continue
+        page = _get_page_for_position(full_text, start)
+        sections.append(Document(
+            page_content=clean,
+            metadata={"source": source, "page": page},
+        ))
+
+    # Fusionne les sections trop courtes avec la suivante
+    merged: list[Document] = []
+    buffer: Document | None = None
+    for section in sections:
+        if buffer is None:
+            buffer = section
+        else:
+            buffer = Document(
+                page_content=buffer.page_content + "\n\n" + section.page_content,
+                metadata=buffer.metadata,
+            )
+        if len(buffer.page_content) >= MIN_SECTION_SIZE_FOR_SPLIT:
+            merged.append(buffer)
+            buffer = None
+    if buffer is not None:
+        if merged:
+            prev = merged.pop()
+            buffer = Document(
+                page_content=prev.page_content + "\n\n" + buffer.page_content,
+                metadata=prev.metadata,
+            )
+        merged.append(buffer)
+
+    return merged
+
+
+# ---------------------------------------------------------------------------
+#  Split agentic (LLM)
+# ---------------------------------------------------------------------------
 
 def _restart_ollama():
-    """
-    Tue et relance le serveur Ollama depuis /tmp (contournement pour Colab) :
-    llama-server peut crasher en cours de route sans qu'Ollama ne le redémarre.
-    """
+    """Tue et relance le serveur Ollama depuis /tmp (contournement pour Colab)."""
     os.system("pkill -f ollama 2>/dev/null; pkill -f llama-server 2>/dev/null")
     time.sleep(2)
     subprocess.Popen(
@@ -204,21 +273,20 @@ def _invoke_with_retry(llm: OllamaLLM, prompt: str, retries: int = 3) -> str:
                 raise
 
 
-def _agentic_split_page(page_text: str, llm: OllamaLLM) -> list[str]:
+def _agentic_split_section(section_text: str, llm: OllamaLLM) -> list[str]:
     """
-    Envoie le texte d'une page au LLM qui insère des marqueurs ===SPLIT=== entre les
-    sections logiques. Validation : si le LLM a trop modifié le texte (< 60% préservé),
-    on retourne le texte original sans découpe.
+    Envoie le texte d'une section thématique au LLM qui insère des marqueurs ===SPLIT===
+    entre les sous-sections logiques.
+    Validation : si le LLM a trop modifié le texte (< 60% préservé), fallback sur le texte original.
     """
-    # Pages courtes : pas besoin du LLM
-    if len(page_text.strip()) < MIN_PAGE_SIZE_FOR_SPLIT:
-        return [page_text.strip()]
+    if len(section_text.strip()) < MIN_SECTION_SIZE_FOR_SPLIT:
+        return [section_text.strip()]
 
-    prompt = SPLIT_PROMPT.format(page_text=page_text)
+    prompt = SPLIT_PROMPT.format(section_text=section_text)
     response = _invoke_with_retry(llm, prompt)
 
     # Validation : le LLM ne doit pas avoir trop modifié le texte
-    original_words = set(page_text.lower().split())
+    original_words = set(section_text.lower().split())
     response_words = set(response.lower().replace(SPLIT_MARKER.lower(), "").split())
     if original_words:
         preserved = len(original_words & response_words) / len(original_words)
@@ -226,23 +294,17 @@ def _agentic_split_page(page_text: str, llm: OllamaLLM) -> list[str]:
         preserved = 0
 
     if preserved < 0.6:
-        # Le LLM a trop modifié le texte — fallback sur le texte original
-        return [page_text.strip()]
+        return [section_text.strip()]
 
-    # Découpe sur les marqueurs
     segments = response.split(SPLIT_MARKER)
     segments = [s.strip() for s in segments if s.strip()]
-
-    if not segments:
-        return [page_text.strip()]
-
-    return segments
+    return segments if segments else [section_text.strip()]
 
 
 def _fallback_split_large(text: str) -> list[str]:
     """
-    Découpe déterministe sans overlap pour les chunks encore trop gros après le split LLM.
-    Protège les lignes de tableau Markdown (\n|).
+    Découpe déterministe sans overlap pour les chunks encore trop gros.
+    Protège les lignes de tableau Markdown.
     """
     if len(text) <= MAX_CHUNK_SIZE:
         return [text]
@@ -255,16 +317,17 @@ def _fallback_split_large(text: str) -> list[str]:
     return [d.page_content for d in docs]
 
 
+# ---------------------------------------------------------------------------
+#  Contextualisation déterministe
+# ---------------------------------------------------------------------------
+
 def _extract_section_path(text: str) -> str:
-    """
-    Extrait la hiérarchie de titres Markdown présente dans le texte du chunk.
-    Ex: "## Master > ### Semestre 1" → "Master > Semestre 1"
-    """
+    """Extrait la hiérarchie de titres Markdown présente dans le chunk."""
     headers = []
     for line in text.splitlines():
         match = re.match(r"^(#{1,3})\s+(.+)", line)
         if match:
-            title = match.group(2).strip().strip("*")  # retire le gras Markdown **...**
+            title = match.group(2).strip().strip("*")
             if title and title not in headers:
                 headers.append(title)
     return " > ".join(headers)
@@ -275,38 +338,26 @@ def _extract_keywords_deterministic(text: str) -> str:
     Extrait les mots-clés les plus fréquents du chunk par comptage de fréquence,
     après suppression des stopwords français. Zéro hallucination.
     """
-    # Retire la ligne de contexte [source | ...] si déjà présente
     clean = text
     if clean.startswith("["):
         end = clean.find("]\n\n")
         if end != -1:
             clean = clean[end + 3:]
-    # Retire les marqueurs de page et les symboles Markdown
     clean = re.sub(r"^#{1,3}\s+", "", clean, flags=re.MULTILINE)
     clean = re.sub(r"\*{1,2}([^*\n]+)\*{1,2}", r"\1", clean)
     clean = re.sub(r"[|_\-=\[\](){}<>#+*/\\]", " ", clean)
 
-    # Tokenise en mots de 3+ caractères, filtre les stopwords et les nombres purs
     words = re.findall(r"[a-zàâäéèêëïîôùûüÿçœæ]{3,}", clean.lower())
     words = [w for w in words if w not in _STOPWORDS]
 
-    # Bigrams : paires de mots consécutifs (plus informatifs que les unigrams seuls)
     bigrams = [f"{words[i]} {words[i+1]}" for i in range(len(words) - 1)]
-
-    # Compte les fréquences (bigrams + unigrams)
     freq = Counter(bigrams) + Counter(words)
-    # Prend les 5 termes les plus fréquents
     top = [term for term, _ in freq.most_common(8) if freq[term] >= 1][:5]
-
     return ", ".join(top)
 
 
 def _contextualize_chunk(chunk: Document, section_path: str, keywords: str) -> Document:
-    """
-    Préfixe le chunk avec une ligne de contexte [source | p.X | section | mots-clés].
-    L'embedding et BM25 ne lisent que le texte — cette ligne rend les métadonnées
-    visibles pour la recherche.
-    """
+    """Préfixe le chunk avec une ligne de contexte [source | p.X | section | mots-clés]."""
     source = chunk.metadata.get("source", "document inconnu")
     page = chunk.metadata.get("page", "?")
     parts = [source, f"p.{page}"]
@@ -319,51 +370,61 @@ def _contextualize_chunk(chunk: Document, section_path: str, keywords: str) -> D
     return Document(page_content=new_content, metadata=chunk.metadata)
 
 
+# ---------------------------------------------------------------------------
+#  Pipeline principal
+# ---------------------------------------------------------------------------
+
 def _split_documents(documents: list[Document]) -> list[Document]:
     """
-    Pipeline de découpage agentic en 7 étapes :
-    0. Filtre les pages de table des matières
-    1. Nettoie le texte (déduplique le bruit)
-    2. Fusionne les phrases coupées entre pages
-    3. Split agentic : le LLM décide où couper (===SPLIT===)
-    4. Fallback déterministe pour les chunks > 2000 caractères
-    5. Filtre les chunks trop courts (< 30 chars)
-    6. Assigne chunk_index par page (requis par agent.py pour l'expansion de troncature)
-    7. Contextualise : extraction déterministe de section_path + mots-clés, ligne de contexte
+    Pipeline de découpage agentic :
+    1. Concatène toutes les pages par document (texte continu, plus de frontières de page)
+    2. Pré-découpe par titres # et ## → blocs thématiques pouvant couvrir plusieurs pages
+    3. Le LLM affine chaque bloc en sous-sections cohérentes (===SPLIT===)
+    4. Fallback déterministe pour les chunks > MAX_CHUNK_SIZE
+    5. Filtre les chunks trop courts
+    6. Assigne chunk_index par page (requis par agent.py)
+    7. Contextualise avec section_path + mots-clés déterministes
     """
-    # num_predict élevé : le LLM doit répondre le texte complet de la page avec les marqueurs
     split_llm = OllamaLLM(model=SPLIT_MODEL, num_ctx=4096, temperature=0, num_predict=2048)
+
+    # Regroupe les pages par source (un PDF = un groupe)
+    pages_by_source: dict[str, list[Document]] = {}
+    for doc in documents:
+        src = doc.metadata["source"]
+        pages_by_source.setdefault(src, []).append(doc)
 
     # Reprise sur crash via checkpoint
     checkpoint_path = VECTOR_DB_DIR.parent / "ingest_checkpoint.pkl"
-    all_chunks = []
-    start_index = 0
+    all_chunks: list[Document] = []
+    done_sources: set[str] = set()
     if checkpoint_path.exists():
         with open(checkpoint_path, "rb") as f:
             checkpoint = pickle.load(f)
-        # Vérifie la version du pipeline pour invalider les anciens checkpoints
-        if checkpoint.get("pipeline_version") == 2:
+        if checkpoint.get("pipeline_version") == 3:
             all_chunks = checkpoint["chunks"]
-            start_index = checkpoint["next_index"]
+            done_sources = checkpoint["done_sources"]
             print(f"  Reprise du checkpoint : {len(all_chunks)} chunk(s) déjà prêts, "
-                  f"document {start_index + 1}/{len(documents)}.", flush=True)
+                  f"{len(done_sources)} source(s) terminée(s).", flush=True)
         else:
-            print("  Ancien checkpoint détecté (pipeline v1) — on repart de zéro.", flush=True)
+            print("  Ancien checkpoint détecté — on repart de zéro.", flush=True)
 
-    for i, doc in enumerate(documents):
-        if i < start_index:
+    for source, pages in pages_by_source.items():
+        if source in done_sources:
             continue
 
-        # Étape 0 : ignore les pages de table des matières
-        if _is_toc_page(doc.page_content):
-            print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
-                  f"→ table des matières ignorée", flush=True)
-        else:
-            # Étape 1 : nettoyage du texte
-            cleaned_text = _clean_page_text(doc.page_content)
+        print(f"\n  Traitement de {source} ({len(pages)} pages)...", flush=True)
 
-            # Étape 3 : split agentic — le LLM insère des marqueurs entre les sections logiques
-            segments = _agentic_split_page(cleaned_text, split_llm)
+        # Étape 1 : concatène toutes les pages (filtre les TdM, nettoie)
+        full_text, src = _concat_pages(pages)
+
+        # Étape 2 : pré-découpe par titres # et ## → blocs thématiques
+        sections = _presplit_by_headers(full_text, src)
+        print(f"    {len(sections)} section(s) thématique(s) détectée(s)", flush=True)
+
+        source_chunks = []
+        for s_idx, section in enumerate(sections):
+            # Étape 3 : le LLM affine chaque section en sous-chunks
+            segments = _agentic_split_section(section.page_content, split_llm)
 
             # Étape 4 : fallback pour les segments trop gros
             final_segments = []
@@ -373,30 +434,37 @@ def _split_documents(documents: list[Document]) -> list[Document]:
             # Étape 5 : filtre les micro-chunks
             final_segments = [s for s in final_segments if len(s.strip()) >= MIN_CONTENT_SIZE]
 
-            # Étape 6 : crée les Documents avec métadonnées + chunk_index
-            page_chunks = []
-            for idx, seg in enumerate(final_segments):
+            for seg in final_segments:
                 chunk = Document(
                     page_content=seg,
-                    metadata={**doc.metadata, "chunk_index": idx},
+                    metadata={"source": source, "page": section.metadata["page"]},
                 )
-                page_chunks.append(chunk)
+                source_chunks.append(chunk)
 
-            # Étape 7 : contextualisation déterministe (section_path + mots-clés + ligne de contexte)
-            for j, chunk in enumerate(page_chunks):
-                section_path = _extract_section_path(chunk.page_content)
-                keywords = _extract_keywords_deterministic(chunk.page_content)
-                page_chunks[j] = _contextualize_chunk(chunk, section_path, keywords)
+            print(f"    [{s_idx+1}/{len(sections)}] → {len(final_segments)} chunk(s)", flush=True)
 
-            all_chunks.extend(page_chunks)
+        # Étape 6 : assigne chunk_index par page (agent.py utilise chunk_index=0 pour l'expansion)
+        chunks_by_page: dict[int, int] = {}
+        for chunk in source_chunks:
+            page = chunk.metadata["page"]
+            idx = chunks_by_page.get(page, 0)
+            chunk.metadata["chunk_index"] = idx
+            chunks_by_page[page] = idx + 1
 
-            if page_chunks:
-                print(f"  [{i+1}/{len(documents)}] {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')} "
-                      f"→ {len(page_chunks)} chunk(s)", flush=True)
+        # Étape 7 : contextualisation déterministe
+        for j, chunk in enumerate(source_chunks):
+            section_path = _extract_section_path(chunk.page_content)
+            keywords = _extract_keywords_deterministic(chunk.page_content)
+            source_chunks[j] = _contextualize_chunk(chunk, section_path, keywords)
 
-        # Checkpoint : sauvegarde la progression après chaque page
+        all_chunks.extend(source_chunks)
+        done_sources.add(source)
+
+        # Checkpoint après chaque source complète
         with open(checkpoint_path, "wb") as f:
-            pickle.dump({"chunks": all_chunks, "next_index": i + 1, "pipeline_version": 2}, f)
+            pickle.dump({"chunks": all_chunks, "done_sources": done_sources, "pipeline_version": 3}, f)
+
+        print(f"  {source} terminé : {len(source_chunks)} chunk(s) au total.", flush=True)
 
     return all_chunks
 
@@ -409,15 +477,12 @@ def main():
         return
     print(f"\n{len(documents)} document(s) chargé(s).")
 
-    # Étape 2 : fusion inter-pages (avant le split, pour que le LLM voie les phrases complètes)
-    documents = _merge_cross_page_text(documents)
-
     chunks = _split_documents(documents)
-    print(f"{len(chunks)} chunk(s) créé(s).")
+    print(f"\n{len(chunks)} chunk(s) créé(s).")
 
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)
-    batch_size = 50  # envoi par lots pour ne pas saturer Ollama
+    batch_size = 50
     db = None
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i:i + batch_size]

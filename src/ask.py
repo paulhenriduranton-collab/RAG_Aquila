@@ -45,7 +45,7 @@ RERANK_THRESHOLD = 0.5
 DEDUP_THRESHOLD = 0.8
 
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
-llm = OllamaLLM(model=GEN_MODEL, num_ctx=4096, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire)
+llm = OllamaLLM(model=GEN_MODEL, num_ctx=8192, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire) ; num_ctx=8192 pour laisser de la place au raisonnement interne sur les questions de synthèse/comparaison
 reranker = CrossEncoder(RERANK_MODEL)  # téléchargé automatiquement depuis HuggingFace au 1er lancement (~471 Mo)
 
 def _restart_ollama():

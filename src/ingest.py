@@ -51,6 +51,24 @@ Règles :
 Réponds par la liste uniquement."""
 
 
+def _snap_overlap_start(text: str) -> str:
+    """Supprime le fragment de mot tronqué en début de texte d'overlap
+    (ex: 're une formation...' → 'une formation...')."""
+    if not text or text[0] in (" ", "\n"):
+        return text.lstrip()
+    idx = text.find(" ")
+    return text[idx:].lstrip() if idx != -1 else text
+
+
+def _snap_overlap_end(text: str) -> str:
+    """Supprime le fragment de mot tronqué en fin de texte d'overlap
+    (ex: '...d\'eff' → '...d\'')."""
+    if not text or text[-1] in (" ", "\n"):
+        return text.rstrip()
+    idx = text.rfind(" ")
+    return text[:idx] if idx != -1 else text
+
+
 def _load_pdf(pdf_path: Path) -> list[Document]:
     """
     Convertit un PDF en Markdown via pymupdf4llm, une page à la fois.
@@ -73,7 +91,7 @@ def _load_pdf(pdf_path: Path) -> list[Document]:
     # Chevauchement entre pages : recopie le début de chaque page à la fin de la précédente,
     # pour qu'une liste/section coupée par un saut de page se retrouve complète dans au moins un chunk.
     for i in range(len(documents) - 1):
-        next_start = documents[i + 1].page_content[:PAGE_OVERLAP_CHARS]
+        next_start = _snap_overlap_end(documents[i + 1].page_content[:PAGE_OVERLAP_CHARS])
         documents[i].page_content += "\n\n" + next_start
 
     return documents
@@ -134,6 +152,15 @@ def _merge_small_chunks(chunks: list[Document], min_size: int = MIN_CHUNK_SIZE) 
     return merged
 
 
+def _strip_context_prefix(text: str) -> tuple[str, str]:
+    """Sépare la ligne de contexte '[source | page | ...]' du contenu brut du chunk."""
+    if text.startswith("["):
+        end = text.find("]\n\n")
+        if end != -1:
+            return text[:end + 1], text[end + 3:]
+    return "", text
+
+
 def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVERLAP_CHARS) -> list[Document]:
     """
     Overlap bidirectionnel entre chunks adjacents d'une même page :
@@ -144,20 +171,27 @@ def _add_overlap_between_chunks(chunks: list[Document], overlap: int = FINAL_OVE
     de la filière ne contient pas le nom du référent).
     Le cross-page est déjà géré par PAGE_OVERLAP_CHARS dans _load_pdf.
     Les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD dans ask.py.
+    La ligne de contexte '[source | page | mots-clés]' est toujours gardée en tête du chunk,
+    et les overlaps ne recopient que le contenu brut (sans la ligne de contexte du voisin).
     """
     if len(chunks) <= 1:
         return chunks
-    contents = [c.page_content for c in chunks]
+    # Sépare la ligne de contexte du contenu brut pour chaque chunk
+    split = [_strip_context_prefix(c.page_content) for c in chunks]
     result = []
     for i in range(len(chunks)):
+        ctx, content = split[i]
         parts = []
-        # Overlap avant : fin du chunk précédent → début du chunk courant
+        # Ligne de contexte toujours en premier
+        if ctx:
+            parts.append(ctx)
+        # Overlap avant : fin du contenu brut du chunk précédent
         if i > 0:
-            parts.append(contents[i - 1][-overlap:])
-        parts.append(contents[i])
-        # Overlap après : début du chunk suivant → fin du chunk courant
+            parts.append(_snap_overlap_start(split[i - 1][1][-overlap:]))
+        parts.append(content)
+        # Overlap après : début du contenu brut du chunk suivant
         if i < len(chunks) - 1:
-            parts.append(contents[i + 1][:overlap])
+            parts.append(_snap_overlap_end(split[i + 1][1][:overlap]))
         result.append(Document(
             page_content="\n\n".join(parts),
             metadata=chunks[i].metadata,

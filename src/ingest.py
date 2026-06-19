@@ -44,6 +44,8 @@ Ne modifie pas le texte. Insère uniquement des marqueurs ===SPLIT=== aux endroi
 
 RÈGLE ABSOLUE : ne coupe JAMAIS à l'intérieur d'un tableau. Un tableau commence par une ligne | et finit quand les lignes | s'arrêtent. Le tableau entier doit rester dans le même bloc.
 
+RÈGLE ABSOLUE : ne coupe JAMAIS au milieu d'une liste (à puces ou numérotée). Si une liste commence (lignes débutant par -, *, •, ou un numéro), elle doit rester entièrement dans le même bloc jusqu'à la fin de la liste.
+
 Si la section entière porte sur un seul sujet, ne mets aucun marqueur.
 
 Texte avec marqueurs :"""
@@ -182,15 +184,31 @@ def _strip_page_markers(text: str) -> str:
 #  Pré-découpe par titres (déterministe)
 # ---------------------------------------------------------------------------
 
+def _is_pseudo_header(header_content: str) -> bool:
+    """
+    Détecte les faux titres Markdown issus des bordures de tableau PDF.
+    pymupdf4llm convertit les cellules de tableau en lignes commençant par ## |,
+    ce qui crée des points de coupure artificiels dans _presplit_by_headers.
+    """
+    # Retire le formatage Markdown (**, _, espaces, |) et vérifie s'il reste du vrai texte
+    stripped = re.sub(r"[*_\s|]", "", header_content)
+    return len(stripped) < 3
+
+
 def _presplit_by_headers(full_text: str, source: str) -> list[Document]:
     """
     Découpe le texte concaténé sur les titres Markdown # et ## pour créer des blocs
     thématiques. Chaque bloc peut couvrir plusieurs pages.
     Les métadonnées page et source sont déterminées par le premier marqueur de page du bloc.
+    Ignore les pseudo-titres issus des bordures de tableau PDF (## |, ## **|**, etc.).
     """
-    # Trouve les positions de tous les titres # et ##
-    header_pattern = re.compile(r"^(#{1,2})\s+.+", re.MULTILINE)
-    split_positions = [m.start() for m in header_pattern.finditer(full_text)]
+    # Trouve les positions de tous les titres # et ##, en filtrant les bordures de tableau
+    header_pattern = re.compile(r"^(#{1,2})\s+(.+)", re.MULTILINE)
+    split_positions = []
+    for m in header_pattern.finditer(full_text):
+        if _is_pseudo_header(m.group(2)):
+            continue
+        split_positions.append(m.start())
 
     # Si aucun titre trouvé, le document entier est un seul bloc
     if not split_positions:
@@ -217,28 +235,18 @@ def _presplit_by_headers(full_text: str, source: str) -> list[Document]:
             metadata={"source": source, "page": page},
         ))
 
-    # Fusionne les sections trop courtes avec la suivante
+    # Fusionne les sections trop courtes avec la PRÉCÉDENTE (pas la suivante)
+    # pour garder les sous-sections (Program, Bibliography, Horaires) avec leur titre parent
     merged: list[Document] = []
-    buffer: Document | None = None
     for section in sections:
-        if buffer is None:
-            buffer = section
-        else:
-            buffer = Document(
-                page_content=buffer.page_content + "\n\n" + section.page_content,
-                metadata=buffer.metadata,
-            )
-        if len(buffer.page_content) >= MIN_SECTION_SIZE_FOR_SPLIT:
-            merged.append(buffer)
-            buffer = None
-    if buffer is not None:
-        if merged:
-            prev = merged.pop()
-            buffer = Document(
-                page_content=prev.page_content + "\n\n" + buffer.page_content,
+        if merged and len(section.page_content) < MIN_SECTION_SIZE_FOR_SPLIT:
+            prev = merged[-1]
+            merged[-1] = Document(
+                page_content=prev.page_content + "\n\n" + section.page_content,
                 metadata=prev.metadata,
             )
-        merged.append(buffer)
+        else:
+            merged.append(section)
 
     return merged
 

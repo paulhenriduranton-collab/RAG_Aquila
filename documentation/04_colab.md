@@ -29,10 +29,10 @@ Installe les librairies nécessaires (langchain, chromadb, etc.) directement dan
 
 ### Étape 3 — Ollama + modèles
 
-Installe Ollama sur Colab et télécharge les 3 modèles :
+Installe Ollama sur Colab et télécharge les modèles :
 - `bge-m3` (~570 Mo) — embeddings
-- `gemma2:2b` (~1.6 Go) — contextualisation des chunks (ingestion)
-- `gemma4:12b` (~7 Go) — HyDE, grading, génération finale
+- `gemma4:12b` (~7 Go) — split agentique des chunks (ingestion), HyDE, grading, génération finale
+- `gemma2:2b` (~1.6 Go) — optionnel, utilisé uniquement comme juge RAGAS plus rapide à l'étape 5
 
 Le téléchargement prend ~5-10 minutes la première fois.
 

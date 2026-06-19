@@ -24,12 +24,15 @@
 
 | Composant | Choix | Raison |
 |---|---|---|
-| Extraction PDF | `pymupdf4llm` | Markdown structuré, préserve titres et symboles mathématiques |
+| Extraction PDF | `pymupdf4llm` (page_chunks=True) | Markdown structuré, préserve titres et symboles mathématiques, un Document par page |
 | Réparation d'encodage | `ftfy` | Corrige les accents cassés avant indexation BM25 |
-| Chevauchement inter-pages | 300 chars de la page suivante recopiés | Évite de couper une liste/section à cheval sur 2 pages |
-| Overlap intra-page | 200 chars entre chunks adjacents | Évite de perdre une info à la frontière entre deux chunks |
+| Concaténation des pages | Pages réassemblées en un texte continu par document (marqueurs `<!-- PAGE X -->`) | Permet à une section thématique de chevaucher plusieurs pages au lieu d'être bornée par la pagination du PDF |
 | Détection TdM | Ratio lignes avec `...` > 30 % | Élimine les pages de table des matières inutiles |
-| Contextual retrieval | Préfixe (source + page + titres + mots-clés gemma2:2b) | L'embedding voit le contexte structurel même sur un chunk isolé |
+| Pré-découpe par titres | Split déterministe sur `#`/`##`, fusion des sections < 800 caractères | Crée des blocs thématiques qui suivent la structure logique, pas la page |
+| Split agentique | LLM `gemma4:12b` insère des marqueurs `===SPLIT===` entre sous-sections (validation : ≥60 % des mots du texte d'origine préservés, sinon fallback) | Découpe par cohérence sémantique plutôt que par une taille fixe |
+| Fallback taille | `RecursiveCharacterTextSplitter` (max 1500 car., sans overlap, séparateurs qui protègent les tableaux) | Filet de sécurité pour les rares blocs encore trop gros après le split agentique |
+| Filtre micro-chunks | Chunk < 30 caractères écarté | Élimine le bruit (numéros de page isolés, symboles seuls) |
+| Contextual retrieval | Préfixe déterministe : source + page + chemin de titres + mots-clés par fréquence (zéro LLM) | L'embedding et BM25 voient le contexte structurel d'un chunk isolé, sans risque d'hallucination |
 | Modèle d'embedding | `bge-m3` (Ollama) | Multilingue, fenêtre 8192 tokens, vocabulaire scientifique |
 | Recherche sémantique | ChromaDB + MMR | Chunks pertinents ET diversifiés (évite les doublons) |
 | HyDE | Réponse fictive pour la recherche sémantique | Réduit l'écart embedding question/chunk |
@@ -37,13 +40,11 @@
 | Fusion | RRF (Reciprocal Rank Fusion) | Combine les deux classements indépendamment des scores bruts |
 | Déduplication | Jaccard sur tokens normalisés (seuil 80 %) | Supprime les quasi-doublons avant re-ranking |
 | Re-ranking | CrossEncoder `BAAI/bge-reranker-v2-m3` (seuil 0.5) | Reclasse les candidats RRF par pertinence réelle |
-| Modèle de contextualisation | `gemma2:2b` (Ollama) | Génère 3-6 mots-clés par chunk — léger, 4x plus rapide que gemma4:12b |
-| Modèle de génération | `gemma4:12b` (Ollama) | HyDE, grading, reformulation et génération finale — meilleur raisonnement |
-| Chunks | Pipeline 6 étapes : TdM → titres → fusion → taille → overlap → contextualisation | Préserve la hiérarchie, évite les micro-chunks, ajoute le contexte structurel |
+| Modèle de génération/découpe | `gemma4:12b` (Ollama) | Split agentique (ingestion), HyDE, grading, reformulation et génération finale |
 | Pipeline agentique | LangGraph (identification source + difficulté → retrieval → grade → reformulation) | Cherche plus intelligemment en cas de réponse insuffisante |
 | Interface utilisateur | Open WebUI + api_server.py (compatible OpenAI) | Interface chat locale sans Streamlit |
 | Interface Colab | Gradio (colab_run.ipynb, étape 4b) | Interface web avec surlignage PDF des chunks sources |
-| Évaluation | RAGAS (5 métriques LLM-judge) via Ollama | Standard du secteur, aucun appel API externe |
+| Évaluation | RAGAS (5 métriques LLM-judge) via Ollama, juge `gemma4:12b` (ou `gemma2:2b` en option sur Colab pour aller plus vite) | Standard du secteur, aucun appel API externe |
 
 ## Structure du projet
 

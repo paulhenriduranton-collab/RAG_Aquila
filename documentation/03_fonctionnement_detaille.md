@@ -11,48 +11,60 @@ Fichiers PDF/TXT/DOCX  (documents/)
    Extraction page par page en Markdown  (pymupdf4llm, page_chunks=True)
    → chaque page = un Document indépendant avec métadonnée "page"
    → réparation des encodages cassés  (ftfy.fix_text)
-   → chevauchement inter-pages : début de la page suivante (300 chars)
-     ajouté à la fin de chaque page — évite de couper listes/sections
         │
-        ▼ Étape 0 — Filtre des tables des matières
-   _is_toc_page  (ratio lignes avec "..." ou ". . ." > 30 %)
-   → les pages de TdM ne contiennent que des numéros de pages
-     et polluent la recherche — elles sont ignorées
+        ▼ Étape 1 — Concaténation des pages (_concat_pages)
+   → les pages de table des matières sont exclues (_is_toc_page :
+     ratio lignes avec "..." ou ". . ." > 30 %)
+   → toutes les pages restantes d'un même document sont recollées en
+     UN SEUL texte continu, avec un marqueur <!-- PAGE X --> au début
+     de chaque page d'origine
+   → c'est cette étape qui permet à une section thématique de chevaucher
+     plusieurs pages — il n'y a plus de frontière de page dans le texte
         │
-        ▼ Étape 1 — Découpage par titres
-   MarkdownHeaderTextSplitter  (# → h1, ## → h2, ### → h3)
-   → strip_headers=False : les titres restent dans le texte des chunks
-   → chaque chunk sait dans quelle section il se trouve (métadonnée h1/h2/h3)
+        ▼ Étape 2 — Pré-découpe par titres (_presplit_by_headers)
+   → découpe le texte concaténé à chaque titre Markdown # ou ##
+   → chaque bloc retient la page de son PREMIER marqueur <!-- PAGE X -->
+     (_get_page_for_position) — c'est la métadonnée "page" finale du chunk,
+     même si son contenu déborde sur la page suivante
+   → les blocs < MIN_SECTION_SIZE_FOR_SPLIT (800 caractères) sont fusionnés
+     avec le bloc suivant, pour ne pas envoyer de micro-section au LLM
         │
-        ▼ Étape 2 — Fusion des micro-chunks
-   _merge_small_chunks  (MIN_CHUNK_SIZE = 500 caractères)
-   → tout chunk < 500 caractères est fusionné avec son voisin
-   → évite les fragments trop courts (lignes de calendrier, etc.)
+        ▼ Étape 3 — Split agentique (_agentic_split_section, LLM gemma4:12b)
+   → chaque bloc thématique (≥ 800 caractères) est envoyé au LLM, qui
+     insère des marqueurs ===SPLIT=== entre sous-sections distinctes
+     (consigne stricte : jamais au milieu d'un tableau Markdown)
+   → validation anti-hallucination : si moins de 60% des mots du bloc
+     d'origine sont retrouvés dans la réponse du LLM, le découpage est
+     rejeté et le bloc original est gardé intact (fallback)
+   → un bloc qui ne contient qu'un seul sujet peut ressortir sans aucun
+     marqueur (segment unique)
         │
-        ▼ Étape 3 — Découpage par taille
-   RecursiveCharacterTextSplitter  (chunk_size=1000, overlap=200)
+        ▼ Étape 4 — Fallback déterministe (_fallback_split_large)
+   RecursiveCharacterTextSplitter  (chunk_size=1500, overlap=0)
+   → ne s'applique qu'aux segments encore > MAX_CHUNK_SIZE (1500 car.)
+     après le split agentique — un filet de sécurité, pas le découpage
+     principal
    → séparateurs dans l'ordre : \n## > \n### > \n\n > \n| > \n > espace
    → \n| protège les lignes de tableaux Markdown contre la coupure
         │
-        ▼ Étape 4 — Filtre des chunks trop courts
-   → tout chunk dont le contenu utile < 30 caractères est écarté
+        ▼ Étape 5 — Filtre des chunks trop courts
+   → tout chunk < MIN_CONTENT_SIZE (30 caractères) est écarté
      (numéros de page isolés, symboles seuls)
         │
-        ▼ Étape 4b — Overlap systématique entre chunks adjacents
-   _add_overlap_between_chunks  (FINAL_OVERLAP_CHARS = 200)
-   → copie les 200 derniers chars du chunk i au début du chunk i+1
-   → intra ET inter-page, appliqué après la boucle sur tous les chunks
-   → évite de perdre une info à la frontière entre deux chunks
-   → les doublons générés sont filtrés au retrieval par DEDUP_THRESHOLD
+        ▼ Étape 6 — chunk_index par page
+   → chaque chunk reçoit un numéro d'ordre (0, 1, 2...) parmi les chunks
+     qui partagent la même métadonnée "page" — utilisé par agent.py pour
+     retrouver "le chunk suivant" en cas de troncature (_expand_truncated)
         │
-        ▼ Étape 5 — Contextual retrieval (ajout d'un préfixe)
-   _contextualize_chunks  (gemma2:2b via Ollama)
-   → chaque chunk est préfixé d'une ligne de contexte :
-     [source | p.X | h1 > h2 > h3 | mots-clés LLM]
-   → le LLM (gemma2:2b) ne génère que les mots-clés (3-6 tokens, pas de résumé)
-   → les informations structurelles (source, page, section) sont
-     ajoutées sans LLM pour éviter les hallucinations
-   → checkpoint pickle après chaque page (reprise sur crash)
+        ▼ Étape 7 — Contextualisation déterministe (zéro LLM)
+   → chemin de titres extrait par regex sur les #/##/### du chunk
+     (_extract_section_path)
+   → mots-clés = mots/bigrammes les plus fréquents du chunk après
+     suppression des stopwords français (_extract_keywords_deterministic) —
+     comptage de fréquence, aucun appel LLM, aucune hallucination possible
+   → préfixe inséré en tête du chunk :
+     [source | p.X | chemin de titres | mots-clés]
+   → checkpoint pickle après chaque document traité (reprise sur crash)
         │
         ▼
    Transformation en vecteurs de 1024 nombres  (bge-m3 via Ollama)
@@ -201,20 +213,31 @@ for page in pages:
 
 **Pourquoi page par page ?** Un tableau peut couvrir toute une page. Si on extrait le PDF d'un seul bloc puis qu'on découpe par taille, le tableau sera scindé au milieu. Avec `page_chunks=True`, le tableau reste dans un seul document avant le découpage.
 
-### Chevauchement inter-pages (PAGE_OVERLAP_CHARS = 300)
+### Concaténation des pages (_concat_pages)
 
-Une liste ou une section peut commencer en bas d'une page et se terminer en haut de la suivante. Sans chevauchement, le chunk du bas de la page ne contient que le début de la liste, et le chunk du haut ne contient que la suite — aucun des deux ne contient l'information complète.
+Une page de PDF n'est pas une unité de sens : une section peut commencer en bas d'une page et continuer sur la suivante, surtout dans une brochure mise en page librement. Plutôt que de découper page par page puis de gérer des chevauchements artificiels, le pipeline recolle d'abord **toutes** les pages d'un même document en un seul texte continu :
 
 ```python
-# Les 300 premiers caractères de chaque page sont ajoutés à la fin de la précédente
-for i in range(len(documents) - 1):
-    next_start = documents[i + 1].page_content[:PAGE_OVERLAP_CHARS]
-    documents[i].page_content += "\n\n" + next_start
+def _concat_pages(pages: list[Document]) -> tuple[str, str]:
+    source = pages[0].metadata["source"]
+    parts = []
+    for doc in pages:
+        if _is_toc_page(doc.page_content):   # pages de TdM exclues ici
+            continue
+        page_num = doc.metadata["page"]
+        cleaned = _clean_text(doc.page_content)
+        if cleaned:
+            parts.append(f"<!-- PAGE {page_num} -->\n{cleaned}")
+    return "\n\n".join(parts), source
 ```
+
+Chaque page conserve un marqueur `<!-- PAGE X -->` à son point de jonction. Ce marqueur n'est jamais montré au LLM ni à l'embedding — il sert uniquement, en interne, à retrouver le numéro de page d'une position donnée dans le texte concaténé (`_get_page_for_position`), puis il est retiré du texte final (`_strip_page_markers`).
+
+`_clean_text` déduplique les lignes consécutives identiques (artefacts fréquents de l'extraction PDF) et réduit les sauts de ligne en excès.
 
 ### Détection des tables des matières (_is_toc_page)
 
-Les pages de TdM listent uniquement des numéros de pages (ex: `1.1  Objectifs . . . . . . . . . 7`). Si plus de 30 % des lignes contiennent `...` ou `. . .`, la page est ignorée :
+Les pages de TdM listent uniquement des numéros de pages (ex: `1.1  Objectifs . . . . . . . . . 7`). Si plus de 30 % des lignes contiennent `...` ou `. . .`, la page est ignorée avant même la concaténation :
 
 ```python
 # Proportion de lignes avec des points de suspension > seuil → c'est une TdM
@@ -222,59 +245,80 @@ dot_lines = sum(1 for l in lines if ". . ." in l or "..." in l)
 return dot_lines / len(lines) > TOC_DOT_RATIO  # TOC_DOT_RATIO = 0.3
 ```
 
-### Étape 1 — Découpage par titres (MarkdownHeaderTextSplitter)
+### Pré-découpe par titres (_presplit_by_headers)
+
+Le texte concaténé est ensuite découpé sur chaque titre Markdown `#` ou `##` :
 
 ```python
-# Coupe à chaque titre Markdown — chaque section garde son chemin de titres
-header_splitter = MarkdownHeaderTextSplitter(
-    headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
-    strip_headers=False,  # conserve les titres dans le texte du chunk
-)
+header_pattern = re.compile(r"^(#{1,2})\s+.+", re.MULTILINE)
+split_positions = [m.start() for m in header_pattern.finditer(full_text)]
 ```
 
-Ce splitter coupe le texte à chaque titre Markdown. Chaque section produit un chunk qui contient :
-- Le titre lui-même (parce que `strip_headers=False`)
-- Le texte sous ce titre jusqu'au prochain titre de niveau égal ou supérieur
-- Les métadonnées `h1`, `h2`, `h3` — le chemin hiérarchique de la section
+Chaque bloc obtenu hérite de la page de son **premier** marqueur `<!-- PAGE X -->` (donc la page où il commence — pas forcément la seule page qu'il couvre). C'est la métadonnée `page` qui sera attachée au chunk final.
 
-**Pourquoi garder les titres dans le texte ?** Deux sections de cours différents peuvent avoir le même intitulé — par exemple deux sections "Organisation" dans deux brochures. En conservant `## Organisation du DMA` dans le texte du chunk, l'embedding distingue les deux lors de la recherche.
-
-### Étape 2 — Fusion des micro-chunks (_merge_small_chunks)
-
-Certains chunks sont très courts après le découpage par titres — par exemple une ligne de calendrier sous son propre titre :
-
-```
-## Fin des cours
-Vendredi 17 janvier 2025
-```
-
-Ce chunk fait ~50 caractères. Un chunk aussi court est trop pauvre en mots pour être bien classé. La fonction `_merge_small_chunks` parcourt tous les chunks et fusionne tout chunk de moins de 500 caractères avec son voisin suivant :
+Les blocs trop courts pour être de vraies sections (`< MIN_SECTION_SIZE_FOR_SPLIT` = 800 caractères, ex: un titre suivi d'une seule ligne de calendrier) sont fusionnés avec le bloc suivant, en conservant les métadonnées du premier :
 
 ```python
-MIN_CHUNK_SIZE = 500  # seuil de fusion en caractères
+MIN_SECTION_SIZE_FOR_SPLIT = 800
 
 buffer = None
-for chunk in chunks:
-    buffer = chunk if buffer is None else Document(
-        page_content=buffer.page_content + "\n\n" + chunk.page_content,
-        metadata=buffer.metadata,   # garde les métadonnées du premier chunk
+for section in sections:
+    buffer = section if buffer is None else Document(
+        page_content=buffer.page_content + "\n\n" + section.page_content,
+        metadata=buffer.metadata,
     )
-    if len(buffer.page_content) >= MIN_CHUNK_SIZE:
+    if len(buffer.page_content) >= MIN_SECTION_SIZE_FOR_SPLIT:
         merged.append(buffer)
         buffer = None
-# reliquat final trop court → rattaché au dernier chunk déjà validé
 ```
 
-### Étape 3 — Découpage par taille (RecursiveCharacterTextSplitter)
+S'il n'y a aucun titre `#`/`##` dans le document, tout le texte forme un seul bloc.
 
-Certaines sections, après fusion, dépassent 1000 caractères. Elles sont redécoupées :
+### Split agentique (_agentic_split_section, LLM gemma4:12b)
+
+Chaque bloc thématique (≥ 800 caractères) part vers le LLM avec une consigne précise : insérer le marqueur `===SPLIT===` entre chaque sous-section logiquement distincte, **sans modifier le texte**, et jamais à l'intérieur d'un tableau Markdown.
 
 ```python
-# Coupe en chunks de 1000 chars max, avec 200 chars de chevauchement
-size_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200,
-    separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " ", ""],
+SPLIT_PROMPT = """Texte d'une section de brochure universitaire :
+---
+{section_text}
+---
+
+Insère le marqueur ===SPLIT=== entre chaque sous-section logique distincte
+(changement de sujet, nouveau paragraphe thématique).
+Ne modifie pas le texte. Insère uniquement des marqueurs ===SPLIT===
+aux endroits appropriés.
+
+RÈGLE ABSOLUE : ne coupe JAMAIS à l'intérieur d'un tableau...
+Si la section entière porte sur un seul sujet, ne mets aucun marqueur."""
+```
+
+**Garde-fou anti-hallucination :** un LLM peut reformuler, résumer ou tronquer le texte au lieu de se contenter d'y insérer des marqueurs. Pour s'en protéger, le pipeline compare les mots du texte d'origine à ceux de la réponse :
+
+```python
+original_words = set(section_text.lower().split())
+response_words = set(response.lower().replace(SPLIT_MARKER.lower(), "").split())
+preserved = len(original_words & response_words) / len(original_words)
+
+if preserved < 0.6:          # moins de 60% des mots d'origine retrouvés
+    return [section_text.strip()]   # → on rejette le découpage, bloc gardé intact
+```
+
+C'est une validation purement déterministe (comptage d'ensembles de mots) — aucun appel LLM supplémentaire pour vérifier le LLM.
+
+**Conséquence directe pour la métadonnée `page` :** un bloc peut très bien contenir le texte de la page 11 et de la page 12 si le LLM n'a inséré aucun marqueur entre les deux (même sujet) ou si le titre concerné chevauchait les deux pages dans le PDF d'origine. Dans ce cas, le chunk garde la métadonnée `page` du **premier** marqueur `<!-- PAGE X -->` qu'il contient, c'est-à-dire la page où le bloc a commencé. Si les chunks obtenus ressemblent malgré tout à un découpage page par page sur une brochure donnée, c'est en général parce que cette brochure place un titre `#`/`##` par page — pas parce que le pipeline est borné à la page.
+
+### Fallback déterministe (_fallback_split_large)
+
+Filet de sécurité pour les segments encore trop gros (> `MAX_CHUNK_SIZE` = 1500 caractères) après le split agentique — par exemple si le LLM n'a mis aucun marqueur sur un très long bloc :
+
+```python
+MAX_CHUNK_SIZE = 1500
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=MAX_CHUNK_SIZE,
+    chunk_overlap=0,   # pas d'overlap : ce n'est qu'un filet de sécurité, pas le découpage principal
+    separators=["\n## ", "\n### ", "\n\n", "\n|", "\n", " "],
 )
 ```
 
@@ -283,51 +327,55 @@ size_splitter = RecursiveCharacterTextSplitter(
 2. `\n\n` — coupe entre paragraphes
 3. `\n|` — coupe avant une ligne de tableau, **protège les tableaux Markdown** : une ligne `| col1 | col2 |` ne sera jamais coupée au milieu
 4. `\n` — coupe entre lignes
-5. espace puis caractère — en dernier recours
+5. espace — en dernier recours
 
-**Le chevauchement de 200 caractères** évite de couper une idée en deux :
+Sans overlap, contrairement à une ancienne version du pipeline : la cohérence sémantique est désormais assurée par le split agentique en amont, pas par un recouvrement systématique de caractères.
 
+### Filtre des micro-chunks et numérotation par page
+
+Tout chunk dont le contenu fait moins de `MIN_CONTENT_SIZE` (30 caractères) est écarté — numéros de page isolés, symboles seuls.
+
+Chaque chunk reçoit ensuite un `chunk_index` : son rang (0, 1, 2...) parmi les chunks qui partagent la même métadonnée `page`. Cette numérotation est utilisée par `agent.py` (`_expand_truncated`) pour retrouver, sans appel LLM, le premier chunk de la page suivante d'un document quand un chunk se termine par un marqueur de coupure de page.
+
+### Contextualisation déterministe (_contextualize_chunk)
+
+L'embedding et BM25 ne lisent que le texte du chunk — pas ses métadonnées. Un chunk isolé ne dit pas de lui-même dans quel établissement ou quelle section il se trouve. Contrairement à une version antérieure du pipeline, **aucun LLM n'intervient à cette étape** : tout est construit par regex et comptage de fréquence.
+
+**Chemin de titres (_extract_section_path) :** extrait par regex les titres `#`/`##`/`###` présents dans le texte du chunk lui-même (puisqu'ils y sont restés depuis l'extraction Markdown) :
+
+```python
+def _extract_section_path(text: str) -> str:
+    headers = []
+    for line in text.splitlines():
+        match = re.match(r"^(#{1,3})\s+(.+)", line)
+        if match:
+            title = match.group(2).strip().strip("*")
+            if title and title not in headers:
+                headers.append(title)
+    return " > ".join(headers)
 ```
-Chunk 1 : "...un espace vectoriel normé est dit complet si toute suite de
-           Cauchy converge. On appelle un tel espace un espace de [FIN]"
 
-Chunk 2 : "[DÉBUT] espace de Banach. Les espaces de Banach jouent un rôle
-           central en analyse fonctionnelle..."
+**Mots-clés (_extract_keywords_deterministic) :** comptage de fréquence des mots et bigrammes du chunk après suppression des stopwords français et du préfixe de contexte s'il existe déjà, des titres Markdown et de la ponctuation — les 5 termes les plus fréquents sont retenus :
+
+```python
+words = re.findall(r"[a-zàâäéèêëïîôùûüÿçœæ]{3,}", clean.lower())
+words = [w for w in words if w not in _STOPWORDS]
+bigrams = [f"{words[i]} {words[i+1]}" for i in range(len(words) - 1)]
+freq = Counter(bigrams) + Counter(words)
+top = [term for term, _ in freq.most_common(8) if freq[term] >= 1][:5]
 ```
 
-### Étape 4b — Overlap systématique (_add_overlap_between_chunks)
-
-RecursiveCharacterTextSplitter ne produit de l'overlap que quand il coupe un chunk > chunk_size. Deux chunks courts (< 1000 chars) adjacents n'ont donc aucun recouvrement entre eux.
-
-La fonction `_add_overlap_between_chunks` copie les 200 derniers caractères du chunk i au début du chunk i+1 **pour tous les chunks adjacents** (intra ET inter-page). Cela évite de perdre une information qui tombe exactement à la frontière — par exemple "Enseignant référent : Marc Lelarge" juste après une description de filière.
-
-Les doublons générés sont filtrés au retrieval par `DEDUP_THRESHOLD = 0.8` dans `ask.py`.
-
-### Étape 5 — Contextual retrieval (_contextualize_chunks)
-
-L'embedding et BM25 ne lisent que le texte du chunk — pas ses métadonnées. Un chunk isolé ne dit pas de lui-même dans quel établissement ou quelle section il se trouve.
-
-La contextualisation ajoute en tête de chaque chunk une ligne de contexte construite en deux parties :
-
-**Partie déterministe (sans LLM, sans hallucination) :**
-- Nom du fichier source (`ENS.pdf`)
-- Numéro de page
-- Chemin de titres capturé par MarkdownHeaderTextSplitter (`DMA > Organisation > Cours`)
-
-**Partie LLM (gemma2:2b, pas gemma4:12b) :**
-- 3 à 6 mots-clés sur le sujet précis du chunk (ex: `cours obligatoires, ECTS, L3`)
-- Le LLM ne voit que le chunk, pas le document entier — il ne peut donc générer que des mots-clés sur le contenu, pas sur le contexte global. Les informations structurelles sont ajoutées sans lui.
-- Configuration : `num_predict=40` (limite la sortie à ~40 tokens pour éviter les réponses longues)
+**Pourquoi déterministe plutôt qu'un LLM ?** Un comptage de fréquence ne peut pas halluciner — les mots-clés produits sont garantis présents dans le chunk. C'est aussi instantané (zéro appel réseau) là où un LLM générant des mots-clés pour ~700 chunks ajoutait auparavant 15 à 60 minutes au temps d'ingestion.
 
 Résultat :
 ```
-[ENS.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
+[ENS.pdf | p.12 | Cours communs de L3 | cours obligatoires, ects, l3]
 
 ## Cours communs de L3
 Les quatre cours obligatoires sont...
 ```
 
-**Checkpoint pickle :** La contextualisation appelle le LLM pour chaque chunk (~700 appels pour deux brochures). En cas de crash llama-server en cours de route, la progression est sauvegardée après chaque page. Au prochain lancement d'`ingest.py`, la contextualisation repart du dernier point de sauvegarde.
+**Checkpoint pickle :** seul le split agentique (étape coûteuse, un appel LLM par bloc thématique) appelle Ollama pendant l'ingestion. En cas de crash llama-server en cours de route, la progression est sauvegardée après chaque **document source** complet (`done_sources`, `pipeline_version: 3`). Au prochain lancement d'`ingest.py`, les documents déjà traités sont sautés et l'ingestion repart des documents restants.
 
 ### Stockage dans ChromaDB
 

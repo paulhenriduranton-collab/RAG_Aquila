@@ -4,12 +4,12 @@
 
 - **Python 3.10 à 3.13** (pas 3.14+ — incompatibilité Pillow)
 - **Ollama** installé et lancé (visible dans la barre des tâches ou via `ollama serve`)
-- Les trois modèles Ollama téléchargés :
+- Les deux modèles Ollama nécessaires en local :
   ```powershell
   ollama pull bge-m3       # modèle d'embedding multilingue (indexation + recherche)
-  ollama pull gemma2:2b    # LLM léger pour la contextualisation des chunks (ingestion)
-  ollama pull gemma4:12b   # LLM principal pour HyDE, grading et génération
+  ollama pull gemma4:12b   # LLM principal : split agentique (ingestion), HyDE, grading, génération
   ```
+  `gemma2:2b` n'est utile que sur Colab, comme juge RAGAS plus rapide — inutile en local.
 
 ---
 
@@ -55,20 +55,27 @@ Chargement des documents...
   ✓ SORBONNE.pdf (38 doc(s))
 
 80 document(s) chargé(s).
-  [1/80] ENS.pdf p.1 → table des matières ignorée
-  [2/80] ENS.pdf p.2 → 3 chunk(s) contextualisé(s)
-  ...
-718 chunk(s) créé(s).
-Lot 1 / 15 (50 chunks)...
+
+  Traitement de ENS.pdf (42 pages)...
+    12 section(s) thématique(s) détectée(s)
+    [1/12] → 4 chunk(s)
+    ...
+  ENS.pdf terminé : 218 chunk(s) au total.
+
+  Traitement de SORBONNE.pdf (38 pages)...
+    ...
+
+431 chunk(s) créé(s).
+Lot 1 / 9 (50 chunks)...
 ...
 Index créé dans vector_db/.
 ```
 
-**Durée :** La contextualisation LLM (gemma2:2b, étape 5) prend 1 à 3 secondes par chunk via Ollama, soit **15 à 30 minutes** selon ta machine. Sur GPU Colab : 5 à 15 minutes.
+**Durée :** Le split agentique (gemma4:12b, un appel par section thématique — pas par chunk ni par page) prend la majeure partie du temps : selon le nombre de sections détectées, compte **10 à 25 minutes** sur CPU pour deux brochures. Sur GPU Colab : nettement plus rapide. La contextualisation (chemin de titres + mots-clés) est, elle, instantanée — c'est du calcul déterministe, sans appel LLM.
 
 **À ne refaire que si tu ajoutes ou modifies des documents.**
 
-Si le run s'interrompt (crash llama-server), relance simplement `python src/ingest.py` — la reprise repart du dernier checkpoint automatiquement.
+Si le run s'interrompt (crash llama-server), relance simplement `python src/ingest.py` — la reprise repart du dernier document source entièrement traité (checkpoint pickle).
 
 **Chemins de la base vectorielle :**
 - En local, `ingest.py` écrit dans `C:/vector_db_aquila` (hors OneDrive pour éviter la corruption SQLite)
@@ -223,10 +230,9 @@ Copy-Item -Recurse -Force "C:\vector_db_aquila\*" "vector_db\"
 ollama list
 ```
 
-Tu dois voir `bge-m3:latest`, `gemma2:2b` et `gemma4:12b` dans la liste. Sinon :
+Tu dois voir `bge-m3:latest` et `gemma4:12b` dans la liste (gemma2:2b n'est nécessaire que sur Colab, pour l'évaluation RAGAS allégée). Sinon :
 ```powershell
 ollama pull bge-m3
-ollama pull gemma2:2b
 ollama pull gemma4:12b
 ```
 

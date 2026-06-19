@@ -5,25 +5,8 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langchain_core.documents import Document
 
-from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL, VECTOR_DB_DIR, EMBED_MODEL
+from ask import retrieve, _rerank, llm, _invoke_with_retry, _maybe_restart_ollama, PROMPT_PATH, BASE_DIR, K_FINAL
 
-from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
-
-# Détecte les marqueurs de coupure de page produits par pymupdf4llm.
-# Pattern 1 — "PAGE **19** SUR 78", "i— PAGE 9 SUR 78" (ENS)
-# Pattern 2 — numéro de page seul sur la dernière ligne : "131" (Sorbonne)
-# Pattern 3 — "- 8 -", "— 12 —" (tirets encadrants)
-# Pattern 4 — "Page 5 of 20", "page 12/30" (formats anglais courants)
-TRUNCATION_RE = re.compile(
-    r'(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+SUR\s+\d+'  # PAGE X SUR Y
-    r'|(?:i—\s*)?PAGE\s+\*{0,2}\d+\*{0,2}\s+OF\s+\d+'   # PAGE X OF Y
-    r'|\d+\s*/\s*\d+'                                     # X/Y ou X / Y
-    r'|[-—–]\s*\d+\s*[-—–]',                              # - 8 - ou — 12 —
-    re.IGNORECASE,
-)
-# Numéro de page isolé sur la toute dernière ligne du chunk (ex: "131\n")
-_BARE_PAGE_NUM_RE = re.compile(r'\n(\d{1,4})\s*$')
 
 # Dossier des documents source — on liste son contenu dynamiquement (pas de nom d'établissement
 # en dur) pour que l'agent reste valable si on ajoute/retire des brochures plus tard.
@@ -78,12 +61,10 @@ ATTENTION — Avant de répondre OUI, vérifie :
 
 - Si oui, réponds uniquement : OUI
 - Si non, réponds : NON — [explique en 1 phrase ce qui manque précisément dans les extraits]
-- Si un extrait est marqué [⚠ TRONQUÉ], considère que la liste ou la phrase est incomplète et réponds NON en précisant que la suite manque.
 
 Exemples de réponse NON :
 NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale
 NON — aucun extrait ne précise les conditions géographiques requises
-NON — l'extrait est tronqué, les cours du 2ème semestre et le stage sont absents
 NON — les horaires présents dans l'extrait appartiennent à un autre cours, pas à celui demandé"""
 
 REWRITE_PROMPT = """La recherche suivante n'a pas permis de retrouver une information suffisante pour répondre à la question.
@@ -203,71 +184,13 @@ def retrieve_node(state: AgentState) -> dict:
     return {"docs": final, "attempts": state["attempts"] + 1}
 
 
-def _looks_truncated(text: str) -> bool:
-    """Détecte si un chunk se termine par un marqueur de coupure de page pymupdf4llm."""
-    tail = text[-150:]
-    return bool(TRUNCATION_RE.search(tail) or _BARE_PAGE_NUM_RE.search(tail))
-
-
-def _has_truncation(docs: list[Document]) -> bool:
-    return any(_looks_truncated(doc.page_content) for doc in docs)
-
-
-def _expand_truncated(state: AgentState) -> dict:
-    """Pour les questions factuelles (difficulté 1) avec troncature : récupère le premier
-    chunk (chunk_index=0) de la page suivante dans ChromaDB au lieu de reformuler la question.
-    Zéro appel LLM — simple requête metadata (source + page+1 + chunk_index=0)."""
-    docs = list(state["docs"])
-    embeddings = OllamaEmbeddings(model=EMBED_MODEL)
-    vector_db = Chroma(persist_directory=str(VECTOR_DB_DIR), embedding_function=embeddings)
-
-    # Collecte les contenus déjà présents pour éviter les doublons
-    existing_contents = {d.page_content for d in docs}
-    insertions: list[tuple[int, Document]] = []
-
-    for i, doc in enumerate(docs):
-        if not _looks_truncated(doc.page_content):
-            continue
-        source = doc.metadata.get("source")
-        page = doc.metadata.get("page")
-        if not source or not page:
-            continue
-
-        # Requête ChromaDB : premier chunk de la page suivante du même document
-        neighbors = vector_db.get(
-            where={"$and": [{"source": source}, {"page": page + 1}, {"chunk_index": 0}]},
-            include=["documents", "metadatas"],
-        )
-        if neighbors["documents"]:
-            text, meta = neighbors["documents"][0], neighbors["metadatas"][0]
-            if text not in existing_contents:
-                insertions.append((i, Document(page_content=text, metadata=meta)))
-                existing_contents.add(text)
-
-    # Insère le voisin juste après chaque chunk tronqué (en partant de la fin pour garder les indices valides)
-    for i, neighbor_doc in reversed(insertions):
-        docs.insert(i + 1, neighbor_doc)
-
-    return {"docs": docs}
-
-
-def _annotate_context(docs: list[Document]) -> str:
-    """Construit le contexte pour grade_documents en signalant les chunks tronqués."""
-    parts = []
-    for doc in docs:
-        content = doc.page_content
-        if _looks_truncated(content):
-            content += "\n[⚠ TRONQUÉ — la liste ou la phrase continue sur la page suivante]"
-        parts.append(content)
-    return "\n\n---\n\n".join(parts)
 
 
 def grade_documents(state: AgentState) -> dict:
-    """Demande au LLM si les chunks accumulés suffisent, et ce qui manque précisément si non.
-    Les chunks tronqués sont annotés pour que le LLM détecte les listes incomplètes."""
+    """Demande au LLM si les chunks accumulés suffisent, et ce qui manque précisément si non."""
     if not state["docs"]:
         return {"sufficient": False, "grade_verdict": "NON — aucun extrait récupéré"}
-    context = _annotate_context(state["docs"])
+    context = "\n\n---\n\n".join(doc.page_content for doc in state["docs"])
     prompt = GRADE_PROMPT.format(question=state["question"], context=context)
     raw = _invoke_with_retry(prompt).strip()
     sufficient = raw.lower().startswith("oui")
@@ -309,16 +232,11 @@ def generate_node(state: AgentState) -> dict:
 
 def _route_after_retrieve(state: AgentState) -> str:
     """
-    Difficulté 1 : vérifie la troncature (sans appel LLM).
-      → troncature détectée : expand_truncated (récupère les chunks voisins sans reformuler)
-      → pas de troncature : generate directement
-    Difficulté 2/3, dernier retrieve (attempts > MAX_ATTEMPTS) : generate directement
-      (le grade ne changerait rien, on économise un appel LLM).
+    Difficulté 1 : generate directement (question factuelle, pas besoin de grading).
+    Difficulté 2/3, dernier retrieve (attempts > MAX_ATTEMPTS) : generate directement.
     Difficulté 2/3, 1er retrieve : grade_documents.
     """
     if state["difficulty"] == 1:
-        if _has_truncation(state["docs"]):
-            return "expand_truncated"
         return "generate"
     if state["attempts"] > MAX_ATTEMPTS:
         return "generate"
@@ -343,7 +261,6 @@ def _build_agent():
     graph.add_node("identify_sources", identify_sources)
     graph.add_node("retrieve", retrieve_node)
     graph.add_node("grade_documents", grade_documents)
-    graph.add_node("expand_truncated", _expand_truncated)
     graph.add_node("upgrade_difficulty", upgrade_difficulty)
     graph.add_node("rewrite_query", rewrite_query)
     graph.add_node("generate", generate_node)
@@ -353,9 +270,8 @@ def _build_agent():
     graph.add_conditional_edges(
         "retrieve",
         _route_after_retrieve,
-        {"generate": "generate", "grade_documents": "grade_documents", "expand_truncated": "expand_truncated"},
+        {"generate": "generate", "grade_documents": "grade_documents"},
     )
-    graph.add_edge("expand_truncated", "generate")
     graph.add_conditional_edges(
         "grade_documents",
         _route_after_grading,

@@ -29,16 +29,17 @@ python src/ingest.py
 
 ---
 
-## `model "bge-m3" not found`, `model "gemma2:2b" not found` ou `model "gemma4:12b" not found`
+## `model "bge-m3" not found` ou `model "gemma4:12b" not found`
 
 **Cause :** Le modèle n'est pas encore téléchargé dans Ollama.
 
 **Solution :**
 ```powershell
 ollama pull bge-m3      # embeddings (indexation + recherche)
-ollama pull gemma2:2b   # contextualisation des chunks (ingestion)
-ollama pull gemma4:12b  # HyDE, grading, génération finale
+ollama pull gemma4:12b  # split agentique (ingestion), HyDE, grading, génération finale
 ```
+
+`gemma2:2b` n'est nécessaire qu'optionnellement sur Colab (juge RAGAS plus rapide) — inutile en local.
 
 ---
 
@@ -80,9 +81,9 @@ uvicorn api_server:app --host 0.0.0.0 --port 8001
 
 ## `ingest.py` se bloque ou crash en cours de route
 
-**Cause probable :** llama-server (le backend d'Ollama) crash sur les longs runs de contextualisation (~700 appels LLM). C'est un comportement connu sur Colab et Windows.
+**Cause probable :** llama-server (le backend d'Ollama) crash sur les longs runs du split agentique (un appel LLM par section thématique, sur les deux brochures). C'est un comportement connu sur Colab et Windows.
 
-**Ce qui se passe automatiquement :** `_invoke_with_retry` tente jusqu'à 3 fois en redémarrant Ollama entre chaque tentative. Si le crash a lieu entre deux pages, le checkpoint pickle sauvegarde la progression.
+**Ce qui se passe automatiquement :** `_invoke_with_retry` tente jusqu'à 3 fois en redémarrant Ollama entre chaque tentative. Si le crash a lieu entre deux documents, le checkpoint pickle sauvegarde la progression (au niveau du document source, pas de la page).
 
 **Solutions :**
 1. Relance `python src/ingest.py` — il repart du checkpoint automatiquement

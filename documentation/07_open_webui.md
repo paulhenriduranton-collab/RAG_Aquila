@@ -20,7 +20,7 @@ des fichiers existants n'est nécessaire.
   pip install -r requirements.txt
   ```
 - Avoir indexé les documents (`python src/ingest.py`) et lancé Ollama
-- Avoir les 3 modèles Ollama (`bge-m3`, `gemma2:2b`, `gemma4:12b`)
+- Avoir les modèles Ollama nécessaires en local (`bge-m3`, `gemma4:12b`) — `gemma2:2b` est inutile ici, il ne sert que sur Colab pour l'évaluation RAGAS
 
 ---
 

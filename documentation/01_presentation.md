@@ -132,16 +132,20 @@ retrieve
                   └── difficulté 3 → rewrite_query → retrieve (2ème et dernier)
 ```
 
+### Découpage agentique (et pas page par page)
+
+Une page de PDF n'est pas une unité de sens — une section peut commencer en bas d'une page et continuer sur la suivante. Le pipeline d'ingestion concatène donc toutes les pages d'un document en un texte continu, puis découpe sur la structure logique (titres Markdown, puis un LLM qui affine la coupe entre sous-sections cohérentes). Un chunk peut donc couvrir plusieurs pages d'origine ; sa métadonnée `page` retient simplement la page où sa section commence. Si les chunks d'un document ressemblent malgré tout à un découpage page par page, c'est souvent parce que la brochure elle-même place un titre par page — pas parce que le pipeline est borné à la page. Voir [03_fonctionnement_detaille.md](03_fonctionnement_detaille.md) pour le détail.
+
 ### Contextual retrieval
 
 Chaque chunk est préfixé d'une ligne de contexte avant d'être indexé :
 ```
-[ENS.pdf | p.12 | DMA > Organisation > Cours | cours obligatoires, ECTS, L3]
+[ENS.pdf | p.12 | Cours communs de L3 | cours obligatoires, ects, l3]
 
 ## Cours communs de L3
 Les quatre cours obligatoires sont...
 ```
 
-La partie structurelle (source, page, titres) est ajoutée de façon déterministe (sans LLM). Les mots-clés sont générés par **gemma2:2b** (modèle léger, 4x plus rapide que gemma4:12b — suffisant pour l'extraction de mots-clés).
+Cette ligne est construite **entièrement sans LLM** : le nom de fichier et la page viennent des métadonnées, le chemin de titres est extrait par regex sur les `#`/`##`/`###` présents dans le chunk, et les mots-clés sont les mots/bigrammes les plus fréquents du chunk après suppression des stopwords français (comptage de fréquence, zéro hallucination possible).
 
 Cette ligne permet à l'embedding ET à BM25 de comprendre le contexte structurel d'un chunk isolé — sans elle, un chunk extrait de son document ne dit pas de lui-même dans quel établissement ou quelle section il se trouve.

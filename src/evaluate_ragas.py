@@ -124,18 +124,34 @@ def _build_kwargs(method, sample: SingleTurnSample) -> dict:
     }
 
 
-async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
-    """Score chaque sample individuellement — contourne evaluate() incompatible avec les collections metrics."""
-    rows = []
+async def _score_async(dataset: EvaluationDataset, metrics: list,
+                       row_meta: list[dict], meta_by_id: dict[str, dict]) -> pd.DataFrame:
+    """Score chaque sample individuellement et sauvegarde le CSV après chaque question."""
+    # Charge les résultats déjà évalués pour reprendre là où on s'était arrêté
+    if OUTPUT_CSV.exists():
+        df_existing = pd.read_csv(OUTPUT_CSV, encoding="utf-8")
+        already_done = set(df_existing["id"].astype(str))
+        rows_so_far = df_existing.to_dict("records")
+        print(f"      Reprise : {len(already_done)} questions déjà évaluées dans {OUTPUT_CSV}")
+    else:
+        already_done = set()
+        rows_so_far = []
+
     total = len(dataset.samples)
     for i, sample in enumerate(dataset.samples, 1):
+        meta = row_meta[i - 1]
+        # Skip les questions déjà évaluées
+        if str(meta["id"]) in already_done:
+            print(f"  [SKIP] {meta['id']} — déjà évalué")
+            continue
+
         # En-tête de la question avec numéro et texte tronqué
         question_preview = sample.user_input[:120] + "…" if len(sample.user_input) > 120 else sample.user_input
         print(f"\n{'─' * 60}")
         print(f"  [{i}/{total}] {question_preview}")
         print(f"{'─' * 60}")
 
-        row = {}
+        row = dict(meta)
         for metric in metrics:
             try:
                 if hasattr(metric, "ascore"):
@@ -164,20 +180,29 @@ async def _score_async(dataset: EvaluationDataset, metrics: list) -> pd.DataFram
                 bar = "█" * int(val * 20)
                 print(f"  {metric.name:<25}  {val:.3f}  {bar}")
 
-        rows.append(row)
-    return pd.DataFrame(rows)
+        # Ajout des métadonnées (niveau, source, difficulté)
+        for col in ["niveau", "source", "difficulte_rag"]:
+            row[col] = meta_by_id.get(meta["id"], {}).get(col, "")
+
+        # Sauvegarde immédiate après chaque question — un crash ne perd rien
+        rows_so_far.append(row)
+        pd.DataFrame(rows_so_far).to_csv(OUTPUT_CSV, index=False, encoding="utf-8")
+        print(f"  → sauvegardé ({len(rows_so_far)}/{total})")
+
+    return pd.DataFrame(rows_so_far)
 
 
-def _run_scoring(dataset: EvaluationDataset, metrics: list) -> pd.DataFrame:
+def _run_scoring(dataset: EvaluationDataset, metrics: list,
+                 row_meta: list[dict], meta_by_id: dict[str, dict]) -> pd.DataFrame:
     """Lance _score_async en gérant les deux cas : script Python et Jupyter/Colab (event loop déjà active)."""
     try:
-        return asyncio.run(_score_async(dataset, metrics))       # Cas standard (script Python)
+        return asyncio.run(_score_async(dataset, metrics, row_meta, meta_by_id))
     except RuntimeError:
         # Jupyter/Colab : event loop déjà active — nest_asyncio permet l'imbrication
         import nest_asyncio
         nest_asyncio.apply()
         loop = asyncio.get_event_loop()
-        return loop.run_until_complete(_score_async(dataset, metrics))
+        return loop.run_until_complete(_score_async(dataset, metrics, row_meta, meta_by_id))
 
 
 def print_summary(df: pd.DataFrame) -> None:
@@ -270,28 +295,13 @@ def main() -> None:
     metrics = build_metrics(llm, embeddings)
     print(f"      {len(metrics)} métriques configurées : {[m.name for m in metrics]}")
 
-    # Lancement de l'évaluation — peut prendre plusieurs minutes selon le nombre de questions
+    # Lancement de l'évaluation — sauvegarde le CSV après chaque question
     print("[4/5] Évaluation en cours (peut durer plusieurs minutes)...")
-    df_scores = _run_scoring(dataset, metrics)  # Scoring async sample par sample
-
-    # Export CSV enrichi avec id + métadonnées
-    print("[5/5] Export des résultats...")
-    df_meta   = pd.DataFrame(row_meta)                         # DataFrame des identifiants
-
-    df_out = pd.concat([df_meta.reset_index(drop=True),
-                        df_scores.reset_index(drop=True)], axis=1)
-
-    # Ajout des métadonnées questions (niveau, source, difficulté) pour l'analyse
-    for col in ["niveau", "source", "difficulte_rag"]:
-        df_out[col] = df_out["id"].map(
-            lambda qid, c=col: meta_by_id.get(qid, {}).get(c, "")
-        )
-
-    # Sauvegarde du CSV final
-    df_out.to_csv(OUTPUT_CSV, index=False, encoding="utf-8")
-    print(f"      Scores sauvegardés → {OUTPUT_CSV}")
+    print(f"      Résultats → {OUTPUT_CSV} (mis à jour après chaque question)")
+    df_out = _run_scoring(dataset, metrics, row_meta, meta_by_id)
 
     # Affichage du résumé dans le terminal
+    print("[5/5] Résumé :")
     print_summary(df_out)
 
 

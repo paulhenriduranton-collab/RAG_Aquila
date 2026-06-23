@@ -44,7 +44,8 @@
 | Pipeline agentique | LangGraph (identification source + difficulté → retrieval → grade → reformulation) | Cherche plus intelligemment en cas de réponse insuffisante |
 | Interface utilisateur | Open WebUI + api_server.py (compatible OpenAI) | Interface chat locale sans Streamlit |
 | Interface Colab | Gradio (colab_run.ipynb, étape 4b) | Interface web avec surlignage PDF des chunks sources |
-| Évaluation | RAGAS (5 métriques LLM-judge) via Ollama, juge `gemma4:12b` (ou `gemma2:2b` en option sur Colab pour aller plus vite) | Standard du secteur, aucun appel API externe |
+| Évaluation globale | RAGAS (5 métriques LLM-judge) via Ollama, juge `gemma4:12b` (ou `gemma2:2b` en option sur Colab pour aller plus vite) | Standard du secteur, aucun appel API externe |
+| Évaluation par composant | `agent.py` instrumenté (capture des états intermédiaires) + RAGAS (`gemma2:2b`) + juge externe custom (`gemma4:12b`) pour le grading | Isole les 6 briques du pipeline agentique, sans jamais relancer retrieval/génération pour re-scorer |
 
 ## Structure du projet
 
@@ -53,15 +54,18 @@ RAG_Aquila/
 ├── src/
 │   ├── ingest.py             # Indexation des documents (à lancer une fois)
 │   ├── ask.py                # Pipeline RAG complet (retrieval hybride + génération)
-│   ├── agent.py              # Pipeline agentique LangGraph
+│   ├── agent.py              # Pipeline agentique LangGraph (instrumenté pour l'éval par composant)
 │   ├── api_server.py         # Serveur API OpenAI-compatible pour Open WebUI
-│   ├── run_agentic_all.py    # Lance le pipeline agentique sur tout le dataset
-│   ├── evaluate_ragas.py     # Évaluation RAGAS avec 5 métriques
+│   ├── run_agentic_all.py    # Lance le pipeline agentique sur tout le dataset + capture les états intermédiaires
+│   ├── evaluate_ragas.py     # Évaluation RAGAS globale (5 métriques, bout-en-bout)
+│   ├── eval_common.py        # Utilitaires partagés : ground truth des sources, chunks → contextes RAGAS
+│   ├── evaluate_components.py # Évaluation par composant (6 briques), à partir d'agentic_results.json
 │   └── debug_question.py     # Script de debug : retrieval verbose sur une question
 ├── data/
-│   ├── questions.json        # Dataset de 40 questions avec réponses de référence
-│   ├── agentic_results.json  # Résultats du run agentique (généré par run_agentic_all.py)
-│   └── ragas_evaluation.csv  # Scores RAGAS par question (généré par evaluate_ragas.py)
+│   ├── questions.json            # Dataset de 50 questions avec réponses de référence
+│   ├── agentic_results.json      # Résultats + états intermédiaires du run agentique (run_agentic_all.py)
+│   ├── ragas_evaluation.csv      # Scores RAGAS globaux par question (evaluate_ragas.py)
+│   └── component_evaluation.csv  # Scores par brique et par question (evaluate_components.py)
 ├── documents/                # Fichiers PDF/DOCX/TXT à indexer
 │   ├── ENS.pdf               # Brochure ENS DMA 2024-2025
 │   └── SORBONNE.pdf          # Brochure Master Sorbonne 2025-2026

@@ -90,6 +90,8 @@ class AgentState(TypedDict):
     grade_verdict: str          # verdict complet du grade (ex: "NON — durée du stage absente")
     attempts: int               # nombre de retrievals déjà effectués — sert à plafonner la boucle
     answer: str                 # réponse finale produite par generate_node
+    pre_rerank_docs: list[Document]      # chunks juste avant le re-ranking du 1er retrieval — debug/éval (③)
+    docs_before_rewrite: list[Document]  # pool de chunks au moment du grading initial, avant rewrite — debug/éval (⑤)
 
 
 def _available_sources() -> list[str]:
@@ -163,7 +165,7 @@ def retrieve_node(state: AgentState) -> dict:
                     all_docs.append(doc)
         # Re-rank global sur la question originale pour trier le pool fusionné
         final = _rerank(state["question"], all_docs) if len(all_docs) > K_FINAL else all_docs
-        return {"docs": final, "attempts": 1}
+        return {"docs": final, "attempts": 1, "pre_rerank_docs": all_docs}
 
     new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
@@ -174,14 +176,17 @@ def retrieve_node(state: AgentState) -> dict:
         # 1er retrieval standard (difficulté 1 ou 2) : re-rank libre sur tous les chunks
         merged = state["docs"] + new_docs_deduped
         final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
-    else:
-        # 2ème retrieval — 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
-        old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
-        new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
-        seen = {d.page_content for d in old_top}
-        final = old_top + [d for d in new_top if d.page_content not in seen]
+        return {"docs": final, "attempts": 1, "pre_rerank_docs": merged}
 
-    return {"docs": final, "attempts": state["attempts"] + 1}
+    # 2ème retrieval (post-rewrite) — 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
+    # On garde une copie du pool précédent (state["docs"]) avant de l'écraser : c'est lui qui a servi
+    # au grading initial et qui sert de baseline pour mesurer l'apport du rewrite (éval ⑤).
+    old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
+    new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
+    seen = {d.page_content for d in old_top}
+    final = old_top + [d for d in new_top if d.page_content not in seen]
+
+    return {"docs": final, "attempts": state["attempts"] + 1, "docs_before_rewrite": state["docs"]}
 
 
 
@@ -288,16 +293,15 @@ def _build_agent():
 agent = _build_agent()
 
 
-def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list[Document]]:
+def run_agent(question: str, verbose: bool = True) -> AgentState:
     """
-    Pipeline RAG agentique complet : identification de la/les source(s) → retrieval →
-    évaluation des chunks → (reformulation + nouveau retrieval si besoin, dans la limite
-    de MAX_ATTEMPTS) → génération.
-    Retourne un tuple (réponse_texte, chunks_utilisés), comme ask_question, pour rester
-    interchangeable avec evaluate.py / app.py.
+    Exécute le graph agentique complet et retourne l'état final tel quel (tous les champs,
+    y compris les champs de debug pre_rerank_docs/docs_before_rewrite) — utilisé par
+    ask_question_agentic() ci-dessous et par run_agentic_all.py pour capturer tout ce dont
+    l'évaluation par composant a besoin, sans jamais relancer le pipeline une 2e fois.
     """
     _maybe_restart_ollama(verbose=verbose)
-    final_state = agent.invoke({
+    return agent.invoke({
         "question": question,
         "current_query": question,
         "sources": None,
@@ -309,7 +313,20 @@ def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list
         "grade_verdict": "",
         "attempts": 0,
         "answer": "",
+        "pre_rerank_docs": [],
+        "docs_before_rewrite": [],
     })
+
+
+def ask_question_agentic(question: str, verbose: bool = True) -> tuple[str, list[Document]]:
+    """
+    Pipeline RAG agentique complet : identification de la/les source(s) → retrieval →
+    évaluation des chunks → (reformulation + nouveau retrieval si besoin, dans la limite
+    de MAX_ATTEMPTS) → génération.
+    Retourne un tuple (réponse_texte, chunks_utilisés), comme ask_question, pour rester
+    interchangeable avec evaluate.py / app.py.
+    """
+    final_state = run_agent(question, verbose=verbose)
 
     if verbose:
         diff_labels = {1: "factuel", 2: "synthèse", 3: "complexe"}

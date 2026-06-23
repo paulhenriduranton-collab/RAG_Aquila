@@ -174,19 +174,28 @@ K_RETRIEVE = 25                        médians, tokens 2+ chars
 PHASE 3 : ÉVALUATION (à la demande)
 ──────────────────────────────────────────────────────────────────
 python src/run_agentic_all.py
-→ charge data/questions.json (40 questions avec réponses de référence)
-→ pour chaque question : lance ask_question_agentic() avec verbose=True
+→ charge data/questions.json (50 questions avec réponses de référence)
+→ pour chaque question : lance run_agent() (le graph LangGraph complet)
 → capture les logs de l'agent (_Tee : écrit sur console ET buffer)
+→ capture aussi tous les états intermédiaires du graph (router, chunks
+  avant/après re-ranking, verdict de grading, requête reformulée) —
+  cf. "agent.py — instrumentation" ci-dessous
 → sauvegarde après chaque question dans data/agentic_results.json (crash-safe)
 → push sur GitHub toutes les 5 questions (PUSH_EVERY = 5)
 
-python src/evaluate_ragas.py
-→ charge data/agentic_results.json + data/questions.json
-→ construit un EvaluationDataset RAGAS (SingleTurnSample par question)
-→ initialise gemma4:12b et bge-m3 via API Ollama (OpenAI-compatible)
-→ score chaque sample individuellement avec 5 métriques (async)
-→ exporte data/ragas_evaluation.csv
-→ affiche le récapitulatif par question et par niveau
+  ┌─────────────────────────────┴─────────────────────────────┐
+  ▼                                                             ▼
+python src/evaluate_ragas.py                          python src/evaluate_components.py
+→ évaluation GLOBALE (bout-en-bout)                    → évaluation PAR COMPOSANT (6 briques)
+→ charge data/agentic_results.json                     → charge data/agentic_results.json
+  + data/questions.json                                   + data/questions.json
+→ construit un EvaluationDataset RAGAS                 → ne relance JAMAIS retrieval/génération —
+  (SingleTurnSample par question)                          tout vient des états déjà sauvegardés
+→ initialise gemma4:12b et bge-m3 via                  → score router/retrieval/rerank/grading/
+  API Ollama (OpenAI-compatible)                           rewrite/génération séparément (RAGAS +
+→ score chaque sample avec 5 métriques (async)             juge externe de grading)
+→ exporte data/ragas_evaluation.csv                    → exporte data/component_evaluation.csv
+→ récapitulatif par question et par niveau             → récapitulatif par brique et par niveau
 ```
 
 ---
@@ -567,30 +576,122 @@ Si aucun chunk n'a été trouvé :
 
 ## Phase 3 — Évaluation en détail
 
-### Étape 1 : run_agentic_all.py
+L'évaluation se fait en **deux temps**, volontairement séparés :
 
-Ce script passe les 40 questions au pipeline agentique de façon séquentielle et sauvegarde les résultats :
+1. **Exécution** (`run_agentic_all.py`) — fait réellement tourner le graph agentique (`agent.py`) sur tout le dataset, et sauvegarde non seulement la réponse finale, mais **tous les états intermédiaires** du graph (router, chunks avant/après re-ranking, verdict de grading, requête reformulée) dans `data/agentic_results.json`.
+2. **Scoring** (`evaluate_ragas.py` et/ou `evaluate_components.py`) — lit ce fichier et calcule des métriques. **Ne relance jamais retrieval ni génération.** On peut donc rejouer le scoring autant de fois que nécessaire (changer une métrique, corriger un prompt de juge, etc.) sans jamais re-payer le coût d'un run complet — tant qu'on n'a pas modifié `agent.py`/`ask.py` eux-mêmes, auquel cas `run_agentic_all.py` doit être relancé pour rafraîchir les données.
+
+### Le dataset d'évaluation
+
+50 questions dans `data/questions.json`, réparties en 3 niveaux et 3 groupes de sources :
+
+| Niveau | Type | Exemple | Nombre |
+|---|---|---|---|
+| 1 | Factuel simple | "Qui dirige le DMA en 2024-2025 ?" | 11 |
+| 2 | Synthèse intra-document | "Comment fonctionne le système de tutorat ?" | 19 |
+| 3 | Comparaison multi-documents | "Comparez les stages ENS et Sorbonne" | 20 |
+
+| Source | Nombre |
+|---|---|
+| ENS uniquement | 18 |
+| Sorbonne uniquement | 22 |
+| ENS+Sorbonne (cross-document) | 10 |
+
+Chaque question a un `id` structuré (`L1_ENS_001` = Niveau 1, source ENS, séquence 001), une `reponse_attendue` (ground truth écrite à la main), et des métadonnées d'audit (`doc`, `pages`, `section`, `type_source`, `difficulte_rag`).
+
+---
+
+### agent.py — instrumentation pour l'évaluation par composant
+
+Le graph agentique lui-même a été enrichi de deux champs de debug dans `AgentState`, pour que `run_agentic_all.py` puisse capturer les étapes intermédiaires **sans jamais modifier le comportement réel du pipeline** :
 
 ```python
-# Structure d'un résultat dans data/agentic_results.json
+class AgentState(TypedDict):
+    ...
+    pre_rerank_docs: list[Document]      # chunks juste avant le re-ranking du 1er retrieval
+    docs_before_rewrite: list[Document]  # pool de chunks au moment du grading initial, avant rewrite
+```
+
+**`pre_rerank_docs`** — peuplé dans `retrieve_node`, sur le **1er** retrieval uniquement (`attempts == 0`), juste avant l'appel à `_rerank()` :
+
+```python
+# Branche sous-requêtes (difficulté 3, décomposition) :
+final = _rerank(state["question"], all_docs) if len(all_docs) > K_FINAL else all_docs
+return {"docs": final, "attempts": 1, "pre_rerank_docs": all_docs}
+
+# Branche standard (difficulté 1 ou 2) :
+merged = state["docs"] + new_docs_deduped
+final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
+return {"docs": final, "attempts": 1, "pre_rerank_docs": merged}
+```
+
+**`docs_before_rewrite`** — peuplé dans la branche du **2ème** retrieval (post-rewrite), juste avant que `state["docs"]` (le pool d'avant rewrite, celui qui a servi au grading initial) ne soit écrasé par le pool fusionné final :
+
+```python
+old_top = state["docs"][:K_FINAL - 2]
+new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
+seen = {d.page_content for d in old_top}
+final = old_top + [d for d in new_top if d.page_content not in seen]
+return {"docs": final, "attempts": state["attempts"] + 1, "docs_before_rewrite": state["docs"]}
+```
+
+**Pourquoi pas un script séparé qui rejoue les nœuds manuellement ?** Une première version dupliquait la logique du graph (router, retrieval, grading, rewrite) dans un script d'évaluation indépendant. Ça fonctionnait, mais créait un second chemin d'exécution distinct du vrai graph LangGraph, avec un risque de divergence si la logique d'`agent.py` évoluait sans que ce script soit mis à jour à l'identique (en particulier la décomposition en sous-requêtes pour la difficulté 3, qui n'était pas répliquée). Instrumenter `agent.py` directement garantit que les données d'évaluation reflètent **exactement** ce que fait le pipeline réel.
+
+**`run_agent(question, verbose) -> AgentState`** — nouvelle fonction qui exécute `agent.invoke(...)` et retourne l'état final **complet** (tous les champs, y compris les deux champs de debug). `ask_question_agentic()` (utilisée par `api_server.py`, `debug_question.py`, inchangée dans sa signature) est maintenant un simple wrapper autour de `run_agent()` qui n'en extrait que `(answer, docs)`.
+
+**Ce qu'on peut déduire sans champ supplémentaire :**
+- *Le rewrite a-t-il été déclenché ?* → `final_state["attempts"] >= 2` (un 2ème retrieval n'a lieu que si la reformulation a eu lieu).
+- *Le grading a-t-il réellement eu lieu ?* → `final_state["initial_difficulty"] > 1` (pour difficulté 1, `_route_after_retrieve` saute directement à `generate`, `grade_documents` n'est jamais appelé — cf. Phase 2, étape 6).
+- *Le grading n'est jamais rejoué après un rewrite* — `MAX_ATTEMPTS = 1` fait que `_route_after_retrieve` route directement vers `generate` après le 2ème retrieval (`attempts=2 > MAX_ATTEMPTS`), sans repasser par `grade_documents`. Le verdict de grading capturé est donc toujours celui du **premier et unique** appel.
+
+---
+
+### run_agentic_all.py — exécution + capture
+
+```python
+final_state = run_agent(question, verbose=True)
+docs = final_state["docs"]
+rewrite_triggered = final_state["attempts"] >= 2
+```
+
+Structure d'un résultat dans `data/agentic_results.json` :
+
+```python
 {
     "id": "L1_ENS_001",
-    "question": "Qui dirige le DMA en 2024-2025 ?",
-    "reponse_attendue": "...",  # ground truth
-    "reponse_llm": "...",        # réponse générée par l'agent
+    "question": "...",
+    "reponse_attendue": "...",      # ground truth
+    "reponse_llm": "...",           # réponse générée par l'agent
     "duree_secondes": 42.3,
     "logs": "[Agent] Source(s) ciblée(s) : ENS.pdf\n...",
-    "chunks": [
+    "chunks": [                     # pool FINAL utilisé pour la génération (post-rewrite si déclenché)
         {"source": "ENS.pdf", "page": 3, "rerank_score": 8.412, "content": "..."}
-    ]
+    ],
+    # --- états intermédiaires, pour evaluate_components.py ---
+    "router": {"sources": ["ENS.pdf"], "difficulty": 2},
+    "pre_rerank_docs": [ {...} ],   # chunks avant le 1er re-ranking
+    "post_rerank_docs": [ {...} ],  # chunks après le 1er re-ranking, AVANT tout rewrite
+    "grading": {
+        "performed": true,           # false si difficulté 1 (jamais gradé)
+        "sufficient": false,
+        "verdict": "NON — la durée du stage n'est pas précisée",
+    },
+    "rewrite": {
+        "triggered": true,
+        "new_query": "durée minimale stage obligatoire ENS",
+    },
 }
 ```
 
-**Reprise sur interruption :** Si le run est interrompu (Ctrl+C, crash), le fichier est lu au prochain lancement et seules les questions manquantes sont traitées.
+`post_rerank_docs` est calculé ainsi : `docs_before_rewrite` si un rewrite a eu lieu (le pool d'avant rewrite a été préservé), sinon directement `final_state["docs"]` (qui, dans ce cas, n'a jamais été modifié par un 2ème retrieval).
+
+**Reprise sur interruption :** Si le run est interrompu (Ctrl+C, crash), le fichier est relu au prochain lancement et seules les questions manquantes (`id` absent) sont traitées.
 
 **Push automatique :** Sur Colab, les résultats sont pushés sur GitHub toutes les 5 questions (`PUSH_EVERY = 5`) pour ne pas perdre la progression si Colab coupe la session.
 
-### Étape 2 : evaluate_ragas.py
+---
+
+### evaluate_ragas.py — évaluation globale (bout-en-bout)
 
 Le script charge `agentic_results.json`, construit un `EvaluationDataset` RAGAS et score chaque échantillon individuellement :
 
@@ -599,26 +700,14 @@ Le script charge `agentic_results.json`, construit un `EvaluationDataset` RAGAS 
 sample = SingleTurnSample(
     user_input=r["question"],          # question posée
     response=r["reponse_llm"],         # réponse générée
-    retrieved_contexts=contexts,        # liste de chunks (strings)
+    retrieved_contexts=contexts,        # liste de chunks (strings), depuis r["chunks"]
     reference=r["reponse_attendue"],   # ground truth
 )
 ```
 
 RAGAS utilise gemma4:12b (ou gemma2:2b sur Colab pour la rapidité) et bge-m3 via l'API OpenAI-compatible d'Ollama (`http://localhost:11434/v1`). Aucun appel à l'extérieur.
 
-### Le dataset d'évaluation
-
-40 questions réparties en 3 niveaux :
-
-| Niveau | Type | Exemple |
-|---|---|---|
-| 1 | Factuel simple | "Qui dirige le DMA en 2024-2025 ?" |
-| 2 | Synthèse intra-document | "Comment fonctionne le système de tutorat ?" |
-| 3 | Comparaison multi-documents | "Comparez les stages ENS et Sorbonne" |
-
-Chaque question a un `id` structuré (`L1_ENS_001` = Niveau 1, source ENS, séquence 001), une `reponse_attendue` (ground truth), et des métadonnées (`type_source`, `difficulte_rag`, `pages`, `section`).
-
-### Les 5 métriques RAGAS
+#### Les 5 métriques RAGAS (évaluation globale)
 
 | Métrique | Ce qu'elle mesure | Ground truth ? |
 |---|---|---|
@@ -630,8 +719,6 @@ Chaque question a un `id` structuré (`L1_ENS_001` = Niveau 1, source ENS, séqu
 
 Toutes les métriques retournent un score entre 0.0 et 1.0.
 
-### Interpréter les scores
-
 ```
 Faithfulness faible     → le LLM hallucine, il invente des infos non présentes dans les chunks
 AnswerRelevancy faible  → le LLM répond à côté, il ne comprend pas bien la question
@@ -639,3 +726,149 @@ ContextPrecision faible → le retrieval ramène des chunks hors sujet
 ContextRecall faible    → le retrieval rate des informations importantes
 AnswerCorrectness faible → la réponse est incorrecte par rapport aux documents
 ```
+
+---
+
+### evaluate_components.py — évaluation par composant (6 briques)
+
+Contrairement à `evaluate_ragas.py` (un score global par question), ce script isole chacune des **6 briques** du pipeline agentique et les évalue indépendamment, pour localiser précisément où le pipeline est faible. Il s'appuie sur `eval_common.py` pour la ground truth des sources et la conversion chunks → contextes RAGAS.
+
+#### Vue d'ensemble — outil utilisé par brique
+
+| # | Brique | Fonction | Outil d'évaluation | Appel LLM ? |
+|---|---|---|---|---|
+| ① | Router | `eval_router` | Comparaison exacte avec `questions.json` | Aucun |
+| ② | Retrieval | `eval_retrieval_and_reranking` | RAGAS `ContextPrecision` + `ContextRecall` | Oui (gemma2:2b, juge RAGAS) |
+| ③ | Re-ranking | `eval_retrieval_and_reranking` | Mêmes métriques RAGAS, delta avant/après | Oui (gemma2:2b) |
+| ④ | Grading | `eval_grading` | Juge externe maison (`GRADING_JUDGE`) | Oui (gemma4:12b — même modèle que le pipeline) |
+| ⑤ | Query Rewriting | `eval_rewriting` | RAGAS `ContextPrecision` + `ContextRecall` sur le pool post-rewrite | Oui (gemma2:2b) |
+| ⑥ | Generation | `eval_generation` | RAGAS `Faithfulness` | Oui (gemma2:2b) |
+
+`EVAL_LLM = "gemma2:2b"` et `EVAL_EMBED = "bge-m3"` pour toutes les métriques RAGAS — un modèle léger, séparé du modèle de production (`gemma4:12b`), choisi pour la vitesse du scoring.
+
+#### ① `eval_router(entry, meta)` — comparaison pure, sans LLM
+
+```python
+pred_src = entry["router"]["sources"]      # capturé par run_agentic_all.py
+pred_diff = entry["router"]["difficulty"]
+exp_src = expected_sources(meta)            # ground truth, via eval_common.SOURCE_MAP
+exp_diff = expected_difficulty(meta)        # = meta["niveau"]
+
+src_ok = set(pred_src) == set(exp_src)      # (ou égalité si les deux valent "toutes sources")
+diff_ok = pred_diff == exp_diff
+```
+
+`expected_sources()` traduit le champ `source` de `questions.json` (`"ENS"`, `"Sorbonne"`, `"ENS+Sorbonne"`) en liste de fichiers PDF réels, via `SOURCE_MAP` construit au démarrage par `init_source_map()` (scan du dossier `documents/`).
+
+#### ②③ `eval_retrieval_and_reranking(entry, meta, ragas_metrics)` — RAGAS Context Precision/Recall
+
+```python
+pre_ctx = chunks_to_contexts(entry["pre_rerank_docs"])    # avant le cross-encoder
+post_ctx = chunks_to_contexts(entry["post_rerank_docs"])  # après, avant tout rewrite
+
+post_sample = SingleTurnSample(user_input=question, response="",
+                                retrieved_contexts=post_ctx, reference=reference)
+
+if pre_ctx == post_ctx:
+    # _rerank() n'a jamais été appelé (pool <= K_FINAL) : pre == post, un seul scoring suffit
+    post_precision, post_recall = await asyncio.gather(
+        _ragas_score(ragas_metrics["ctx_precision"], post_sample),
+        _ragas_score(ragas_metrics["ctx_recall"], post_sample),
+    )
+    pre_precision, pre_recall = post_precision, post_recall
+else:
+    pre_sample = SingleTurnSample(user_input=question, response="",
+                                   retrieved_contexts=pre_ctx, reference=reference)
+    pre_precision, pre_recall, post_precision, post_recall = await asyncio.gather(
+        _ragas_score(ragas_metrics["ctx_precision"], pre_sample),
+        _ragas_score(ragas_metrics["ctx_recall"], pre_sample),
+        _ragas_score(ragas_metrics["ctx_precision"], post_sample),
+        _ragas_score(ragas_metrics["ctx_recall"], post_sample),
+    )
+
+rerank_precision_delta = post_precision - pre_precision   # positif = le re-ranker améliore
+rerank_recall_delta = post_recall - pre_recall
+```
+
+`chunks_to_contexts()` (`eval_common.py`) transforme chaque chunk sérialisé en string `[Source : ... — p.X]\n{contenu}`, le format que RAGAS attend pour `retrieved_contexts`.
+
+**Comment fonctionnent les métriques elles-mêmes (gemma2:2b en juge) :**
+- **ContextPrecision** : pour chaque chunk du contexte, le LLM juge s'il est pertinent vis-à-vis de la `reference` → proportion de chunks pertinents, pondérée par leur rang.
+- **ContextRecall** : le LLM découpe la `reference` en affirmations atomiques, puis vérifie si chacune est attribuable à au moins un chunk du contexte → proportion d'affirmations couvertes.
+
+**Optimisation appliquée :** si `pre_ctx == post_ctx` (le pool de chunks était déjà ≤ `K_FINAL`, donc `_rerank()` n'a jamais été invoqué dans `agent.py`), un seul scoring est fait au lieu de deux — le delta serait de toute façon nul. Les 4 appels RAGAS restants (precision/recall × pre/post) sont lancés en parallèle via `asyncio.gather` plutôt que séquentiellement : même nombre d'appels LLM, mais temps d'exécution réduit.
+
+#### ④ `eval_grading(entry, meta)` — juge externe custom
+
+```python
+grading = entry["grading"]
+if not grading["performed"]:           # difficulté 1 : le vrai pipeline n'a jamais gradé
+    return {"grading_performed": 0, ...}   # NaN, exclu des moyennes
+
+grader_sufficient = grading["sufficient"]   # verdict réel, capturé "à l'aveugle" (sans ground truth)
+context = "\n\n---\n\n".join(c["content"][:500] for c in entry["post_rerank_docs"])
+judge_prompt = GRADING_JUDGE.format(question=..., context=context, reference=meta["reponse_attendue"])
+judge_raw = _invoke_with_retry(judge_prompt).strip()   # appelle gemma4:12b, le LLM de production
+judge_sufficient = judge_raw.lower().startswith("oui")
+```
+
+Le **juge externe** ici n'est **pas** un modèle séparé ou plus puissant : c'est `_invoke_with_retry()` d'`ask.py`, donc **le même `gemma4:12b`** que celui utilisé par `grade_documents` en production. La seule différence est le **prompt** : `GRADING_JUDGE` reçoit la `reponse_attendue` (ground truth) en plus, ce que le grader réel ne voit jamais. Le verdict du juge externe sert de référence pour classer le verdict réel :
+
+| Grader réel | Juge externe | Label |
+|---|---|---|
+| OUI | OUI | `vrai_positif` |
+| NON | NON | `vrai_negatif` |
+| NON | OUI | `faux_negatif` — le grader est trop sévère |
+| OUI | NON | `faux_positif` — le grader est trop laxiste |
+
+**Limite assumée :** comme le juge externe réutilise le même modèle que le pipeline (avec juste plus d'information), il y a un biais de cohérence potentiel — un modèle indépendant (ex: `gemma2:2b`, ou un tiers modèle) serait un juge plus rigoureux, au prix d'un appel LLM supplémentaire vers un modèle différent.
+
+#### ⑤ `eval_rewriting(entry, meta, baseline_precision, baseline_recall, ragas_metrics)` — gain de rewrite
+
+```python
+rewrite = entry["rewrite"]
+if not rewrite["triggered"]:
+    return {"rewrite_triggered": 0, ...}   # NaN — la reformulation n'a pas eu lieu pour cette question
+
+merged_ctx = chunks_to_contexts(entry["chunks"])   # pool FINAL, déjà fusionné post-rewrite par agent.py
+sample = SingleTurnSample(user_input=question, response="",
+                           retrieved_contexts=merged_ctx, reference=reference)
+new_precision, new_recall = await asyncio.gather(
+    _ragas_score(ragas_metrics["ctx_precision"], sample),
+    _ragas_score(ragas_metrics["ctx_recall"], sample),
+)
+
+rewrite_precision_gain = new_precision - baseline_precision   # baseline = scores ② (avant rewrite)
+rewrite_recall_gain = new_recall - baseline_recall
+```
+
+**Le principe :** mesurer si la reformulation a *concrètement* amélioré le retrieval, pas juste si elle "sonne mieux". La **baseline** (avant rewrite) est directement réutilisée depuis l'étape ② (pas de second calcul) : ce sont les scores Context Precision/Recall sur `entry["post_rerank_docs"]`, c'est-à-dire le pool tel qu'il existait **au moment du grading initial**, avant toute reformulation — ce pool a été préservé dans `docs_before_rewrite` par `agent.py::retrieve_node` (cf. section instrumentation) juste avant d'être écrasé par le 2ème retrieval.
+
+Le **résultat après rewrite** n'est pas recalculé non plus à la main : c'est `entry["chunks"]`, le pool final tel que produit par le vrai mécanisme de fusion du pipeline (3 anciens chunks les mieux classés + 2 nouveaux chunks re-rankés sur la requête reformulée — cf. Phase 2, étape 5bis). Le gain (`rewrite_precision_gain`, `rewrite_recall_gain`) reflète donc exactement ce que la reformulation a changé en production, sans aucune ré-exécution ni simulation.
+
+#### ⑥ `eval_generation(entry, meta, ragas_metrics)` — fidélité de la réponse
+
+```python
+answer = entry["reponse_llm"]                 # réponse réellement générée par le pipeline
+ctx = chunks_to_contexts(entry["chunks"])      # chunks réellement utilisés pour la générer
+
+sample = SingleTurnSample(user_input=question, response=answer,
+                           retrieved_contexts=ctx, reference=reference)
+faithfulness = await _ragas_score(ragas_metrics["faithfulness"], sample)
+```
+
+**Faithfulness** : le LLM juge (gemma2:2b) décompose la réponse en affirmations atomiques, puis vérifie pour chacune si elle est dérivable du contexte fourni — sans comparer à la `reference`. C'est une mesure d'hallucination pure : la réponse dit-elle uniquement ce que les chunks permettent de dire ?
+
+Important : on utilise toujours `entry["chunks"]` — le pool **réellement** utilisé par `generate_node` en production (donc le pool post-rewrite si un rewrite a eu lieu). La fidélité est mesurée par rapport à ce qui a *vraiment* servi à générer la réponse, pas un pool reconstruit artificiellement.
+
+#### Boucle principale et résumé
+
+`_run_all()` boucle sur les 50 questions, appelle les 6 fonctions `eval_*` dans l'ordre, et sauvegarde une ligne par question dans `data/component_evaluation.csv` (sauvegarde incrémentale, reprise automatique). Si une question de `questions.json` n'a pas d'entrée correspondante dans `agentic_results.json`, elle est signalée `[MANQUANT]` et sautée — il faut alors relancer `run_agentic_all.py`.
+
+`print_summary()` affiche, pour chaque brique, la moyenne sur l'ensemble du dataset (ou le sous-ensemble pertinent : ④ seulement sur les questions de difficulté > 1, ⑤ seulement sur les questions où le rewrite a été déclenché), puis une ventilation par niveau de difficulté.
+
+#### Limites connues de cette évaluation
+
+- **Le grading (④)** est jugé par le même modèle que celui évalué (`gemma4:12b`), pas par un tiers indépendant — biais de cohérence possible.
+- **`pre_rerank_docs`** ne correspond qu'au tout premier retrieval ; pour les questions de difficulté 3 décomposées en sous-requêtes, c'est le pool fusionné de toutes les sous-requêtes avant le re-rank global qui sert de référence "avant re-ranking" (pas un état intermédiaire par sous-requête).
+- **Coût en appels LLM** : `run_agentic_all.py` (exécution, une fois) reste l'étape la plus coûteuse en appels au pipeline réel ; `evaluate_components.py` (scoring, répétable) ajoute des appels RAGAS — typiquement 2 à 8 appels gemma2:2b par question selon que le rewrite a été déclenché, plus 1 appel gemma4:12b pour le juge de grading (si difficulté > 1).

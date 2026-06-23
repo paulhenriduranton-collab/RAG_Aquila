@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG Aquila — Architecture Détaillée</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid #334155;
+      padding: 40px 60px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 1.1rem;
+      color: #94a3b8;
+    }
+
+    .header .badges {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .badge.blue { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb33; }
+    .badge.purple { background: #2e1065; color: #a78bfa; border: 1px solid #7c3aed33; }
+    .badge.green { background: #14532d; color: #4ade80; border: 1px solid #16a34a33; }
+    .badge.orange { background: #431407; color: #fb923c; border: 1px solid #ea580c33; }
+    .badge.pink { background: #500724; color: #f472b6; border: 1px solid #db277733; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 30px;
+    }
+
+    .section {
+      margin-bottom: 60px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .section-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .section-number.s1 { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .section-number.s2 { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+    .section-number.s3 { background: linear-gradient(135deg, #059669, #10b981); }
+    .section-number.s4 { background: linear-gradient(135deg, #ea580c, #f97316); }
+    .section-number.s5 { background: linear-gradient(135deg, #db2777, #ec4899); }
+    .section-number.s6 { background: linear-gradient(135deg, #0891b2, #06b6d4); }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+    }
+
+    .section-subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .diagram-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      overflow-x: auto;
+    }
+
+    .diagram-card .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .info-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .info-card h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .info-card h4.blue { color: #60a5fa; }
+    .info-card h4.purple { color: #a78bfa; }
+    .info-card h4.green { color: #4ade80; }
+    .info-card h4.orange { color: #fb923c; }
+    .info-card h4.pink { color: #f472b6; }
+    .info-card h4.cyan { color: #22d3ee; }
+
+    .info-card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .info-card li {
+      padding: 4px 0;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .info-card li::before {
+      content: "▸";
+      color: #64748b;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+
+    .param-table th {
+      background: #0f172a;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .param-table td {
+      padding: 10px 16px;
+      border-top: 1px solid #1e293b;
+      font-size: 0.88rem;
+    }
+
+    .param-table tr:nth-child(even) { background: #1e293b; }
+    .param-table tr:nth-child(odd) { background: #162032; }
+
+    .param-table code {
+      background: #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      color: #f472b6;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 16px;
+      background: #162032;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 30px;
+      border-top: 1px solid #334155;
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    @media print {
+      body { background: white; color: #1e293b; }
+      .header { background: white; border-bottom: 2px solid #e2e8f0; }
+      .header h1 { -webkit-text-fill-color: #2563eb; }
+      .header p, .section-subtitle { color: #64748b; }
+      .diagram-card, .info-card { background: #f8fafc; border-color: #e2e8f0; }
+      .info-card li { color: #334155; }
+      .param-table th { background: #e2e8f0; color: #334155; }
+      .param-table tr:nth-child(even) { background: #f8fafc; }
+      .param-table tr:nth-child(odd) { background: #ffffff; }
+      .param-table td { border-color: #e2e8f0; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>RAG Aquila — Architecture Complète</h1>
+  <p>Système de Question-Réponse Agentique sur Documents Universitaires</p>
+  <div class="badges">
+    <span class="badge blue">100% Local (Ollama)</span>
+    <span class="badge purple">LLM : gemma4:12b</span>
+    <span class="badge green">Embedding : bge-m3</span>
+    <span class="badge orange">ChromaDB</span>
+    <span class="badge pink">LangGraph Agent</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ============================== -->
+  <!-- SECTION 1: VUE D'ENSEMBLE      -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s1">1</div>
+      <div>
+        <div class="section-title">Vue d'ensemble du système</div>
+        <div class="section-subtitle">Ingestion (une seule fois) → puis à chaque question : l'Agent orchestre tout</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'primaryTextColor': '#e2e8f0', 'lineColor': '#64748b', 'secondaryColor': '#7c3aed', 'tertiaryColor': '#1e293b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+graph TB
+    subgraph PHASE1["<b>PHASE 1 — INGESTION (une seule fois)</b><br/><i>ingest.py</i>"]
+        direction TB
+        D1["📄 Documents PDF / DOCX / TXT<br/><i>documents/</i>"]
+        D2["🔧 Chargement & Nettoyage<br/><i>pymupdf4llm + ftfy</i>"]
+        D3["✂️ Découpage Intelligent<br/><i>Headers → LLM Split → Fallback</i>"]
+        D4["🏷️ Enrichissement Contextuel<br/><i>[source | page | section | mots-clés]</i>"]
+        D5["🧮 Vectorisation bge-m3<br/><i>Embedding multilingue 8192 tokens</i>"]
+        D6[("🗄️ ChromaDB<br/><i>Stockage persistant SQLite</i>")]
+        D1 --> D2 --> D3 --> D4 --> D5 --> D6
+    end
+
+    Q["❓ <b>Question utilisateur</b>"]
+
+    subgraph PHASE2["<b>PHASE 2 — BOUCLE AGENTIQUE (à chaque question)</b><br/><i>agent.py — LangGraph State Machine — orchestre tout le pipeline</i>"]
+        direction TB
+
+        A1["🧠 <b>Étape 1 : Identification Sources & Difficulté</b><br/><i>LLM classifie : quel document ? factuel / synthèse / comparaison ?</i>"]
+
+        subgraph RETRIEVAL["<b>Étape 2 : Retrieval Hybride</b> — <i>ask.py</i>"]
+            direction TB
+            R2["🔮 HyDE<br/><i>Réponse fictive → meilleur embedding<br/>(seulement si difficulté > 1)</i>"]
+            R3["🔍 Recherche Sémantique MMR<br/><i>25 candidats diversifiés</i>"]
+            R4["📝 Recherche Lexicale BM25<br/><i>25 candidats par mots-clés</i>"]
+            R5["⚡ Fusion RRF<br/><i>Combinaison des rangs → 15 chunks</i>"]
+            R6["🧹 Dédoublonnage Jaccard<br/><i>Seuil 80% similarité</i>"]
+            R7["🏆 Re-ranking CrossEncoder<br/><i>BAAI/bge-reranker-v2-m3<br/>Seuil ≥ 0.5 — en dessous = hors-sujet éliminé</i>"]
+            R8["📦 Top 5 chunks finaux"]
+            R2 --> R3
+            R3 --> R5
+            R4 --> R5
+            R5 --> R6 --> R7 --> R8
+        end
+
+        A2["📊 <b>Étape 3 : Évaluation Suffisance</b><br/><i>Les chunks répondent-ils à la question ?<br/>(seulement si difficulté ≥ 2)</i>"]
+        A3["🔄 <b>Étape 4 : Reformulation</b><br/><i>Cible les infos manquantes<br/>→ relance le retrieval</i>"]
+        A4["💬 <b>Étape 5 : Génération Réponse</b><br/><i>gemma4:12b + prompt contraint</i>"]
+
+        A1 -->|"sources + difficulté"| RETRIEVAL
+        RETRIEVAL -->|"difficulté = 1"| A4
+        RETRIEVAL -->|"difficulté ≥ 2"| A2
+        A2 -->|"NON — insuffisant"| A3
+        A3 -->|"2e tentative"| RETRIEVAL
+        A2 -->|"OUI — suffisant"| A4
+    end
+
+    subgraph PHASE3["<b>ÉVALUATION (hors-ligne, après batch)</b><br/><i>evaluate_ragas.py + evaluate_components.py</i>"]
+        direction TB
+        E1["📏 RAGAS 5 métriques<br/><i>Faithfulness, Relevancy, Precision, Recall, Correctness</i>"]
+        E2["🔬 Évaluation par composant<br/><i>Router, Retrieval, Rerank, Grading, Rewriting, Generation</i>"]
+    end
+
+    subgraph API["<b>INTERFACE</b><br/><i>api_server.py</i>"]
+        UI["🌐 Open WebUI<br/><i>API OpenAI-compatible<br/>POST /v1/chat/completions</i>"]
+    end
+
+    D6 -.->|"Chunks vectorisés<br/>disponibles"| RETRIEVAL
+    Q --> A1
+    A4 -->|"Réponse finale"| UI
+    A4 -.->|"Résultats batch"| PHASE3
+
+    style PHASE1 fill:#0c2d48,stroke:#2563eb,stroke-width:2px,color:#e2e8f0
+    style PHASE2 fill:#052e16,stroke:#16a34a,stroke-width:2px,color:#e2e8f0
+    style RETRIEVAL fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    style PHASE3 fill:#3b0a1a,stroke:#db2777,stroke-width:2px,color:#e2e8f0
+    style API fill:#1a2332,stroke:#0891b2,stroke-width:2px,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="blue">Stack Technique</h4>
+        <ul>
+          <li>LLM : gemma4:12b via Ollama (100% local)</li>
+          <li>Embeddings : bge-m3 (multilingue, 8192 tokens)</li>
+          <li>Re-ranker : BAAI/bge-reranker-v2-m3 (CrossEncoder)</li>
+          <li>Vector Store : ChromaDB (SQLite persistant)</li>
+          <li>Agent : LangGraph (state machine)</li>
+          <li>API : FastAPI (compatible OpenAI)</li>
+          <li>UI : Open WebUI</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="green">Points Forts</h4>
+        <ul>
+          <li>Aucune dépendance cloud — fonctionne hors-ligne</li>
+          <li>Retrieval hybride (sémantique + lexical)</li>
+          <li>Boucle agentique auto-corrective</li>
+          <li>Re-ranking neural pour précision maximale</li>
+          <li>Évaluation RAGAS complète (5 métriques)</li>
+          <li>Découpage intelligent par LLM</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 2: PIPELINE INGESTION  -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s2">2</div>
+      <div>
+        <div class="section-title">Pipeline d'Ingestion Détaillé</div>
+        <div class="section-subtitle">ingest.py — Comment les documents bruts deviennent des chunks vectorisés</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart TD
+    START(["📁 documents/<br/><b>ENS.pdf, SORBONNE.pdf</b>"])
+
+    subgraph LOAD["<b>1. CHARGEMENT</b>"]
+        L1["<b>PDF</b><br/>pymupdf4llm.to_markdown()<br/><i>page_chunks=True</i><br/>→ 1 Document/page en Markdown"]
+        L2["<b>DOCX</b><br/>Docx2txtLoader"]
+        L3["<b>TXT</b><br/>Lecture directe"]
+    end
+
+    subgraph CLEAN["<b>2. NETTOYAGE</b>"]
+        C1["ftfy.fix_text()<br/><i>Répare encodage cassé</i>"]
+        C2["Suppression lignes dupliquées<br/><i>+ blancs excessifs</i>"]
+        C3["Détection pages TdM<br/><i>Si >30% lignes contiennent '...'<br/>→ page filtrée</i>"]
+    end
+
+    subgraph CONCAT["<b>3. CONCATÉNATION</b>"]
+        CO1["Fusion pages par document<br/><i>Toutes les pages d'un même PDF<br/>→ texte continu</i>"]
+        CO2["Insertion marqueurs<br/><code>&lt;!-- PAGE X --&gt;</code><br/><i>Pour traçabilité</i>"]
+    end
+
+    subgraph SPLIT["<b>4. DÉCOUPAGE EN 3 ÉTAPES</b>"]
+        S1["<b>4a. Pré-split par titres Markdown</b><br/># et ## → sections thématiques<br/><i>Fusionne sections &lt;800 car.</i>"]
+        S2["<b>4b. Split agentique (LLM)</b><br/>gemma4:12b insère ===SPLIT===<br/><i>Entre sous-sections logiques<br/>Protège tableaux & listes</i>"]
+        S3{"Garde-fou :<br/>le LLM n'a pas<br/>réécrit le texte ?<br/><i>(≥60% mots intacts)</i>"}
+        S4["<b>4c. Fallback récursif</b><br/>RecursiveCharacterTextSplitter<br/><i>Pour chunks &gt;1500 car.<br/>Séparateurs : ## , ### , \\n\\n , \\n| , \\n</i>"]
+        S5["Filtre micro-chunks<br/><i>Supprime &lt;30 caractères</i>"]
+        S1 --> S2 --> S3
+        S3 -->|"OUI ✓<br/>Split fiable"| S5
+        S3 -->|"NON ✗ — LLM a déliré<br/>on jette son split,<br/>on garde le texte original"| S4 --> S5
+    end
+
+    subgraph ENRICH["<b>5. ENRICHISSEMENT</b>"]
+        E1["Attribution chunk_index<br/><i>Par page, pour expansion agent</i>"]
+        E2["<b>Préfixe contextuel</b><br/><code>[source | p.X | section_path | keywords]</code><br/><i>Extraction de section par regex<br/>Mots-clés par fréquence (sans LLM)</i>"]
+    end
+
+    subgraph STORE["<b>6. VECTORISATION & STOCKAGE</b>"]
+        V1["<b>bge-m3</b> via OllamaEmbeddings<br/><i>Embedding multilingue<br/>Fenêtre 8192 tokens</i>"]
+        V2["Insertion par batch de 50"]
+        V3[("💾 <b>ChromaDB</b><br/>Persistance SQLite<br/><i>C:/vector_db_aquila</i>")]
+        V1 --> V2 --> V3
+    end
+
+    CK["💾 Checkpoint pickle<br/><i>Sauvegarde après chaque source<br/>Reprise sur crash</i>"]
+
+    START --> LOAD
+    LOAD --> CLEAN
+    CLEAN --> CONCAT
+    CONCAT --> SPLIT
+    SPLIT --> ENRICH
+    ENRICH --> STORE
+    STORE -.-> CK
+
+    style LOAD fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style CLEAN fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style CONCAT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style SPLIT fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style ENRICH fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style STORE fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="purple">Pourquoi un split en 3 étapes ?</h4>
+        <ul>
+          <li><b>Pré-split titres</b> : les sections d'un PDF couvrent plusieurs pages — on regroupe par thème d'abord</li>
+          <li><b>Split LLM</b> : un LLM comprend la sémantique et coupe entre sous-sections logiques, pas au milieu d'un tableau</li>
+          <li><b>Fallback récursif</b> : filet de sécurité si le LLM produit un chunk trop long (&gt;1500 car.)</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="green">Pourquoi un préfixe contextuel ?</h4>
+        <ul>
+          <li>L'embedding voit la structure du document (source, page, section)</li>
+          <li>Améliore la recherche sémantique sans hallucination du LLM</li>
+          <li>Mots-clés extraits par fréquence (déterministe, pas de LLM)</li>
+          <li>Le re-ranker et le LLM de génération voient aussi cette info</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 3: RETRIEVAL HYBRIDE   -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s3">3</div>
+      <div>
+        <div class="section-title">Pipeline de Retrieval Hybride</div>
+        <div class="section-subtitle">ask.py — Recherche sémantique + lexicale avec re-ranking neural</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#059669', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart TD
+    Q["❓ <b>Question utilisateur</b>"]
+
+    subgraph HYDE["<b>1. HyDE — Hypothetical Document Embeddings</b>"]
+        H1{"Difficulté > 1 ?"}
+        H2["gemma4:12b génère une<br/><b>réponse fictive</b><br/><i>'Tu es un extrait de brochure...<br/>Réponds en 2-3 phrases factuelles'</i>"]
+        H3["Question brute<br/><i>utilisée directement</i>"]
+        H1 -->|"OUI<br/>Synthèse/Comparaison"| H2
+        H1 -->|"NON<br/>Factuel"| H3
+    end
+
+    subgraph DUAL["<b>2. RECHERCHE DUALE</b>"]
+        direction LR
+        subgraph SEM["<b>Sémantique (MMR)</b>"]
+            S1["Embedding bge-m3<br/>de la query HyDE"]
+            S2["ChromaDB<br/>max_marginal_relevance_search()"]
+            S3["fetch_k=100 candidats<br/>→ k=25 diversifiés<br/><i>lambda=0.5 (relevance vs diversité)</i>"]
+            S1 --> S2 --> S3
+        end
+        subgraph LEX["<b>Lexicale (BM25)</b>"]
+            B1["Tokenisation française<br/><i>Normalise accents, middle dots<br/>étudiant·e·s → etudiantes</i>"]
+            B2["Index BM25Okapi<br/><i>Construit 1 fois, mis en cache</i>"]
+            B3["Top 25 par score BM25"]
+            B1 --> B2 --> B3
+        end
+    end
+
+    subgraph FUSION["<b>3. FUSION RRF (Reciprocal Rank Fusion)</b>"]
+        F1["<b>Formule :</b><br/>score = 1/(60 + rang_sémantique) + 1/(60 + rang_BM25)"]
+        F2["Filtre diversité :<br/><i>Max 3 chunks/source si recherche multi-source</i>"]
+        F3["→ <b>15 chunks</b> candidats"]
+        F1 --> F2 --> F3
+    end
+
+    subgraph DEDUP["<b>4. DÉDOUBLONNAGE</b>"]
+        DD1["Similarité Jaccard<br/>sur tokens normalisés"]
+        DD2{"Jaccard > 0.8 ?"}
+        DD3["❌ Doublon supprimé<br/><i>Garde le mieux classé</i>"]
+        DD4["✅ Chunk conservé"]
+        DD1 --> DD2
+        DD2 -->|"OUI"| DD3
+        DD2 -->|"NON"| DD4
+    end
+
+    subgraph RERANK["<b>5. RE-RANKING NEURAL</b>"]
+        RR1["<b>CrossEncoder</b><br/>BAAI/bge-reranker-v2-m3<br/><i>~471 MB, scores (question, chunk)</i>"]
+        RR2{"Score ≥ 0.5 ?"}
+        RR3["❌ Hors-sujet éliminé"]
+        RR4["✅ Conservé & trié par score"]
+        RR5["→ <b>Top 5 chunks finaux</b><br/><i>Avec rerank_score en métadonnée</i>"]
+        RR1 --> RR2
+        RR2 -->|"NON"| RR3
+        RR2 -->|"OUI"| RR4
+        RR4 --> RR5
+    end
+
+    Q --> HYDE
+    HYDE --> DUAL
+    DUAL --> FUSION
+    FUSION --> DEDUP
+    DEDUP --> RERANK
+
+    style HYDE fill:#1a2332,stroke:#0891b2,color:#e2e8f0
+    style SEM fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style LEX fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style FUSION fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style DEDUP fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style RERANK fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="cyan">Pourquoi HyDE ?</h4>
+        <ul>
+          <li>Une question et sa réponse n'ont pas le même vocabulaire</li>
+          <li>HyDE génère une réponse fictive dont l'embedding sera plus proche des vrais passages</li>
+          <li>Activé uniquement pour difficulté > 1 (synthèse/comparaison)</li>
+          <li>Les questions factuelles cherchent des termes exacts → pas besoin</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="blue">Pourquoi recherche hybride ?</h4>
+        <ul>
+          <li><b>Sémantique seule</b> : manque les correspondances exactes (noms propres, acronymes)</li>
+          <li><b>BM25 seul</b> : ne comprend pas les synonymes ni la sémantique</li>
+          <li><b>RRF</b> : fusionne par rang (pas par score), robuste quelle que soit la distribution</li>
+          <li>MMR assure la diversité dans les résultats sémantiques</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="pink">Pourquoi un CrossEncoder pour le re-ranking ?</h4>
+        <ul>
+          <li>Un bi-encoder (embedding) encode question et document séparément</li>
+          <li>Un cross-encoder encode (question, document) ensemble → bien plus précis</li>
+          <li>Trop lent pour 200+ chunks, mais parfait pour 15 candidats pré-filtrés</li>
+          <li>Seuil à 0.5 : élimine les chunks hors-sujet (score < 0.5)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 4: BOUCLE AGENTIQUE    -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s4">4</div>
+      <div>
+        <div class="section-title">Boucle Agentique (LangGraph)</div>
+        <div class="section-subtitle">agent.py — Machine à états avec auto-correction et reformulation</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#ea580c', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+stateDiagram-v2
+    direction LR
+
+    [*] --> IdentifySources
+
+    state "🧠 identify_sources()" as IdentifySources {
+        direction LR
+        note right of IdentifySources
+            LLM analyse la question :
+            ─ Sources : ENS / Sorbonne / les deux
+            ─ Difficulté : 1 (factuel), 2 (synthèse), 3 (comparaison)
+            ─ Sous-questions (si difficulté = 3)
+        end note
+    }
+
+    state "🔍 retrieve_node()" as Retrieve {
+        direction LR
+        note right of Retrieve
+            Tentative 0 :
+            ─ Diff. 3 → 1 retrieve/sous-question + fusion
+            ─ Diff. 1-2 → 1 retrieve (HyDE si diff > 1)
+
+            Tentative 1 :
+            ─ Query reformulée + merge ancien top-3
+        end note
+    }
+
+    state "📊 grade_documents()" as Grade {
+        direction LR
+        note right of Grade
+            LLM évalue si les chunks suffisent :
+            ─ Entités correctes ? (pas de confusion)
+            ─ Détails non mélangés ?
+            ─ Verdict : OUI ou NON + info manquante
+        end note
+    }
+
+    state "⬆️ upgrade_difficulty()" as Upgrade {
+        direction LR
+        note right of Upgrade
+            Passe la difficulté à 3
+            pour accéder à la reformulation
+        end note
+    }
+
+    state "🔄 rewrite_query()" as Rewrite {
+        direction LR
+        note right of Rewrite
+            Utilise le verdict du grader
+            pour reformuler la requête :
+            ─ Cible ce qui manque
+            ─ Propose synonymes/mots-clés
+        end note
+    }
+
+    state "💬 generate_node()" as Generate {
+        direction LR
+        note right of Generate
+            gemma4:12b + prompt contraint
+            ─ Uniquement depuis le contexte
+            ─ Citation des sources obligatoire
+            ─ Calculs si nécessaire
+        end note
+    }
+
+    state route_after_retrieve <<choice>>
+    state route_after_grade <<choice>>
+
+    IdentifySources --> Retrieve
+
+    Retrieve --> route_after_retrieve
+
+    route_after_retrieve --> Generate : difficulté == 1\n(factuel, pas de grading)
+    route_after_retrieve --> Generate : tentatives > MAX (1)
+    route_after_retrieve --> Grade : difficulté ≥ 2\net tentatives ≤ MAX
+
+    Grade --> route_after_grade
+
+    route_after_grade --> Generate : OUI (suffisant)\nou quota épuisé
+    route_after_grade --> Upgrade : NON et difficulté < 3
+    route_after_grade --> Rewrite : NON et difficulté == 3
+
+    Upgrade --> Rewrite
+
+    Rewrite --> Retrieve : 2e tentative\n(query reformulée)
+
+    Generate --> [*]
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="orange">État de l'Agent (AgentState)</h4>
+        <ul>
+          <li><b>question</b> : question originale (immuable)</li>
+          <li><b>current_query</b> : requête de recherche (peut être reformulée)</li>
+          <li><b>sources</b> : documents ciblés (None = tous)</li>
+          <li><b>difficulty</b> : 1=factuel, 2=synthèse, 3=comparaison</li>
+          <li><b>sub_queries</b> : sous-questions décomposées (si diff=3)</li>
+          <li><b>docs</b> : pool cumulatif de tous les chunks récupérés</li>
+          <li><b>sufficient</b> : verdict du grader (OUI/NON)</li>
+          <li><b>attempts</b> : nombre de retrievals (max 2 : initial + 1 reformulation)</li>
+          <li><b>answer</b> : réponse finale générée</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="green">Les 3 niveaux de difficulté</h4>
+        <ul>
+          <li><b>Niveau 1 — Factuel</b> : valeur unique, réponse explicite → retrieve direct, pas de grading</li>
+          <li><b>Niveau 2 — Synthèse</b> : explication + plusieurs faits d'un même doc → grading activé</li>
+          <li><b>Niveau 3 — Comparaison</b> : multi-documents ou raisonnement complexe → sous-questions + reformulation possible</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="purple">Scénarios de parcours</h4>
+        <ul>
+          <li><b>Chemin court (factuel)</b> : identify → retrieve → generate (1 appel LLM retrieval)</li>
+          <li><b>Chemin moyen (synthèse OK)</b> : identify → retrieve → grade=OUI → generate</li>
+          <li><b>Chemin long (reformulation)</b> : identify → retrieve → grade=NON → upgrade → rewrite → retrieve → generate</li>
+          <li><b>Chemin comparaison</b> : identify → retrieve (N sous-questions) → grade → [rewrite?] → generate</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 5: GÉNÉRATION          -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s5">5</div>
+      <div>
+        <div class="section-title">Génération de la Réponse</div>
+        <div class="section-subtitle">Assemblage du contexte et prompt contraint</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart LR
+    subgraph INPUT["<b>Entrées</b>"]
+        C1["📦 Top 5 Chunks<br/><i>Avec source & page</i>"]
+        C2["📝 Prompt Template<br/><i>prompts/rag_prompt.txt</i>"]
+        C3["❓ Question originale"]
+    end
+
+    subgraph ASSEMBLY["<b>Assemblage</b>"]
+        A1["Contexte formaté :<br/><code>Source: {doc}<br/>{contenu chunk}</code><br/><i>Séparés par ---</i>"]
+        A2["Injection dans le template :<br/><code>{context}</code> + <code>{question}</code>"]
+    end
+
+    subgraph RULES["<b>Règles du Prompt</b>"]
+        R1["🚫 Pas de connaissances externes<br/><i>UNIQUEMENT le contexte fourni</i>"]
+        R2["📎 Citation obligatoire<br/><i>Chaque fait → sa source</i>"]
+        R3["🧮 Calcul si nécessaire<br/><i>Sommes, durées, etc.</i>"]
+        R4["📊 Lecture complète des tableaux<br/><i>Toutes les lignes avant de répondre</i>"]
+        R5["⚖️ Synthèse comparée<br/><i>Faits séparés par source<br/>puis conclusion</i>"]
+    end
+
+    subgraph GEN["<b>Génération</b>"]
+        G1["🤖 gemma4:12b<br/><i>temp=0, num_ctx=8192</i>"]
+        G2["💬 Réponse finale"]
+    end
+
+    C1 --> A1
+    C2 --> A2
+    C3 --> A2
+    A1 --> A2
+    A2 --> G1
+    RULES -.->|"Contraintes"| G1
+    G1 --> G2
+
+    style INPUT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style ASSEMBLY fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style RULES fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style GEN fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+      </pre>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 6: ÉVALUATION          -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s6">6</div>
+      <div>
+        <div class="section-title">Pipeline d'Évaluation</div>
+        <div class="section-subtitle">evaluate_ragas.py + evaluate_components.py — Mesurer chaque brique</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart TD
+    subgraph DATA["<b>Données d'entrée</b>"]
+        D1["📋 questions.json<br/><i>40 questions + réponses attendues<br/>3 niveaux de difficulté</i>"]
+        D2["📊 agentic_results.json<br/><i>Réponses LLM + chunks utilisés<br/>+ durée + logs</i>"]
+    end
+
+    subgraph RAGAS["<b>Évaluation RAGAS (5 métriques)</b>"]
+        direction LR
+        M1["<b>Faithfulness</b><br/><i>Réponse fidèle au contexte ?</i><br/>🎯 Pas d'hallucination"]
+        M2["<b>Answer Relevancy</b><br/><i>Réponse pertinente<br/>pour la question ?</i>"]
+        M3["<b>Context Precision</b><br/><i>Chunks récupérés<br/>pertinents ?</i>"]
+        M4["<b>Context Recall</b><br/><i>Chunks couvrent<br/>la ground truth ?</i>"]
+        M5["<b>Answer Correctness</b><br/><i>Réponse correcte vs<br/>réponse attendue ?</i>"]
+    end
+
+    subgraph COMP["<b>Évaluation par Composant (6 briques)</b>"]
+        direction LR
+        C1["<b>1. Router</b><br/><i>Sources & difficulté<br/>corrects ?</i>"]
+        C2["<b>2. Retrieval</b><br/><i>Precision & Recall<br/>des chunks finaux</i>"]
+        C3["<b>3. Re-ranking</b><br/><i>Delta Precision/Recall<br/>avant vs après</i>"]
+        C4["<b>4. Grading</b><br/><i>Accord avec juge externe<br/>TP/TN/FP/FN</i>"]
+        C5["<b>5. Rewriting</b><br/><i>Gain Precision/Recall<br/>après reformulation</i>"]
+        C6["<b>6. Generation</b><br/><i>Faithfulness<br/>(pas d'hallucination)</i>"]
+    end
+
+    subgraph OUTPUT["<b>Sorties</b>"]
+        O1["📄 ragas_evaluation.csv<br/><i>Score par question + moyennes</i>"]
+        O2["📄 component_evaluation.csv<br/><i>Score par composant par question</i>"]
+    end
+
+    D1 --> RAGAS
+    D2 --> RAGAS
+    D1 --> COMP
+    D2 --> COMP
+    RAGAS --> O1
+    COMP --> O2
+
+    style DATA fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style RAGAS fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style COMP fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style OUTPUT fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="blue">Métriques RAGAS (score 0→1)</h4>
+        <ul>
+          <li><b>Faithfulness</b> : chaque affirmation de la réponse est-elle vérifiable dans le contexte ?</li>
+          <li><b>Answer Relevancy</b> : la réponse répond-elle vraiment à la question posée ?</li>
+          <li><b>Context Precision</b> : les chunks récupérés sont-ils pertinents (pas de bruit) ?</li>
+          <li><b>Context Recall</b> : les chunks couvrent-ils toute l'information attendue ?</li>
+          <li><b>Answer Correctness</b> : score global de justesse vs ground truth</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="green">Évaluation par composant</h4>
+        <ul>
+          <li><b>Router</b> : accuracy binaire (source correcte ? difficulté correcte ?)</li>
+          <li><b>Retrieval</b> : context precision + recall après pipeline complet</li>
+          <li><b>Re-ranking</b> : amélioration de precision/recall AVANT vs APRÈS re-ranking</li>
+          <li><b>Grading</b> : matrice de confusion (TP/TN/FP/FN) vs juge externe</li>
+          <li><b>Rewriting</b> : gain de precision/recall après reformulation + taux de flip OUI/NON</li>
+          <li><b>Generation</b> : faithfulness (réponse ancrée dans le contexte)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- PARAMETRES CLÉS                -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s1">⚙</div>
+      <div>
+        <div class="section-title">Paramètres Clés du Système</div>
+        <div class="section-subtitle">Tous les hyperparamètres configurables et leur impact</div>
+      </div>
+    </div>
+
+    <table class="param-table">
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Valeur</th>
+          <th>Fichier</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>EMBED_MODEL</code></td>
+          <td>bge-m3</td>
+          <td>ingest.py / ask.py</td>
+          <td>Modèle d'embedding multilingue (8192 tokens)</td>
+        </tr>
+        <tr>
+          <td><code>GEN_MODEL</code></td>
+          <td>gemma4:12b</td>
+          <td>ask.py</td>
+          <td>LLM pour génération, HyDE, grading, reformulation</td>
+        </tr>
+        <tr>
+          <td><code>SPLIT_MODEL</code></td>
+          <td>gemma4:12b</td>
+          <td>ingest.py</td>
+          <td>LLM pour découpage agentique des sections</td>
+        </tr>
+        <tr>
+          <td><code>K_RETRIEVE</code></td>
+          <td>25</td>
+          <td>ask.py</td>
+          <td>Candidats par méthode (sémantique et BM25) avant fusion</td>
+        </tr>
+        <tr>
+          <td><code>K_RERANK</code></td>
+          <td>15</td>
+          <td>ask.py</td>
+          <td>Candidats après fusion RRF, avant re-ranking</td>
+        </tr>
+        <tr>
+          <td><code>K_FINAL</code></td>
+          <td>5</td>
+          <td>ask.py</td>
+          <td>Chunks finaux envoyés au LLM de génération</td>
+        </tr>
+        <tr>
+          <td><code>MMR_LAMBDA</code></td>
+          <td>0.5</td>
+          <td>ask.py</td>
+          <td>Balance pertinence (1.0) vs diversité (0.0) dans MMR</td>
+        </tr>
+        <tr>
+          <td><code>MMR_FETCH_K</code></td>
+          <td>100</td>
+          <td>ask.py</td>
+          <td>Pool initial de candidats pour la diversification MMR</td>
+        </tr>
+        <tr>
+          <td><code>RERANK_THRESHOLD</code></td>
+          <td>0.5</td>
+          <td>ask.py</td>
+          <td>Score minimum du CrossEncoder (en dessous = hors-sujet)</td>
+        </tr>
+        <tr>
+          <td><code>DEDUP_THRESHOLD</code></td>
+          <td>0.8</td>
+          <td>ask.py</td>
+          <td>Jaccard > 0.8 = quasi-doublon → éliminé</td>
+        </tr>
+        <tr>
+          <td><code>RRF_K</code></td>
+          <td>60</td>
+          <td>ask.py</td>
+          <td>Constante RRF (standard) — lisse les différences de rang</td>
+        </tr>
+        <tr>
+          <td><code>MAX_CHUNK_SIZE</code></td>
+          <td>1500</td>
+          <td>ingest.py</td>
+          <td>Taille max d'un chunk (au-delà → fallback split)</td>
+        </tr>
+        <tr>
+          <td><code>MIN_CONTENT_SIZE</code></td>
+          <td>30</td>
+          <td>ingest.py</td>
+          <td>Taille min d'un chunk (en dessous → supprimé)</td>
+        </tr>
+        <tr>
+          <td><code>MAX_ATTEMPTS</code></td>
+          <td>1</td>
+          <td>agent.py</td>
+          <td>Max reformulations (1 = initial + 1 reformulation max)</td>
+        </tr>
+        <tr>
+          <td><code>TOC_DOT_RATIO</code></td>
+          <td>0.3</td>
+          <td>ingest.py</td>
+          <td>Seuil pour détecter une page Table des Matières</td>
+        </tr>
+        <tr>
+          <td><code>QUESTION_RESTART_INTERVAL</code></td>
+          <td>2</td>
+          <td>ask.py</td>
+          <td>Redémarre Ollama toutes les N questions (vide le KV-cache)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============================== -->
+  <!-- STRUCTURE DU PROJET            -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s2">📁</div>
+      <div>
+        <div class="section-title">Structure du Projet</div>
+        <div class="section-subtitle">Organisation des fichiers et leurs interactions</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart LR
+    subgraph SRC["<b>src/</b>"]
+        direction TB
+        I["<b>ingest.py</b><br/><i>510 lignes</i><br/>Indexation"]
+        A["<b>ask.py</b><br/><i>427 lignes</i><br/>Retrieval + Génération"]
+        AG["<b>agent.py</b><br/><i>351 lignes</i><br/>Boucle agentique"]
+        API["<b>api_server.py</b><br/><i>63 lignes</i><br/>API FastAPI"]
+        RUN["<b>run_agentic_all.py</b><br/><i>106 lignes</i><br/>Batch runner"]
+        ER["<b>evaluate_ragas.py</b><br/><i>309 lignes</i><br/>RAGAS"]
+        EC["<b>evaluate_components.py</b><br/><i>716 lignes</i><br/>Composants"]
+        DBG["<b>debug_question.py</b><br/><i>37 lignes</i><br/>Debug"]
+    end
+
+    subgraph DATA["<b>data/</b>"]
+        direction TB
+        QJ["questions.json<br/><i>40 questions</i>"]
+        AR["agentic_results.json<br/><i>Résultats batch</i>"]
+        RE["ragas_evaluation.csv<br/><i>Scores RAGAS</i>"]
+        CE["component_evaluation.csv"]
+    end
+
+    subgraph DOCS["<b>documents/</b>"]
+        direction TB
+        ENS["ENS.pdf"]
+        SORB["SORBONNE.pdf"]
+    end
+
+    subgraph VDB["<b>vector_db/</b>"]
+        direction TB
+        CH[("ChromaDB<br/>SQLite")]
+    end
+
+    subgraph PR["<b>prompts/</b>"]
+        direction TB
+        PT["rag_prompt.txt"]
+    end
+
+    I -->|"vectorise"| CH
+    DOCS -->|"lit"| I
+    A -->|"cherche"| CH
+    AG -->|"appelle"| A
+    API -->|"appelle"| AG
+    A -->|"utilise"| PT
+    RUN -->|"appelle"| AG
+    RUN -->|"écrit"| AR
+    ER -->|"lit"| AR
+    ER -->|"lit"| QJ
+    ER -->|"écrit"| RE
+    EC -->|"lit"| AR
+    EC -->|"lit"| QJ
+    EC -->|"écrit"| CE
+    DBG -->|"appelle"| A
+    DBG -->|"appelle"| AG
+
+    style SRC fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style DATA fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style DOCS fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style VDB fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+    style PR fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+      </pre>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- FLUX COMPLET EXEMPLE           -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s3">🔄</div>
+      <div>
+        <div class="section-title">Flux Complet — Exemple Concret</div>
+        <div class="section-subtitle">Parcours d'une question de bout en bout</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#059669', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+sequenceDiagram
+    participant U as 👤 Utilisateur
+    participant API as 🌐 API Server
+    participant AG as 🧠 Agent
+    participant LLM as 🤖 gemma4:12b
+    participant RET as 🔍 Retrieval
+    participant VDB as 🗄️ ChromaDB
+    participant CE as 🏆 CrossEncoder
+
+    U->>API: "Combien d'étudiants le DMA de l'ENS sélectionne-t-il ?"
+    API->>AG: ask_question_agentic(question)
+
+    Note over AG: Node 1 : identify_sources
+    AG->>LLM: Analyse question (source + difficulté)
+    LLM-->>AG: sources=ENS.pdf, difficulté=1
+
+    Note over AG: Node 2 : retrieve (difficulté=1 → pas de HyDE)
+    AG->>RET: retrieve(question, sources=["ENS.pdf"], difficulty=1)
+
+    Note over RET: Recherche sémantique
+    RET->>VDB: MMR search (k=25, fetch_k=100, filter=ENS.pdf)
+    VDB-->>RET: 25 chunks sémantiques
+
+    Note over RET: Recherche lexicale
+    RET->>RET: BM25 search → 25 chunks lexicaux
+
+    Note over RET: Fusion RRF
+    RET->>RET: score = 1/(60+rang_sem) + 1/(60+rang_bm25) → 15 chunks
+
+    Note over RET: Dédoublonnage (Jaccard > 0.8)
+
+    Note over RET: Re-ranking
+    RET->>CE: Score (question, chunk) × 15 paires
+    CE-->>RET: Scores triés → top 5 (seuil > 0.5)
+
+    RET-->>AG: 5 chunks finaux (score max: 0.9924)
+
+    Note over AG: Route : difficulté=1 → generate direct
+
+    Note over AG: Node 6 : generate
+    AG->>LLM: Prompt + contexte (5 chunks) + question
+    LLM-->>AG: "Le DMA de l'ENS sélectionne environ une cinquantaine d'étudiant·e·s par an"
+
+    AG-->>API: Réponse + chunks sources
+    API-->>U: Réponse affichée dans Open WebUI
+      </pre>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <p><b>RAG Aquila</b> — Système RAG Agentique Local | Stage 2025</p>
+  <p style="margin-top: 4px; font-size: 0.78rem;">Pour exporter en PDF : Ctrl+P → "Enregistrer en PDF" dans le navigateur</p>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis',
+      padding: 20,
+      nodeSpacing: 30,
+      rankSpacing: 40
+    },
+    stateDiagram: {
+      useMaxWidth: true
+    },
+    sequence: {
+      useMaxWidth: true,
+      actorMargin: 50,
+      messageMargin: 40,
+      boxMargin: 10,
+      noteMargin: 15,
+      mirrorActors: false
+    }
+  });
+</script>
+
+</body>
+</html>

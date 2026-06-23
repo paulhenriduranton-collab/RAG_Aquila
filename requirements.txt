@@ -16,3 +16,4 @@ uvicorn
 ragas
 datasets
 openai  # Client OpenAI-compatible pour llm_factory (pointe vers Ollama en local)
+nest_asyncio  # Fallback event loop pour evaluate_ragas.py / evaluate_components.py sous Jupyter/Colab

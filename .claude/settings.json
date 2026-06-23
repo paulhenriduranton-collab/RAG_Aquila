@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(python -c ' *)",
-      "Read(//c/Users/paulh/Downloads/**)"
+      "Read(//c/Users/paulh/Downloads/**)",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(python -c \"import ragas\")",
+      "Bash(venv/Scripts/python.exe -m pip list)",
+      "Bash(venv/Scripts/python.exe -m pip install ragas datasets openai nest_asyncio)",
+      "Bash(venv/Scripts/python.exe -c \"import ragas, ragas.metrics.collections, ragas.llms, ragas.embeddings, openai, nest_asyncio, datasets; print\\('OK all imports resolved'\\)\")"
     ]
   }
 }

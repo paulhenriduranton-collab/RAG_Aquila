@@ -483,11 +483,29 @@ def print_summary(df: pd.DataFrame):
             suf = graded["grading_sufficient"].mean()
             acc = graded["grading_correct"].mean()
             labels = graded["grading_label"].value_counts()
+            tp = labels.get("vrai_positif", 0)
+            tn = labels.get("vrai_negatif", 0)
+            fn = labels.get("faux_negatif", 0)
+            fp = labels.get("faux_positif", 0)
+            precision = tp / (tp + fp) if (tp + fp) > 0 else float("nan")
+            recall = tp / (tp + fn) if (tp + fn) > 0 else float("nan")
+            f1 = (2 * precision * recall / (precision + recall)
+                  if not (math.isnan(precision) or math.isnan(recall)) and (precision + recall) > 0
+                  else float("nan"))
             print(f"     Grader dit OUI          : {suf:.1%}")
             print(f"     Accuracy vs juge externe: {acc:.1%}")
             for label in ["vrai_positif", "vrai_negatif", "faux_negatif", "faux_positif"]:
                 count = labels.get(label, 0)
                 print(f"     {label:<20} : {count}")
+
+            # Matrice de confusion (grader réel vs juge externe = référence)
+            print(f"\n     {'Matrice de confusion':<25}{'Juge: OUI':>12}{'Juge: NON':>12}")
+            print(f"     {'Grader: OUI':<25}{tp:>12}{fp:>12}")
+            print(f"     {'Grader: NON':<25}{fn:>12}{tn:>12}")
+
+            print(f"\n     Precision (classe OUI)  : {precision:.1%}" if not math.isnan(precision) else "\n     Precision (classe OUI)  : N/A")
+            print(f"     Recall (classe OUI)     : {recall:.1%}" if not math.isnan(recall) else "     Recall (classe OUI)     : N/A")
+            print(f"     F1-score (classe OUI)   : {f1:.3f}" if not math.isnan(f1) else "     F1-score (classe OUI)   : N/A")
         else:
             print("     Aucune question concernée")
 

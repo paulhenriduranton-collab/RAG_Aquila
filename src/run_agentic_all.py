@@ -37,6 +37,7 @@ class _Tee(io.TextIOBase):
     def write(self, s):
         for stream in self._streams:
             stream.write(s)
+            stream.flush()
         return len(s)
 
     def flush(self):

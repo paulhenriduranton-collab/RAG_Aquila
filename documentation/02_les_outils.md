@@ -9,13 +9,13 @@
 | BM25 | Recherche par mots-clés exacts |
 | pymupdf4llm | Extrait les PDFs en Markdown propre, page par page |
 | ftfy | Répare les encodages cassés dans les textes extraits de PDF |
-| gemma4:12b | Split agentique (ingestion), HyDE, grading, reformulation, génération, évaluation RAGAS |
-| gemma2:2b | Optionnel : juge RAGAS allégé sur Colab (remplace gemma4:12b pour aller plus vite) |
+| gemma4:12b | Split agentique (ingestion), HyDE, grading, reformulation, génération, juge RAGAS global, juge externe du grading (éval par composant) |
+| gemma2:2b | Optionnel sur Colab pour evaluate_ragas.py (plus rapide) ; juge RAGAS par défaut dans evaluate_components.py |
 | ChromaDB | Stocke et recherche les vecteurs |
 | LangChain | Colle tous les composants ensemble |
 | LangGraph | Orchestre le pipeline agentique (machine à états) |
 | CrossEncoder BAAI/bge-reranker-v2-m3 | Re-classe les chunks par pertinence réelle (re-ranking) |
-| RAGAS | Évalue la qualité du pipeline sur 5 métriques standards |
+| RAGAS | Évalue la qualité du pipeline : globalement (5 métriques) et par composant (3 métriques réutilisées sur 6 briques) |
 | Open WebUI + FastAPI | Interface chat locale, serveur API compatible OpenAI |
 | Gradio | Interface web interactive sur Colab avec surlignage PDF |
 
@@ -138,7 +138,11 @@ Certains PDFs contiennent des accents mal encodés (`a → à`, `´e → é`). f
 
 5. **Génération** — Reçoit le prompt (question + 5 passages + instructions) et génère la réponse en français, uniquement à partir du contexte fourni. Paramétré avec `temperature=0` pour des réponses déterministes.
 
-**Évaluation RAGAS** — Dans `evaluate_ragas.py`, joue par défaut le rôle de juge LLM pour les 5 métriques RAGAS (`EVAL_LLM = "gemma4:12b"`). Sur Colab, le notebook peut le remplacer par `gemma2:2b` (3-5x plus rapide) pour accélérer l'évaluation — ce dernier n'a aucun autre rôle dans le projet.
+**Évaluation RAGAS globale** — Dans `evaluate_ragas.py`, joue par défaut le rôle de juge LLM pour les 5 métriques RAGAS (`EVAL_LLM = "gemma4:12b"`). Sur Colab, le notebook peut le remplacer par `gemma2:2b` (3-5x plus rapide) pour accélérer l'évaluation.
+
+**Juge externe du grading (évaluation par composant)** — Dans `evaluate_components.py`, sert aussi de "juge externe" pour la brique ④ (grading) : il rejuge si les chunks récupérés sont suffisants, mais cette fois avec la réponse attendue (`reponse_attendue`) en plus dans le prompt — ce que le grader réel du pipeline ne voit jamais. C'est volontairement **le même modèle** que celui évalué (pas un tiers indépendant) ; le verdict obtenu sert de référence pour mesurer si le grader réel est trop sévère (faux négatif) ou trop laxiste (faux positif). Limite à garder en tête : un modèle qui se juge lui-même introduit un biais de cohérence potentiel.
+
+`gemma2:2b` — utilisé par `evaluate_components.py` (`EVAL_LLM = "gemma2:2b"`) comme juge RAGAS pour les briques ②③⑤⑥ (Context Precision/Recall, Faithfulness) — un modèle léger choisi pour la vitesse de scoring, distinct de `gemma4:12b` qui reste le modèle de production et le juge de la brique ④.
 
 **Comparaison :**
 
@@ -255,7 +259,9 @@ reranker = CrossEncoder(RERANK_MODEL)
 
 **Ce que c'est :** Une librairie Python standard pour évaluer les pipelines RAG avec des métriques LLM-judge.
 
-**Ce qu'il fait ici :** Dans `evaluate_ragas.py`, il évalue chaque résultat du pipeline agentique sur 5 métriques :
+**Ce qu'il fait ici :** Utilisé à deux niveaux distincts.
+
+Dans `evaluate_ragas.py` (évaluation **globale**, bout-en-bout), il évalue chaque résultat du pipeline agentique sur 5 métriques :
 
 | Métrique | Question posée au juge | Ground truth nécessaire ? |
 |---|---|---|
@@ -264,6 +270,14 @@ reranker = CrossEncoder(RERANK_MODEL)
 | **ContextPrecision** | Les chunks récupérés sont-ils pertinents pour cette question ? | Non |
 | **ContextRecall** | Les chunks couvrent-ils tout ce que contient la réponse de référence ? | Oui |
 | **AnswerCorrectness** | La réponse est-elle correcte par rapport à la référence ? | Oui |
+
+Dans `evaluate_components.py` (évaluation **par composant**), seules 3 de ces métriques sont réutilisées, appliquées à des pools de chunks différents selon la brique testée :
+
+| Métrique | Brique(s) | Sur quels chunks ? |
+|---|---|---|
+| **ContextPrecision** | ② Retrieval, ③ Re-ranking, ⑤ Rewriting | avant/après re-ranking, puis après rewrite |
+| **ContextRecall** | ② Retrieval, ③ Re-ranking, ⑤ Rewriting | idem |
+| **Faithfulness** | ⑥ Generation | pool final réellement utilisé pour générer la réponse |
 
 RAGAS utilise Ollama (via une API compatible OpenAI sur `http://localhost:11434/v1`) — aucun appel à OpenAI ou à un service externe.
 

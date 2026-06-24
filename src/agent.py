@@ -192,8 +192,9 @@ def retrieve_node(state: AgentState) -> dict:
     # On garde une copie du pool précédent (state["docs"]) avant de l'écraser : c'est lui qui a servi
     # au grading initial et qui sert de baseline pour mesurer l'apport du rewrite (éval ⑤).
     old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
-    # Re-rank sur la question ORIGINALE (pas la requête réécrite) pour juger la pertinence réelle
-    new_top = _rerank(state["question"], new_docs_deduped, n=2) if new_docs_deduped else []
+    # Re-rank sur la question RÉÉCRITE : les nouveaux chunks ont été récupérés avec cette query,
+    # c'est donc elle qui doit servir à sélectionner les 2 meilleurs.
+    new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
     seen = {d.page_content for d in old_top}
     final = old_top + [d for d in new_top if d.page_content not in seen]
 

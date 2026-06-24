@@ -233,7 +233,8 @@ async def eval_grading(entry: dict, meta: dict) -> dict:
     grader_verdict = grading["verdict"]
     post_docs = entry["post_rerank_docs"]
 
-    context = "\n\n---\n\n".join(c["content"][:500] for c in post_docs)
+    # Pas de troncature — le juge doit voir les mêmes chunks complets que le grader du pipeline
+    context = "\n\n---\n\n".join(c["content"] for c in post_docs)
     judge_prompt = GRADING_JUDGE.format(
         question=meta["question"], context=context, reference=meta["reponse_attendue"],
     )

@@ -53,8 +53,8 @@ Fichiers PDF/TXT/DOCX  (documents/)
         │
         ▼ Étape 6 — chunk_index par page
    → chaque chunk reçoit un numéro d'ordre (0, 1, 2...) parmi les chunks
-     qui partagent la même métadonnée "page" — utilisé par agent.py pour
-     retrouver "le chunk suivant" en cas de troncature (_expand_truncated)
+     qui partagent la même métadonnée "page" — utilisé par export_chunks.py
+     pour trier les chunks dans l'ordre du document
         │
         ▼ Étape 7 — Contextualisation déterministe (zéro LLM)
    → chemin de titres extrait par regex sur les #/##/### du chunk
@@ -138,17 +138,12 @@ K_RETRIEVE = 25                        médians, tokens 2+ chars
         │
         ▼ [LangGraph] _route_after_retrieve
    │
-   ├── Difficulté 1 : pas de grade_documents (économise un appel LLM)
-   │   → vérifie si un chunk se termine par un marqueur de coupure de page
-   │     (ex: "PAGE 19 SUR 78")
-   │   → si troncature détectée : upgrade_difficulty → rewrite_query → retrieve
-   │   → sinon : generate directement
+   ├── Difficulté 1 : generate directement (économise un appel LLM de grading)
    │
    └── Difficulté 2/3 : grade_documents
         │
         ▼ [LangGraph] grade_documents
    Le LLM (gemma4:12b) évalue si les chunks accumulés sont suffisants :
-   → les chunks tronqués sont annotés [⚠ TRONQUÉ] pour le LLM
    → "OUI" → passe directement à generate
    → "NON — [ce qui manque]" → passe à la boucle de reformulation
         │
@@ -344,7 +339,7 @@ Sans overlap, contrairement à une ancienne version du pipeline : la cohérence 
 
 Tout chunk dont le contenu fait moins de `MIN_CONTENT_SIZE` (30 caractères) est écarté — numéros de page isolés, symboles seuls.
 
-Chaque chunk reçoit ensuite un `chunk_index` : son rang (0, 1, 2...) parmi les chunks qui partagent la même métadonnée `page`. Cette numérotation est utilisée par `agent.py` (`_expand_truncated`) pour retrouver, sans appel LLM, le premier chunk de la page suivante d'un document quand un chunk se termine par un marqueur de coupure de page.
+Chaque chunk reçoit ensuite un `chunk_index` : son rang (0, 1, 2...) parmi les chunks qui partagent la même métadonnée `page`. Cette numérotation est utilisée par `export_chunks.py` pour trier les chunks dans l'ordre du document lors de l'export en Markdown.
 
 ### Contextualisation déterministe (_contextualize_chunk)
 
@@ -538,14 +533,18 @@ final   = old_top + [d for d in new_top if d.page_content not in seen]  # 5 chun
 
 ### Étape 6 : Évaluation des chunks (grade_documents)
 
-Le pipeline agentique ajoute une étape que le RAG classique n'a pas : demander au LLM si les chunks trouvés sont suffisants pour répondre. Les chunks tronqués (détectés par le regex `TRUNCATION_RE`) sont annotés `[⚠ TRONQUÉ]` pour que le LLM identifie les listes incomplètes :
+Le pipeline agentique ajoute une étape que le RAG classique n'a pas : demander au LLM si les chunks trouvés sont suffisants pour répondre :
 
 ```python
 # Prompt envoyé au LLM avec les chunks accumulés
 GRADE_PROMPT = """Ces extraits contiennent-ils l'information nécessaire ?
+...
+ATTENTION — Avant de répondre OUI, vérifie :
+- Que l'information correspond bien à l'entité PRÉCISE de la question
+- Qu'un extrait peut contenir des informations de PLUSIEURS sections mélangées
+
 - Si oui, réponds uniquement : OUI
-- Si non, réponds : NON — [explique en 1 phrase ce qui manque]
-- Si un extrait est marqué [⚠ TRONQUÉ], considère que la liste est incomplète"""
+- Si non, réponds : NON — [explique en 1 phrase ce qui manque]"""
 
 # Exemples de réponse NON :
 # "NON — les extraits mentionnent le stage mais n'indiquent pas sa durée minimale"
@@ -553,7 +552,7 @@ GRADE_PROMPT = """Ces extraits contiennent-ils l'information nécessaire ?
 
 Si insuffisant et si le nombre de tentatives est sous `MAX_ATTEMPTS=1`, le pipeline peut reformuler la requête et relancer un retrieval. Il y a donc au maximum 2 retrievals : l'initial et une reformulation ciblée.
 
-**Court-circuit pour difficulté 1 :** Les questions factuelles simples ne passent pas par `grade_documents` (économie d'un appel LLM). Le seul cas où la boucle se déclenche est si un chunk est tronqué (marqueur de coupure de page détecté).
+**Court-circuit pour difficulté 1 :** Les questions factuelles simples ne passent pas par `grade_documents` — on passe directement à la génération (économie d'un appel LLM).
 
 ### Étape 7 : Génération
 

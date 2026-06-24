@@ -117,9 +117,7 @@ retrieve
     → pipeline RAG hybride sur la/les source(s) ciblée(s)
     → si difficulté 3 : un retrieval par sous-requête, puis fusion + re-rank global
     │
-    ├── difficulté 1 → vérifie la troncature des chunks
-    │     → pas de troncature → generate directement (pas d'appel LLM de grading)
-    │     → troncature détectée → upgrade_difficulty → rewrite_query → retrieve
+    ├── difficulté 1 → generate directement (pas d'appel LLM de grading)
     │
     └── difficulté 2/3 → grade_documents
           → le LLM évalue si les chunks sont suffisants pour répondre

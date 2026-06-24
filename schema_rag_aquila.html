@@ -246,17 +246,20 @@
     }
 
     @media print {
-      body { background: white; color: #1e293b; }
-      .header { background: white; border-bottom: 2px solid #e2e8f0; }
-      .header h1 { -webkit-text-fill-color: #2563eb; }
-      .header p, .section-subtitle { color: #64748b; }
-      .diagram-card, .info-card { background: #f8fafc; border-color: #e2e8f0; }
-      .info-card li { color: #334155; }
-      .param-table th { background: #e2e8f0; color: #334155; }
-      .param-table tr:nth-child(even) { background: #f8fafc; }
-      .param-table tr:nth-child(odd) { background: #ffffff; }
-      .param-table td { border-color: #e2e8f0; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      body { background: #0f172a !important; }
+      .header { background: #1e293b !important; }
+      .diagram-card, .info-card { background: #1e293b !important; }
+      .param-table th { background: #0f172a !important; }
+      .param-table tr:nth-child(even) { background: #1e293b !important; }
+      .param-table tr:nth-child(odd) { background: #162032 !important; }
       .section { page-break-inside: avoid; }
+      .diagram-card { page-break-inside: avoid; }
+      .footer { page-break-before: avoid; }
     }
   </style>
 </head>

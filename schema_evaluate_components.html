@@ -268,9 +268,9 @@
 
 <div class="header">
   <h1>Évaluation par Composant — Architecture</h1>
-  <p>Isoler et mesurer chacune des 6 briques du pipeline RAG agentique</p>
+  <p>Isoler et mesurer chacune des 8 briques du pipeline RAG agentique</p>
   <div class="badges">
-    <span class="badge pink">6 Briques Évaluées</span>
+    <span class="badge pink">8 Briques Évaluées</span>
     <span class="badge purple">RAGAS (gemma2:2b)</span>
     <span class="badge orange">Juge Externe (gemma4:12b)</span>
     <span class="badge green">50 Questions</span>
@@ -312,7 +312,7 @@ graph TB
     subgraph SCORING["<b>SCORING (rejouable sans ré-exécuter le pipeline)</b><br/><i>evaluate_components.py</i>"]
         direction TB
         INIT["⚙️ Initialisation RAGAS<br/><i>gemma2:2b + bge-m3 via Ollama<br/>3 métriques : ctx_precision, ctx_recall, faithfulness</i>"]
-        subgraph BRIQUES["<b>6 Briques Évaluées Indépendamment</b>"]
+        subgraph BRIQUES["<b>8 Briques Évaluées Indépendamment</b>"]
             direction LR
             B1["① Router"]
             B2["② Retrieval"]
@@ -320,6 +320,8 @@ graph TB
             B4["④ Grading"]
             B5["⑤ Rewriting"]
             B6["⑥ Generation"]
+            B7["⑦ Déduplication"]
+            B8["⑧ Fusion RRF"]
         end
         CSV["📄 component_evaluation.csv<br/><i>1 ligne par question × 25+ colonnes<br/>Sauvegarde après chaque question</i>"]
         SUM["📊 print_summary()<br/><i>Moyennes par brique + par niveau</i>"]
@@ -360,7 +362,7 @@ graph TB
         <h4 class="green">Pourquoi instrumenter agent.py plutôt que dupliquer ?</h4>
         <ul>
           <li>Une version antérieure rejouait la logique dans un script séparé — risque de divergence</li>
-          <li>agent.py a 2 champs debug dans AgentState : <code>pre_rerank_docs</code> et <code>docs_before_rewrite</code></li>
+          <li>agent.py a 5 champs debug dans AgentState : <code>pre_rerank_docs</code>, <code>docs_before_rewrite</code>, <code>pre_dedup_docs</code>, <code>semantic_docs</code>, <code>bm25_docs</code></li>
           <li>Garantit que les données d'évaluation reflètent exactement le comportement réel</li>
           <li>run_agent() retourne l'état final complet (tous les champs, y compris debug)</li>
         </ul>
@@ -410,6 +412,9 @@ flowchart TD
         C5["🔄 <b>rewrite</b><br/><code>triggered: true/false</code><br/><code>new_query: '...'</code><br/><code>retrieved_docs: [...]</code><br/><code>chunks_loop_1: [...]</code><br/><code>chunks_loop_2: [...]</code>"]
         C6["📦 <b>chunks</b><br/><i>Pool FINAL utilisé par generate_node<br/>(post-rewrite si rewrite déclenché)</i>"]
         C7["💬 <b>reponse_llm</b><br/><i>Réponse réellement générée</i>"]
+        C8["📦 <b>pre_dedup_docs</b><br/><i>Chunks après RRF, avant dédup</i>"]
+        C9["📦 <b>semantic_docs</b><br/><i>Résultats sémantiques bruts</i>"]
+        C10["📦 <b>bm25_docs</b><br/><i>Résultats BM25 bruts</i>"]
     end
 
     N1 -.->|"capture"| C1
@@ -529,7 +534,7 @@ flowchart LR
       <div class="section-number s3">②③</div>
       <div>
         <div class="section-title">Briques ②③ — Retrieval + Re-ranking</div>
-        <div class="section-subtitle">eval_retrieval_and_reranking() — RAGAS ContextPrecision + ContextRecall, gemma2:2b — 50 questions</div>
+        <div class="section-subtitle">eval_retrieval_and_reranking() — RAGAS ContextPrecision + ContextRecall + NDCG + MRR (LLM-juge), gemma2:2b — 50 questions</div>
       </div>
     </div>
 
@@ -709,7 +714,7 @@ flowchart TD
       <div class="section-number s5">⑤</div>
       <div>
         <div class="section-title">Brique ⑤ — Query Rewriting</div>
-        <div class="section-subtitle">eval_rewriting() — RAGAS ContextPrecision + ContextRecall (gain), gemma2:2b — Uniquement si déclenché</div>
+        <div class="section-subtitle">eval_rewriting() — RAGAS (gain) + taux de réussite + nouveaux chunks utiles (LLM-juge), gemma2:2b — Uniquement si déclenché</div>
       </div>
     </div>
 
@@ -857,7 +862,7 @@ flowchart LR
       <div class="section-number s5">3</div>
       <div>
         <div class="section-title">Flux Complet — Évaluation d'une Question</div>
-        <div class="section-subtitle">Parcours séquentiel des 6 briques pour une question de difficulté 2 avec rewrite</div>
+        <div class="section-subtitle">Parcours séquentiel des 8 briques pour une question (ex: difficulté 2 avec rewrite)</div>
       </div>
     </div>
 
@@ -915,7 +920,19 @@ sequenceDiagram
     RAGAS-->>EC: 0.875
     end
 
-    EC->>CSV: Sauvegarde ligne (25+ colonnes)
+    rect rgb(20, 30, 45)
+    Note over EC: ⑦ eval_dedup — chunks retirés par la dédup
+    EC->>RAGAS: LLM-juge pertinence des chunks retirés
+    RAGAS-->>EC: 1 pertinent perdu / 3 retirés
+    end
+
+    rect rgb(15, 35, 40)
+    Note over EC: ⑧ eval_rrf — sémantique vs BM25 vs fusion
+    EC->>RAGAS: LLM-juge pertinence sémantique + BM25 + RRF
+    RAGAS-->>EC: sém=60% BM25=47% fusion=73%
+    end
+
+    EC->>CSV: Sauvegarde ligne (40+ colonnes)
     Note over CSV: Sauvegarde incrémentale<br/>Reprise automatique si crash
       </pre>
     </div>
@@ -937,24 +954,28 @@ sequenceDiagram
       <pre class="mermaid">
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
-    subgraph CSVDATA["<b>component_evaluation.csv</b><br/><i>50 lignes × 25+ colonnes</i>"]
+    subgraph CSVDATA["<b>component_evaluation.csv</b><br/><i>50 lignes × 40+ colonnes</i>"]
         direction LR
         COL1["router_source_ok<br/>router_diff_ok"]
         COL2["retrieval_ctx_precision<br/>retrieval_ctx_recall"]
-        COL3["rerank_pre/post_precision<br/>rerank_precision_delta<br/>rerank_pre/post_recall<br/>rerank_recall_delta"]
+        COL3["rerank_pre/post_precision<br/>rerank_precision_delta<br/>rerank_pre/post_recall<br/>rerank_recall_delta<br/>rerank_pre/post_ndcg<br/>rerank_pre/post_mrr"]
         COL4["grading_performed<br/>grading_sufficient<br/>grading_judge_sufficient<br/>grading_correct<br/>grading_label"]
-        COL5["rewrite_triggered<br/>rewrite_ctx_precision<br/>rewrite_precision_gain<br/>rewrite_ctx_recall<br/>rewrite_recall_gain"]
+        COL5["rewrite_triggered<br/>rewrite_ctx_precision<br/>rewrite_precision_gain<br/>rewrite_ctx_recall<br/>rewrite_recall_gain<br/>rewrite_success<br/>rewrite_n_new_pertinents"]
         COL6["gen_faithfulness"]
+        COL7["dedup_n_retires<br/>dedup_n_retires_pertinents<br/>dedup_perte_ratio"]
+        COL8["rrf_semantic_ratio<br/>rrf_bm25_ratio<br/>rrf_fusion_ratio<br/>rrf_exclusifs_semantic<br/>rrf_exclusifs_bm25"]
     end
 
     subgraph SUMMARY["<b>print_summary() — Récapitulatif Terminal</b>"]
         direction TB
         S1["<b>① ROUTER</b><br/>Source correcte : X%<br/>Difficulté correcte : X%"]
         S2["<b>② RETRIEVAL</b><br/>Context Precision : 0.XXX<br/>Context Recall : 0.XXX"]
-        S3["<b>③ RE-RANKING</b><br/>Precision avant/après + Δ<br/>Recall avant/après + Δ"]
+        S3["<b>③ RE-RANKING</b><br/>Precision avant/après + Δ<br/>Recall avant/après + Δ<br/>NDCG + MRR avant/après + Δ"]
         S4["<b>④ GRADING</b><br/>Accuracy vs juge : X%<br/>Matrice TP/TN/FP/FN<br/>Precision/Recall/F1"]
-        S5["<b>⑤ REWRITING</b><br/>Déclenchements : X/50<br/>Δ Precision + Δ Recall"]
+        S5["<b>⑤ REWRITING</b><br/>Déclenchements : X/50<br/>Δ Precision + Δ Recall<br/>Taux réussite + chunks utiles"]
         S6["<b>⑥ GENERATION</b><br/>Faithfulness : 0.XXX"]
+        S7b["<b>⑦ DÉDUPLICATION</b><br/>Retirés, pertinents perdus, ratio"]
+        S8["<b>⑧ FUSION RRF</b><br/>Pertinence sém. vs BM25 vs fusion<br/>Exclusifs + communs"]
 
         S7["<b>PAR NIVEAU</b><br/>Niveau 1 : prec, rec, faith, router<br/>Niveau 2 : prec, rec, faith, router<br/>Niveau 3 : prec, rec, faith, router"]
     end
@@ -973,6 +994,7 @@ flowchart TD
           <li><b>①②③⑥</b> : calculés sur les 50 questions</li>
           <li><b>④ Grading</b> : seulement sur les questions de difficulté > 1 (grading_performed=1)</li>
           <li><b>⑤ Rewriting</b> : seulement sur les questions où le rewrite a été déclenché (rewrite_triggered=1)</li>
+          <li><b>⑦⑧ Dédup + RRF</b> : seulement si les données intermédiaires sont disponibles (nécessite un re-run de run_agentic_all.py)</li>
           <li>Les moyennes sont calculées sur le sous-ensemble pertinent, pas sur les 50</li>
         </ul>
       </div>
@@ -1032,8 +1054,8 @@ flowchart TD
           <td>③</td>
           <td><b>Re-ranking</b></td>
           <td><code>eval_retrieval_and_reranking()</code></td>
-          <td>Delta RAGAS avant vs après re-ranking</td>
-          <td>gemma2:2b (juge RAGAS)</td>
+          <td>Delta RAGAS + NDCG + MRR (LLM-juge pertinence)</td>
+          <td>gemma2:2b (juge RAGAS + LLM-juge)</td>
           <td>Toujours (delta=0 si pool ≤ K_FINAL)</td>
         </tr>
         <tr>
@@ -1048,8 +1070,8 @@ flowchart TD
           <td>⑤</td>
           <td><b>Query Rewriting</b></td>
           <td><code>eval_rewriting()</code></td>
-          <td>RAGAS ContextPrecision + ContextRecall (gain)</td>
-          <td>gemma2:2b (juge RAGAS)</td>
+          <td>RAGAS (gain) + taux de réussite + chunks utiles (LLM-juge)</td>
+          <td>gemma2:2b (juge RAGAS + LLM-juge)</td>
           <td>Rewrite déclenché seulement</td>
         </tr>
         <tr>
@@ -1059,6 +1081,22 @@ flowchart TD
           <td>RAGAS Faithfulness</td>
           <td>gemma2:2b (juge RAGAS)</td>
           <td>Toujours (50 questions)</td>
+        </tr>
+        <tr>
+          <td>⑦</td>
+          <td><b>Déduplication</b></td>
+          <td><code>eval_dedup()</code></td>
+          <td>LLM-juge sur chunks retirés (pertinents perdus)</td>
+          <td>gemma2:2b (LLM-juge)</td>
+          <td>Si pre_dedup_docs disponible</td>
+        </tr>
+        <tr>
+          <td>⑧</td>
+          <td><b>Fusion RRF</b></td>
+          <td><code>eval_rrf()</code></td>
+          <td>LLM-juge : pertinence sémantique vs BM25 vs fusion</td>
+          <td>gemma2:2b (LLM-juge)</td>
+          <td>Si semantic_docs + bm25_docs disponibles</td>
         </tr>
       </tbody>
     </table>
@@ -1098,9 +1136,18 @@ flowchart TD
         <h4 class="blue">Coût en appels LLM par question</h4>
         <ul>
           <li><b>run_agentic_all.py</b> (exécution, une fois) : le plus coûteux (pipeline complet)</li>
-          <li><b>evaluate_components.py</b> : 2 à 8 appels gemma2:2b (RAGAS) par question</li>
+          <li><b>evaluate_components.py</b> : 15 à 40 appels gemma2:2b (RAGAS + LLM-juge NDCG/MRR/dédup/RRF) par question</li>
           <li>+ 1 appel gemma4:12b pour le juge de grading (si difficulté > 1)</li>
-          <li>Total scoring : ~200 à 400 appels LLM pour 50 questions</li>
+          <li>Total scoring : ~750 à 2000 appels LLM pour 50 questions</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="green">⑦⑧ Données intermédiaires requises</h4>
+        <ul>
+          <li>Les briques ⑦ (Déduplication) et ⑧ (Fusion RRF) nécessitent des champs ajoutés récemment</li>
+          <li><code>pre_dedup_docs</code>, <code>semantic_docs</code>, <code>bm25_docs</code> — capturés par la version mise à jour de run_agentic_all.py</li>
+          <li>Pour les anciens résultats : ces briques affichent « données non disponibles » sans bloquer les 6 autres</li>
+          <li>Solution : relancer <code>run_agentic_all.py</code> pour regénérer agentic_results_debug.json</li>
         </ul>
       </div>
     </div>

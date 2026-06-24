@@ -273,7 +273,7 @@ def _hyde(question: str) -> str:
     return _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 
 
-def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True, _pre_rerank_out: list | None = None) -> list[Document]:
+def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True, _pre_rerank_out: list | None = None, _pre_dedup_out: list | None = None, _semantic_out: list | None = None, _bm25_out: list | None = None) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
     sémantique → BM25 → RRF → re-ranking.
@@ -320,6 +320,13 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     )
     raw_semantic = [(doc, None) for doc in mmr_docs]
 
+    # Capture les résultats sémantiques bruts pour l'évaluation de la fusion RRF
+    if _semantic_out is not None:
+        _semantic_out.extend(
+            Document(page_content=d.page_content, metadata=dict(d.metadata))
+            for d, _ in raw_semantic
+        )
+
     if verbose:
         print("[Sémantique] Top 5 :")
         for i, (doc, _) in enumerate(raw_semantic[:5]):
@@ -344,6 +351,12 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
             print(f"  #{i+1}  bm25={bm25_scores[idx]:.2f}  {meta.get('source','?')}  p.{meta.get('page','?')}")
             print(f"        ↳ {_fmt(text)}")
 
+    # Capture les résultats BM25 bruts pour l'évaluation de la fusion RRF
+    if _bm25_out is not None:
+        for idx in top_bm25:
+            text, meta = bm25_chunks[idx]
+            _bm25_out.append(Document(page_content=text, metadata=dict(meta)))
+
     # ── 3. Fusion RRF ─────────────────────────────────────────────────────────
     # Combine les deux classements (sémantique + BM25) en un seul classement hybride.
     # Si `sources` restreint déjà la recherche, tous les candidats partagent la même
@@ -362,6 +375,13 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
 
     if not rrf_docs:
         return []
+
+    # Capture les candidats RRF avant déduplication pour l'évaluation de la dédup
+    if _pre_dedup_out is not None:
+        _pre_dedup_out.extend(
+            Document(page_content=d.page_content, metadata=dict(d.metadata))
+            for d in rrf_docs
+        )
 
     # ── 3b. Déduplication ────────────────────────────────────────────────────
     # Supprime les quasi-doublons avant le re-ranking pour ne pas gaspiller des

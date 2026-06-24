@@ -37,9 +37,9 @@ Question utilisateur
 run_agentic_all.py       → passe les 50 questions au pipeline agentique
                             + capture les états intermédiaires
 evaluate_ragas.py        → score 5 métriques RAGAS (bout-en-bout)
-evaluate_components.py   → score 6 briques indépendamment
+evaluate_components.py   → score 8 briques indépendamment
                             (Router, Retrieval, Re-ranking, Grading,
-                             Rewriting, Generation)
+                             Rewriting, Generation, Déduplication, Fusion RRF)
 ```
 
 ## Arborescence
@@ -62,7 +62,7 @@ RAG_Aquila/
 │   ├── api_server.py         ← API OpenAI-compatible pour Open WebUI
 │   ├── run_agentic_all.py    ← passe le dataset au pipeline + capture états intermédiaires
 │   ├── evaluate_ragas.py     ← évaluation RAGAS globale (5 métriques, bout-en-bout)
-│   ├── evaluate_components.py ← évaluation par composant (6 briques)
+│   ├── evaluate_components.py ← évaluation par composant (8 briques)
 │   ├── eval_common.py        ← utilitaires partagés (ground truth sources, chunks → RAGAS)
 │   └── debug_question.py     ← script de debug pour analyser le retrieval d'une question
 ├── data/
@@ -145,7 +145,7 @@ python src/run_agentic_all.py
 # Étape 2a : évaluation globale (5 métriques RAGAS bout-en-bout)
 python src/evaluate_ragas.py
 
-# Étape 2b : évaluation par composant (6 briques isolées)
+# Étape 2b : évaluation par composant (8 briques isolées)
 python src/evaluate_components.py
 ```
 

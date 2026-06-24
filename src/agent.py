@@ -96,6 +96,9 @@ class AgentState(TypedDict):
     pre_rerank_docs: list[Document]      # chunks juste avant le re-ranking du 1er retrieval — debug/éval (③)
     docs_before_rewrite: list[Document]  # pool de chunks au moment du grading initial, avant rewrite — debug/éval (⑤)
     post_rewrite_docs: list[Document]    # chunks récupérés spécifiquement par le 2ème retrieval (post-rewrite) — debug
+    pre_dedup_docs: list[Document]       # chunks après fusion RRF, avant déduplication — debug/éval (⑦ dédup)
+    semantic_docs: list[Document]        # résultats sémantiques bruts (avant fusion) — debug/éval (⑧ RRF)
+    bm25_docs: list[Document]            # résultats BM25 bruts (avant fusion) — debug/éval (⑧ RRF)
 
 
 def _available_sources() -> list[str]:
@@ -167,17 +170,28 @@ def retrieve_node(state: AgentState) -> dict:
         all_docs: list[Document] = []
         seen_content: set[str] = set()
         pre_rerank: list[Document] = []
+        pre_dedup: list[Document] = []
+        semantic: list[Document] = []
+        bm25: list[Document] = []
         for sq in state["sub_queries"]:
-            for doc in retrieve(sq, sources=state["sources"], verbose=False, use_hyde=False, _pre_rerank_out=pre_rerank):
+            for doc in retrieve(sq, sources=state["sources"], verbose=False, use_hyde=False,
+                                _pre_rerank_out=pre_rerank, _pre_dedup_out=pre_dedup,
+                                _semantic_out=semantic, _bm25_out=bm25):
                 if doc.page_content not in seen_content:
                     seen_content.add(doc.page_content)
                     all_docs.append(doc)
         # Re-rank global sur la question originale pour trier le pool fusionné
         final = _rerank(state["question"], all_docs) if len(all_docs) > K_FINAL else all_docs
-        return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank}
+        return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank,
+                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25}
 
     pre_rerank: list[Document] = []
-    new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde, _pre_rerank_out=pre_rerank)
+    pre_dedup: list[Document] = []
+    semantic: list[Document] = []
+    bm25: list[Document] = []
+    new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde,
+                        _pre_rerank_out=pre_rerank, _pre_dedup_out=pre_dedup,
+                        _semantic_out=semantic, _bm25_out=bm25)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
     existing_contents = {d.page_content for d in state["docs"]}
     new_docs_deduped = [d for d in new_docs if d.page_content not in existing_contents]
@@ -186,7 +200,8 @@ def retrieve_node(state: AgentState) -> dict:
         # 1er retrieval standard (difficulté 1 ou 2) : re-rank libre sur tous les chunks
         merged = state["docs"] + new_docs_deduped
         final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
-        return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank}
+        return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank,
+                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25}
 
     # 2ème retrieval (post-rewrite) — 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
     # On garde une copie du pool précédent (state["docs"]) avant de l'écraser : c'est lui qui a servi
@@ -328,6 +343,9 @@ def run_agent(question: str, verbose: bool = True) -> AgentState:
         "pre_rerank_docs": [],
         "docs_before_rewrite": [],
         "post_rewrite_docs": [],
+        "pre_dedup_docs": [],
+        "semantic_docs": [],
+        "bm25_docs": [],
     })
 
 

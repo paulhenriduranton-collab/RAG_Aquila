@@ -181,7 +181,7 @@ python src/run_agentic_all.py
   ┌─────────────────────────────┴─────────────────────────────┐
   ▼                                                             ▼
 python src/evaluate_ragas.py                          python src/evaluate_components.py
-→ évaluation GLOBALE (bout-en-bout)                    → évaluation PAR COMPOSANT (6 briques)
+→ évaluation GLOBALE (bout-en-bout)                    → évaluation PAR COMPOSANT (8 briques)
 → charge data/agentic_results.json                     → charge data/agentic_results.json
   + data/questions.json                                   + data/questions.json
 → construit un EvaluationDataset RAGAS                 → ne relance JAMAIS retrieval/génération —
@@ -602,13 +602,16 @@ Chaque question a un `id` structuré (`L1_ENS_001` = Niveau 1, source ENS, séqu
 
 ### agent.py — instrumentation pour l'évaluation par composant
 
-Le graph agentique lui-même a été enrichi de deux champs de debug dans `AgentState`, pour que `run_agentic_all.py` puisse capturer les étapes intermédiaires **sans jamais modifier le comportement réel du pipeline** :
+Le graph agentique lui-même a été enrichi de champs de debug dans `AgentState`, pour que `run_agentic_all.py` puisse capturer les étapes intermédiaires **sans jamais modifier le comportement réel du pipeline** :
 
 ```python
 class AgentState(TypedDict):
     ...
     pre_rerank_docs: list[Document]      # chunks juste avant le re-ranking du 1er retrieval
     docs_before_rewrite: list[Document]  # pool de chunks au moment du grading initial, avant rewrite
+    pre_dedup_docs: list[Document]       # chunks après fusion RRF, avant déduplication
+    semantic_docs: list[Document]        # résultats sémantiques bruts (avant fusion)
+    bm25_docs: list[Document]            # résultats BM25 bruts (avant fusion)
 ```
 
 **`pre_rerank_docs`** — peuplé dans `retrieve_node`, sur le **1er** retrieval uniquement (`attempts == 0`), juste avant l'appel à `_rerank()` :
@@ -679,6 +682,10 @@ Structure d'un résultat dans `data/agentic_results.json` :
         "triggered": true,
         "new_query": "durée minimale stage obligatoire ENS",
     },
+    # --- données pour l'évaluation de la déduplication et de la fusion RRF ---
+    "pre_dedup_docs": [ {...} ],    # chunks après fusion RRF, avant déduplication
+    "semantic_docs": [ {...} ],     # résultats sémantiques bruts (avant fusion)
+    "bm25_docs": [ {...} ],         # résultats BM25 bruts (avant fusion)
 }
 ```
 
@@ -728,9 +735,9 @@ AnswerCorrectness faible → la réponse est incorrecte par rapport aux document
 
 ---
 
-### evaluate_components.py — évaluation par composant (6 briques)
+### evaluate_components.py — évaluation par composant (8 briques)
 
-Contrairement à `evaluate_ragas.py` (un score global par question), ce script isole chacune des **6 briques** du pipeline agentique et les évalue indépendamment, pour localiser précisément où le pipeline est faible. Il s'appuie sur `eval_common.py` pour la ground truth des sources et la conversion chunks → contextes RAGAS.
+Contrairement à `evaluate_ragas.py` (un score global par question), ce script isole chacune des **8 briques** du pipeline agentique et les évalue indépendamment, pour localiser précisément où le pipeline est faible. Il s'appuie sur `eval_common.py` pour la ground truth des sources et la conversion chunks → contextes RAGAS.
 
 #### Vue d'ensemble — outil utilisé par brique
 
@@ -738,10 +745,12 @@ Contrairement à `evaluate_ragas.py` (un score global par question), ce script i
 |---|---|---|---|---|
 | ① | Router | `eval_router` | Comparaison exacte avec `questions.json` | Aucun |
 | ② | Retrieval | `eval_retrieval_and_reranking` | RAGAS `ContextPrecision` + `ContextRecall` | Oui (gemma2:2b, juge RAGAS) |
-| ③ | Re-ranking | `eval_retrieval_and_reranking` | Mêmes métriques RAGAS, delta avant/après | Oui (gemma2:2b) |
+| ③ | Re-ranking | `eval_retrieval_and_reranking` | Delta RAGAS + NDCG + MRR (LLM-juge pertinence) | Oui (gemma2:2b) |
 | ④ | Grading | `eval_grading` | Juge externe maison (`GRADING_JUDGE`) | Oui (gemma4:12b — même modèle que le pipeline) |
-| ⑤ | Query Rewriting | `eval_rewriting` | RAGAS `ContextPrecision` + `ContextRecall` sur le pool post-rewrite | Oui (gemma2:2b) |
+| ⑤ | Query Rewriting | `eval_rewriting` | RAGAS + taux de réussite + nouveaux chunks utiles (LLM-juge) | Oui (gemma2:2b) |
 | ⑥ | Generation | `eval_generation` | RAGAS `Faithfulness` | Oui (gemma2:2b) |
+| ⑦ | Déduplication | `eval_dedup` | LLM-juge sur les chunks retirés (pertinents perdus) | Oui (gemma2:2b) |
+| ⑧ | Fusion RRF | `eval_rrf` | LLM-juge : taux de pertinence sémantique vs BM25 vs fusion | Oui (gemma2:2b) |
 
 `EVAL_LLM = "gemma2:2b"` et `EVAL_EMBED = "bge-m3"` pour toutes les métriques RAGAS — un modèle léger, séparé du modèle de production (`gemma4:12b`), choisi pour la vitesse du scoring.
 
@@ -759,7 +768,7 @@ diff_ok = pred_diff == exp_diff
 
 `expected_sources()` traduit le champ `source` de `questions.json` (`"ENS"`, `"Sorbonne"`, `"ENS+Sorbonne"`) en liste de fichiers PDF réels, via `SOURCE_MAP` construit au démarrage par `init_source_map()` (scan du dossier `documents/`).
 
-#### ②③ `eval_retrieval_and_reranking(entry, meta, ragas_metrics)` — RAGAS Context Precision/Recall
+#### ②③ `eval_retrieval_and_reranking(entry, meta, ragas_metrics)` — RAGAS Context Precision/Recall + NDCG + MRR
 
 ```python
 pre_ctx = chunks_to_contexts(entry["pre_rerank_docs"])    # avant le cross-encoder
@@ -797,6 +806,13 @@ rerank_recall_delta = post_recall - pre_recall
 
 **Optimisation appliquée :** si `pre_ctx == post_ctx` (le pool de chunks était déjà ≤ `K_FINAL`, donc `_rerank()` n'a jamais été invoqué dans `agent.py`), un seul scoring est fait au lieu de deux — le delta serait de toute façon nul. Les 4 appels RAGAS restants (precision/recall × pre/post) sont lancés en parallèle via `asyncio.gather` plutôt que séquentiellement : même nombre d'appels LLM, mais temps d'exécution réduit.
 
+**NDCG + MRR (LLM-juge) :** en plus des métriques RAGAS, la brique ③ calcule le **NDCG** (Normalized Discounted Cumulative Gain) et le **MRR** (Mean Reciprocal Rank) — deux métriques standard d'Information Retrieval qui mesurent directement la qualité de l'**ordre** des chunks produit par le cross-encoder.
+
+Pour chaque chunk (avant et après re-ranking), un **LLM-juge** (`RELEVANCE_JUDGE`) détermine s'il est pertinent (1) ou non (0) par rapport à la question et la réponse attendue. Les labels sont ensuite utilisés pour calculer :
+- **NDCG** : les chunks pertinents sont-ils en haut du classement ? (1.0 = parfait)
+- **MRR** : à quelle position se trouve le premier chunk pertinent ? (1.0 = en première position)
+- **Delta NDCG/MRR** : amélioration apportée par le re-ranking (positif = amélioration)
+
 #### ④ `eval_grading(entry, meta)` — juge externe custom
 
 ```python
@@ -822,7 +838,7 @@ Le **juge externe** ici n'est **pas** un modèle séparé ou plus puissant : c'e
 
 **Limite assumée :** comme le juge externe réutilise le même modèle que le pipeline (avec juste plus d'information), il y a un biais de cohérence potentiel — un modèle indépendant (ex: `gemma2:2b`, ou un tiers modèle) serait un juge plus rigoureux, au prix d'un appel LLM supplémentaire vers un modèle différent.
 
-#### ⑤ `eval_rewriting(entry, meta, baseline_precision, baseline_recall, ragas_metrics)` — gain de rewrite
+#### ⑤ `eval_rewriting(entry, meta, baseline_precision, baseline_recall, ragas_metrics)` — gain de rewrite + taux de réussite + chunks utiles
 
 ```python
 rewrite = entry["rewrite"]
@@ -845,6 +861,10 @@ rewrite_recall_gain = new_recall - baseline_recall
 
 Le **résultat après rewrite** n'est pas recalculé non plus à la main : c'est `entry["chunks"]`, le pool final tel que produit par le vrai mécanisme de fusion du pipeline (3 anciens chunks les mieux classés + 2 nouveaux chunks re-rankés sur la requête reformulée — cf. Phase 2, étape 5bis). Le gain (`rewrite_precision_gain`, `rewrite_recall_gain`) reflète donc exactement ce que la reformulation a changé en production, sans aucune ré-exécution ni simulation.
 
+**Taux de réussite :** mesure si le grading final (après rewrite) dit OUI — c'est-à-dire si la reformulation a effectivement permis de récupérer suffisamment d'information. Si le grading reste NON après rewrite, la reformulation n'a pas suffi (`rewrite_success = 0`).
+
+**Nouveaux chunks utiles :** identifie les chunks du pool final (`chunks_loop_2`) qui n'étaient **pas** dans le pool avant rewrite (`chunks_loop_1`) — ce sont les chunks apportés par la reformulation. Chacun est labellisé pertinent ou non par le LLM-juge (`RELEVANCE_JUDGE`). Le ratio `rewrite_new_ratio` = proportion de nouveaux chunks qui sont effectivement pertinents.
+
 #### ⑥ `eval_generation(entry, meta, ragas_metrics)` — fidélité de la réponse
 
 ```python
@@ -860,14 +880,35 @@ faithfulness = await _ragas_score(ragas_metrics["faithfulness"], sample)
 
 Important : on utilise toujours `entry["chunks"]` — le pool **réellement** utilisé par `generate_node` en production (donc le pool post-rewrite si un rewrite a eu lieu). La fidélité est mesurée par rapport à ce qui a *vraiment* servi à générer la réponse, pas un pool reconstruit artificiellement.
 
+#### ⑦ `eval_dedup(entry, meta)` — qualité de la déduplication
+
+Évalue si la déduplication Jaccard (seuil 80 %) retire des chunks à tort :
+- Compare `entry["pre_dedup_docs"]` (après fusion RRF, avant dédup) et `entry["pre_rerank_docs"]` (après dédup, avant re-ranking)
+- Identifie les chunks retirés par la dédup (présents avant mais pas après)
+- Labellise chaque chunk retiré comme pertinent ou non via le LLM-juge (`RELEVANCE_JUDGE`)
+- Calcule le **ratio de perte** : proportion de chunks retirés qui étaient en fait pertinents (0 = aucune perte dommageable)
+
+**Nécessite les données `pre_dedup_docs`** ajoutées par la version mise à jour de `run_agentic_all.py`. Pour les anciens résultats (sans ce champ), la brique retourne `dedup_available = 0` et des NaN sans bloquer l'évaluation.
+
+#### ⑧ `eval_rrf(entry, meta)` — qualité de la fusion RRF
+
+Évalue si la fusion sémantique + BM25 est meilleure que chaque méthode seule :
+- Prend les résultats **sémantiques bruts** (`entry["semantic_docs"]`), **BM25 bruts** (`entry["bm25_docs"]`) et la **fusion RRF** (`entry["pre_dedup_docs"]`), tous alignés sur le même nombre de chunks (top N)
+- Labellise chaque chunk de chaque ensemble via le LLM-juge (`RELEVANCE_JUDGE`)
+- Compare les **taux de pertinence** : sémantique seul vs BM25 seul vs fusion RRF
+- Analyse la **complémentarité** : combien de chunks du RRF viennent exclusivement du sémantique, exclusivement du BM25, ou des deux
+
+**Nécessite les données `semantic_docs` et `bm25_docs`** ajoutées par la version mise à jour de `run_agentic_all.py`. Pour les anciens résultats, la brique retourne `rrf_available = 0`.
+
 #### Boucle principale et résumé
 
-`_run_all()` boucle sur les 50 questions, appelle les 6 fonctions `eval_*` dans l'ordre, et sauvegarde une ligne par question dans `data/component_evaluation.csv` (sauvegarde incrémentale, reprise automatique). Si une question de `questions.json` n'a pas d'entrée correspondante dans `agentic_results.json`, elle est signalée `[MANQUANT]` et sautée — il faut alors relancer `run_agentic_all.py`.
+`_run_all()` boucle sur les 50 questions, appelle les 8 fonctions `eval_*` dans l'ordre, et sauvegarde une ligne par question dans `data/component_evaluation.csv` (sauvegarde incrémentale, reprise automatique). Si une question de `questions.json` n'a pas d'entrée correspondante dans `agentic_results_debug.json`, elle est signalée `[MANQUANT]` et sautée — il faut alors relancer `run_agentic_all.py`.
 
-`print_summary()` affiche, pour chaque brique, la moyenne sur l'ensemble du dataset (ou le sous-ensemble pertinent : ④ seulement sur les questions de difficulté > 1, ⑤ seulement sur les questions où le rewrite a été déclenché), puis une ventilation par niveau de difficulté.
+`print_summary()` affiche, pour chaque brique, la moyenne sur l'ensemble du dataset (ou le sous-ensemble pertinent : ④ seulement sur les questions de difficulté > 1, ⑤ seulement sur les questions où le rewrite a été déclenché, ⑦⑧ seulement si les données intermédiaires sont disponibles), puis une ventilation par niveau de difficulté.
 
 #### Limites connues de cette évaluation
 
 - **Le grading (④)** est jugé par le même modèle que celui évalué (`gemma4:12b`), pas par un tiers indépendant — biais de cohérence possible.
 - **`pre_rerank_docs`** ne correspond qu'au tout premier retrieval ; pour les questions de difficulté 3 décomposées en sous-requêtes, c'est le pool fusionné de toutes les sous-requêtes avant le re-rank global qui sert de référence "avant re-ranking" (pas un état intermédiaire par sous-requête).
-- **Coût en appels LLM** : `run_agentic_all.py` (exécution, une fois) reste l'étape la plus coûteuse en appels au pipeline réel ; `evaluate_components.py` (scoring, répétable) ajoute des appels RAGAS — typiquement 2 à 8 appels gemma2:2b par question selon que le rewrite a été déclenché, plus 1 appel gemma4:12b pour le juge de grading (si difficulté > 1).
+- **Coût en appels LLM** : `run_agentic_all.py` (exécution, une fois) reste l'étape la plus coûteuse en appels au pipeline réel ; `evaluate_components.py` (scoring, répétable) ajoute des appels RAGAS et LLM-juge — typiquement 15 à 40 appels gemma2:2b par question (RAGAS + labellisation de pertinence pour NDCG/MRR/dédup/RRF), plus 1 appel gemma4:12b pour le juge de grading (si difficulté > 1).
+- **Briques ⑦⑧ nécessitent un re-run** : les données intermédiaires (`pre_dedup_docs`, `semantic_docs`, `bm25_docs`) ne sont capturées que par la version mise à jour de `run_agentic_all.py`. Les anciens résultats sans ces champs affichent « données non disponibles » sans bloquer l'évaluation des 6 autres briques.

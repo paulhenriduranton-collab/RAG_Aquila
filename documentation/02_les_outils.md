@@ -15,7 +15,7 @@
 | LangChain | Colle tous les composants ensemble |
 | LangGraph | Orchestre le pipeline agentique (machine à états) |
 | CrossEncoder BAAI/bge-reranker-v2-m3 | Re-classe les chunks par pertinence réelle (re-ranking) |
-| RAGAS | Évalue la qualité du pipeline : globalement (5 métriques) et par composant (3 métriques réutilisées sur 6 briques) |
+| RAGAS | Évalue la qualité du pipeline : globalement (5 métriques) et par composant (3 métriques RAGAS + LLM-juge sur 8 briques) |
 | Open WebUI + FastAPI | Interface chat locale, serveur API compatible OpenAI |
 | Gradio | Interface web interactive sur Colab avec surlignage PDF |
 
@@ -271,13 +271,15 @@ Dans `evaluate_ragas.py` (évaluation **globale**, bout-en-bout), il évalue cha
 | **ContextRecall** | Les chunks couvrent-ils tout ce que contient la réponse de référence ? | Oui |
 | **AnswerCorrectness** | La réponse est-elle correcte par rapport à la référence ? | Oui |
 
-Dans `evaluate_components.py` (évaluation **par composant**), seules 3 de ces métriques sont réutilisées, appliquées à des pools de chunks différents selon la brique testée :
+Dans `evaluate_components.py` (évaluation **par composant**), ces métriques RAGAS sont combinées avec un **LLM-juge de pertinence** custom, appliqués à des pools de chunks différents selon la brique testée :
 
 | Métrique | Brique(s) | Sur quels chunks ? |
 |---|---|---|
 | **ContextPrecision** | ② Retrieval, ③ Re-ranking, ⑤ Rewriting | avant/après re-ranking, puis après rewrite |
 | **ContextRecall** | ② Retrieval, ③ Re-ranking, ⑤ Rewriting | idem |
+| **NDCG + MRR** (LLM-juge) | ③ Re-ranking | labellisation pertinence de chaque chunk avant/après re-ranking |
 | **Faithfulness** | ⑥ Generation | pool final réellement utilisé pour générer la réponse |
+| **LLM-juge pertinence** | ⑤ Rewriting, ⑦ Déduplication, ⑧ Fusion RRF | nouveaux chunks du rewrite, chunks retirés par dédup, chunks sém./BM25/fusion |
 
 RAGAS utilise Ollama (via une API compatible OpenAI sur `http://localhost:11434/v1`) — aucun appel à OpenAI ou à un service externe.
 

@@ -1,12 +1,14 @@
 # evaluate_components.py
 # Évaluation par composant (component-level) du RAG agentique.
-# 6 briques testées indépendamment :
+# 8 briques testées indépendamment :
 #   1. Router (identify_sources)       — comparaison exacte avec ground truth
 #   2. Retrieval (pipeline complet)    — RAGAS Context Precision + Context Recall
-#   3. Re-ranking (cross-encoder)      — RAGAS Context Precision avant vs après
+#   3. Re-ranking (cross-encoder)      — RAGAS Context Precision + NDCG + MRR (LLM-juge)
 #   4. Grading (jugement suffisance)   — verdict OUI/NON enregistré
-#   5. Query Rewriting (reformulation) — RAGAS Context Precision après rewrite
+#   5. Query Rewriting (reformulation) — RAGAS + taux de réussite + nouveaux chunks utiles
 #   6. Generation (réponse finale)     — RAGAS Faithfulness
+#   7. Déduplication                   — chunks retirés / pertinents perdus
+#   8. Fusion RRF                      — sémantique vs BM25 vs fusion (LLM-juge)
 #
 # Ne ré-exécute jamais le pipeline (retrieval/génération) : tout est lu depuis
 # data/agentic_results_debug.json, généré une seule fois par run_agentic_all.py (qui fait
@@ -134,12 +136,63 @@ def eval_router(entry: dict, meta: dict) -> dict:
 
 
 # =============================================================================
-# ÉVALUATION — 2+3. RETRIEVAL + RE-RANKING (RAGAS Context Precision/Recall)
+# ÉVALUATION — 2+3. RETRIEVAL + RE-RANKING (RAGAS Context Precision/Recall + NDCG/MRR)
 # =============================================================================
 
+# Prompt LLM-juge pour labelliser la pertinence de chaque chunk (0 ou 1)
+RELEVANCE_JUDGE = """Voici une question, la réponse attendue, et un extrait de document.
+
+Question : {question}
+
+Réponse attendue : {reference}
+
+Extrait :
+{chunk}
+
+Cet extrait contient-il de l'information directement utile pour produire la réponse attendue ?
+
+Réponds uniquement : OUI ou NON"""
+
+
+def _judge_relevance(question: str, reference: str, chunks: list[dict]) -> list[int]:
+    """Labellise chaque chunk comme pertinent (1) ou non (0) via un appel LLM-juge.
+    Retourne une liste de labels dans le même ordre que les chunks."""
+    labels = []
+    for c in chunks:
+        prompt = RELEVANCE_JUDGE.format(
+            question=question, reference=reference, chunk=c["content"][:1500],
+        )
+        raw = _invoke_with_retry(prompt).strip()
+        labels.append(1 if raw.lower().startswith("oui") else 0)
+    return labels
+
+
+def _ndcg(relevances: list[int], k: int | None = None) -> float:
+    """Calcule le NDCG (Normalized Discounted Cumulative Gain) sur une liste de labels de pertinence.
+    Un NDCG de 1.0 signifie que tous les chunks pertinents sont classés en premier."""
+    if not relevances or sum(relevances) == 0:
+        return float("nan")
+    if k is not None:
+        relevances = relevances[:k]
+    # DCG : somme des pertinences pondérées par 1/log2(position+1)
+    dcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(relevances))
+    # IDCG : DCG idéal (tous les pertinents en premier)
+    ideal = sorted(relevances, reverse=True)
+    idcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(ideal))
+    return round(dcg / idcg, 3) if idcg > 0 else float("nan")
+
+
+def _mrr(relevances: list[int]) -> float:
+    """Calcule le MRR (Mean Reciprocal Rank) : 1/position du premier chunk pertinent.
+    MRR = 1.0 si le premier chunk est pertinent, 0.5 si c'est le deuxième, etc."""
+    for i, rel in enumerate(relevances):
+        if rel:
+            return round(1.0 / (i + 1), 3)
+    return 0.0
+
 async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: dict) -> dict:
-    """Évalue retrieval (Context Precision + Recall) et re-ranking (delta Context Precision)
-    à partir des chunks pre/post re-ranking déjà capturés par run_agentic_all.py."""
+    """Évalue retrieval (Context Precision + Recall) et re-ranking (delta Context Precision
+    + NDCG + MRR via LLM-juge) à partir des chunks pre/post re-ranking déjà capturés."""
     question = meta["question"]
     reference = meta["reponse_attendue"]
     pre_ctx = chunks_to_contexts(entry["pre_rerank_docs"])
@@ -172,6 +225,31 @@ async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: d
             _ragas_score(ragas_metrics["ctx_recall"], post_sample),
         )
 
+    # --- ③bis NDCG + MRR : le LLM-juge labellise chaque chunk, puis on calcule ---
+    # On labellise les chunks POST re-ranking (dans l'ordre produit par le cross-encoder)
+    post_docs = entry["post_rerank_docs"]
+    if post_docs:
+        post_labels = _judge_relevance(question, reference, post_docs)
+        rerank_ndcg = _ndcg(post_labels)
+        rerank_mrr = _mrr(post_labels)
+        rerank_n_pertinents = sum(post_labels)
+    else:
+        post_labels = []
+        rerank_ndcg = float("nan")
+        rerank_mrr = float("nan")
+        rerank_n_pertinents = 0
+
+    # NDCG/MRR AVANT re-ranking pour mesurer l'amélioration apportée par le cross-encoder
+    pre_docs = entry["pre_rerank_docs"]
+    if pre_docs and pre_ctx != post_ctx:
+        pre_labels = _judge_relevance(question, reference, pre_docs)
+        pre_ndcg = _ndcg(pre_labels)
+        pre_mrr = _mrr(pre_labels)
+    else:
+        pre_labels = post_labels
+        pre_ndcg = rerank_ndcg
+        pre_mrr = rerank_mrr
+
     # Deltas re-ranking (positif = le re-ranker améliore)
     def _delta(a: float, b: float) -> float:
         return round(a - b, 3) if not (math.isnan(a) or math.isnan(b)) else float("nan")
@@ -180,14 +258,23 @@ async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: d
         # ② Retrieval (résultat après re-ranking, avant rewrite éventuel)
         "retrieval_ctx_precision": post_precision,
         "retrieval_ctx_recall": post_recall,
-        "retrieval_n_chunks": len(entry["post_rerank_docs"]),
-        # ③ Re-ranking (amélioration apportée par le cross-encoder)
+        "retrieval_n_chunks": len(post_docs),
+        # ③ Re-ranking — RAGAS (amélioration apportée par le cross-encoder)
         "rerank_pre_precision": pre_precision,
         "rerank_post_precision": post_precision,
         "rerank_precision_delta": _delta(post_precision, pre_precision),
         "rerank_pre_recall": pre_recall,
         "rerank_post_recall": post_recall,
         "rerank_recall_delta": _delta(post_recall, pre_recall),
+        # ③ Re-ranking — NDCG + MRR (qualité de l'ordre des chunks)
+        "rerank_pre_ndcg": pre_ndcg,
+        "rerank_post_ndcg": rerank_ndcg,
+        "rerank_ndcg_delta": _delta(rerank_ndcg, pre_ndcg),
+        "rerank_pre_mrr": pre_mrr,
+        "rerank_post_mrr": rerank_mrr,
+        "rerank_mrr_delta": _delta(rerank_mrr, pre_mrr),
+        "rerank_n_pertinents": rerank_n_pertinents,
+        "rerank_n_total": len(post_docs),
     }
 
 
@@ -270,6 +357,7 @@ async def eval_rewriting(
     ragas_metrics: dict,
 ) -> dict:
     """Évalue le query rewriting : la reformulation améliore-t-elle le retrieval ?
+    Métriques : RAGAS precision/recall + taux de réussite + nouveaux chunks utiles.
     Le déclenchement et la fusion des chunks ont déjà eu lieu dans le vrai pipeline
     (run_agentic_all.py) — ici on ne fait que le scoring RAGAS sur les chunks finaux."""
     rewrite = entry["rewrite"]
@@ -281,6 +369,10 @@ async def eval_rewriting(
             "rewrite_precision_gain": float("nan"),
             "rewrite_ctx_recall": float("nan"),
             "rewrite_recall_gain": float("nan"),
+            "rewrite_success": float("nan"),
+            "rewrite_n_new_chunks": float("nan"),
+            "rewrite_n_new_pertinents": float("nan"),
+            "rewrite_new_ratio": float("nan"),
         }
 
     # entry["chunks"] = pool final du graph, déjà fusionné post-rewrite (3 anciens + 2 nouveaux)
@@ -297,6 +389,30 @@ async def eval_rewriting(
     def _gain(new: float, old: float) -> float:
         return round(new - old, 3) if not (math.isnan(new) or math.isnan(old)) else float("nan")
 
+    # --- Taux de réussite : le grading final (après rewrite) dit-il OUI ? ---
+    # Si le grading est toujours NON après rewrite, la reformulation n'a pas suffi
+    grading = entry["grading"]
+    rewrite_success = int(grading.get("sufficient", False))
+
+    # --- Nouveaux chunks utiles : combien de chunks du 2ème retrieval sont pertinents ? ---
+    chunks_loop_1 = rewrite["chunks_loop_1"]
+    chunks_loop_2 = rewrite["chunks_loop_2"]
+    # Les contenus du pool avant rewrite (boucle 1)
+    old_contents = {c["content"] for c in chunks_loop_1}
+    # Les chunks qui n'étaient PAS dans le pool avant rewrite = apportés par la reformulation
+    new_chunks = [c for c in chunks_loop_2 if c["content"] not in old_contents]
+    n_new = len(new_chunks)
+
+    # Labelliser la pertinence des nouveaux chunks via LLM-juge
+    if new_chunks:
+        new_labels = _judge_relevance(meta["question"], meta["reponse_attendue"], new_chunks)
+        n_new_pertinents = sum(new_labels)
+    else:
+        n_new_pertinents = 0
+
+    # Ratio : proportion de nouveaux chunks qui sont effectivement pertinents
+    new_ratio = round(n_new_pertinents / n_new, 3) if n_new > 0 else float("nan")
+
     return {
         "rewrite_triggered": 1,
         "rewrite_new_query": rewrite["new_query"][:150],
@@ -304,6 +420,10 @@ async def eval_rewriting(
         "rewrite_precision_gain": _gain(new_precision, baseline_precision),
         "rewrite_ctx_recall": new_recall,
         "rewrite_recall_gain": _gain(new_recall, baseline_recall),
+        "rewrite_success": rewrite_success,
+        "rewrite_n_new_chunks": n_new,
+        "rewrite_n_new_pertinents": n_new_pertinents,
+        "rewrite_new_ratio": new_ratio,
     }
 
 
@@ -327,6 +447,136 @@ async def eval_generation(entry: dict, meta: dict, ragas_metrics: dict) -> dict:
     return {
         "gen_answer": answer[:300],
         "gen_faithfulness": faithfulness,
+    }
+
+
+# =============================================================================
+# ÉVALUATION — 7. DÉDUPLICATION
+# =============================================================================
+
+def eval_dedup(entry: dict, meta: dict) -> dict:
+    """Évalue la déduplication : combien de chunks sont retirés, et parmi eux combien étaient
+    pertinents (= chunks perdus à tort) ? Nécessite les champs pre_dedup_docs et pre_rerank_docs
+    ajoutés par run_agentic_all.py. Si ces champs sont absents (anciens résultats), retourne NaN."""
+    pre_dedup = entry.get("pre_dedup_docs")
+    post_dedup = entry.get("pre_rerank_docs")  # pre_rerank = post_dedup (après dédup, avant re-ranking)
+
+    if pre_dedup is None:
+        # Données générées avant l'ajout de ce champ — on ne peut pas évaluer
+        return {
+            "dedup_available": 0,
+            "dedup_n_avant": float("nan"),
+            "dedup_n_apres": float("nan"),
+            "dedup_n_retires": float("nan"),
+            "dedup_n_retires_pertinents": float("nan"),
+            "dedup_perte_ratio": float("nan"),
+        }
+
+    n_avant = len(pre_dedup)
+    n_apres = len(post_dedup)
+    n_retires = n_avant - n_apres
+
+    # Identifier les chunks retirés par la dédup (présents avant mais pas après)
+    post_contents = {c["content"] for c in post_dedup}
+    chunks_retires = [c for c in pre_dedup if c["content"] not in post_contents]
+
+    # Labelliser la pertinence des chunks retirés via LLM-juge
+    if chunks_retires:
+        labels = _judge_relevance(meta["question"], meta["reponse_attendue"], chunks_retires)
+        n_retires_pertinents = sum(labels)
+    else:
+        n_retires_pertinents = 0
+
+    # Ratio de perte : proportion de chunks retirés qui étaient pertinents (0 = aucune perte)
+    perte_ratio = round(n_retires_pertinents / n_retires, 3) if n_retires > 0 else 0.0
+
+    return {
+        "dedup_available": 1,
+        "dedup_n_avant": n_avant,
+        "dedup_n_apres": n_apres,
+        "dedup_n_retires": n_retires,
+        "dedup_n_retires_pertinents": n_retires_pertinents,
+        "dedup_perte_ratio": perte_ratio,
+    }
+
+
+# =============================================================================
+# ÉVALUATION — 8. FUSION RRF
+# =============================================================================
+
+def eval_rrf(entry: dict, meta: dict) -> dict:
+    """Évalue la fusion RRF : la combinaison sémantique + BM25 est-elle meilleure que chacune
+    seule ? Compare le taux de chunks pertinents dans les résultats sémantiques seuls, BM25 seuls,
+    et la fusion RRF. Nécessite les champs semantic_docs, bm25_docs et pre_dedup_docs."""
+    semantic = entry.get("semantic_docs")
+    bm25 = entry.get("bm25_docs")
+    rrf = entry.get("pre_dedup_docs")  # résultat de la fusion RRF (avant dédup)
+
+    if semantic is None or bm25 is None or rrf is None:
+        # Données générées avant l'ajout de ces champs — on ne peut pas évaluer
+        return {
+            "rrf_available": 0,
+            "rrf_n_semantic": float("nan"),
+            "rrf_n_bm25": float("nan"),
+            "rrf_n_fusion": float("nan"),
+            "rrf_semantic_pertinents": float("nan"),
+            "rrf_bm25_pertinents": float("nan"),
+            "rrf_fusion_pertinents": float("nan"),
+            "rrf_semantic_ratio": float("nan"),
+            "rrf_bm25_ratio": float("nan"),
+            "rrf_fusion_ratio": float("nan"),
+            "rrf_exclusifs_semantic": float("nan"),
+            "rrf_exclusifs_bm25": float("nan"),
+            "rrf_communs": float("nan"),
+        }
+
+    question = meta["question"]
+    reference = meta["reponse_attendue"]
+
+    # Labelliser la pertinence pour chaque source (on prend le top N de chaque, aligné sur le RRF)
+    n_rrf = len(rrf)
+    sem_top = semantic[:n_rrf] if n_rrf > 0 else semantic
+    bm25_top = bm25[:n_rrf] if n_rrf > 0 else bm25
+
+    # Labellisation LLM-juge pour chaque ensemble
+    sem_labels = _judge_relevance(question, reference, sem_top) if sem_top else []
+    bm25_labels = _judge_relevance(question, reference, bm25_top) if bm25_top else []
+    rrf_labels = _judge_relevance(question, reference, rrf) if rrf else []
+
+    sem_pertinents = sum(sem_labels)
+    bm25_pertinents = sum(bm25_labels)
+    rrf_pertinents = sum(rrf_labels)
+
+    # Ratios de pertinence (% de chunks pertinents dans chaque ensemble)
+    sem_ratio = round(sem_pertinents / len(sem_top), 3) if sem_top else float("nan")
+    bm25_ratio = round(bm25_pertinents / len(bm25_top), 3) if bm25_top else float("nan")
+    rrf_ratio = round(rrf_pertinents / len(rrf), 3) if rrf else float("nan")
+
+    # Analyse de la complémentarité : chunks exclusifs à chaque méthode dans le top RRF
+    sem_contents = {c["content"] for c in sem_top}
+    bm25_contents = {c["content"] for c in bm25_top}
+    rrf_contents = {c["content"] for c in rrf}
+    # Chunks du RRF qui viennent uniquement du sémantique (pas dans BM25 top)
+    exclusifs_sem = len(rrf_contents & sem_contents - bm25_contents)
+    # Chunks du RRF qui viennent uniquement du BM25 (pas dans sémantique top)
+    exclusifs_bm25 = len(rrf_contents & bm25_contents - sem_contents)
+    # Chunks du RRF présents dans les deux méthodes
+    communs = len(rrf_contents & sem_contents & bm25_contents)
+
+    return {
+        "rrf_available": 1,
+        "rrf_n_semantic": len(sem_top),
+        "rrf_n_bm25": len(bm25_top),
+        "rrf_n_fusion": len(rrf),
+        "rrf_semantic_pertinents": sem_pertinents,
+        "rrf_bm25_pertinents": bm25_pertinents,
+        "rrf_fusion_pertinents": rrf_pertinents,
+        "rrf_semantic_ratio": sem_ratio,
+        "rrf_bm25_ratio": bm25_ratio,
+        "rrf_fusion_ratio": rrf_ratio,
+        "rrf_exclusifs_semantic": exclusifs_sem,
+        "rrf_exclusifs_bm25": exclusifs_bm25,
+        "rrf_communs": communs,
     }
 
 
@@ -382,13 +632,18 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
                   f"diff={'OK' if router_row['router_diff_ok'] else 'MISS'} "
                   f"(pred={router_row['router_pred_diff']}, exp={router_row['router_exp_diff']})")
 
-            # ②③ Retrieval + Re-ranking
+            # ②③ Retrieval + Re-ranking (RAGAS + NDCG + MRR)
             ret_row = await eval_retrieval_and_reranking(entry, meta, ragas_metrics)
             row.update(ret_row)
             print(f"  ②③ ctx_prec={ret_row['retrieval_ctx_precision']}  "
                   f"ctx_rec={ret_row['retrieval_ctx_recall']}  "
                   f"rerank Δprec={ret_row['rerank_precision_delta']}  "
                   f"Δrec={ret_row['rerank_recall_delta']}")
+            print(f"      NDCG={ret_row['rerank_post_ndcg']}  "
+                  f"MRR={ret_row['rerank_post_mrr']}  "
+                  f"ΔNDCG={ret_row['rerank_ndcg_delta']}  "
+                  f"ΔMRR={ret_row['rerank_mrr_delta']}  "
+                  f"pertinents={ret_row['rerank_n_pertinents']}/{ret_row['rerank_n_total']}")
 
             # ④ Grading
             grade_row = await eval_grading(entry, meta)
@@ -410,7 +665,9 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
             row.update(rewrite_row)
             if rewrite_row["rewrite_triggered"]:
                 print(f"  ⑤ Rewrite : Δprec={rewrite_row['rewrite_precision_gain']}  "
-                      f"Δrec={rewrite_row['rewrite_recall_gain']}")
+                      f"Δrec={rewrite_row['rewrite_recall_gain']}  "
+                      f"succès={'OUI' if rewrite_row['rewrite_success'] else 'NON'}  "
+                      f"nouveaux={rewrite_row['rewrite_n_new_pertinents']}/{rewrite_row['rewrite_n_new_chunks']} pertinents")
             else:
                 print("  ⑤ Rewrite : non déclenché")
 
@@ -418,6 +675,28 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
             gen_row = await eval_generation(entry, meta, ragas_metrics)
             row.update(gen_row)
             print(f"  ⑥ Generation : faithfulness={gen_row['gen_faithfulness']}")
+
+            # ⑦ Déduplication
+            dedup_row = eval_dedup(entry, meta)
+            row.update(dedup_row)
+            if dedup_row["dedup_available"]:
+                print(f"  ⑦ Dédup : {dedup_row['dedup_n_avant']}→{dedup_row['dedup_n_apres']} "
+                      f"({dedup_row['dedup_n_retires']} retirés, "
+                      f"{dedup_row['dedup_n_retires_pertinents']} pertinents perdus)")
+            else:
+                print("  ⑦ Dédup : données non disponibles (relancez run_agentic_all.py)")
+
+            # ⑧ Fusion RRF
+            rrf_row = eval_rrf(entry, meta)
+            row.update(rrf_row)
+            if rrf_row["rrf_available"]:
+                print(f"  ⑧ RRF : sém={rrf_row['rrf_semantic_pertinents']}/{rrf_row['rrf_n_semantic']}  "
+                      f"BM25={rrf_row['rrf_bm25_pertinents']}/{rrf_row['rrf_n_bm25']}  "
+                      f"fusion={rrf_row['rrf_fusion_pertinents']}/{rrf_row['rrf_n_fusion']}  "
+                      f"(excl_sém={rrf_row['rrf_exclusifs_semantic']} excl_bm25={rrf_row['rrf_exclusifs_bm25']} "
+                      f"communs={rrf_row['rrf_communs']})")
+            else:
+                print("  ⑧ RRF : données non disponibles (relancez run_agentic_all.py)")
 
         except Exception as e:
             print(f"\n  [ERREUR] {type(e).__name__}: {e}")
@@ -468,13 +747,31 @@ def print_summary(df: pd.DataFrame):
         pre_r = df["rerank_pre_recall"].mean()
         post_r = df["rerank_post_recall"].mean()
         delta_r = df["rerank_recall_delta"].mean()
-        print(f"\n  ③ RE-RANKING")
+        print(f"\n  ③ RE-RANKING — RAGAS")
         print(f"     Context Precision avant  : {pre_p:.3f}")
         print(f"     Context Precision après  : {post_p:.3f}")
         print(f"     Δ Precision              : {delta_p:+.3f}")
         print(f"     Context Recall avant     : {pre_r:.3f}")
         print(f"     Context Recall après     : {post_r:.3f}")
         print(f"     Δ Recall                 : {delta_r:+.3f}")
+
+    if "rerank_post_ndcg" in df.columns:
+        pre_ndcg = df["rerank_pre_ndcg"].mean()
+        post_ndcg = df["rerank_post_ndcg"].mean()
+        delta_ndcg = df["rerank_ndcg_delta"].mean()
+        pre_mrr = df["rerank_pre_mrr"].mean()
+        post_mrr = df["rerank_post_mrr"].mean()
+        delta_mrr = df["rerank_mrr_delta"].mean()
+        n_pert = df["rerank_n_pertinents"].sum()
+        n_tot = df["rerank_n_total"].sum()
+        print(f"\n  ③ RE-RANKING — NDCG + MRR (LLM-juge)")
+        print(f"     NDCG avant               : {pre_ndcg:.3f}")
+        print(f"     NDCG après               : {post_ndcg:.3f}")
+        print(f"     Δ NDCG                   : {delta_ndcg:+.3f}")
+        print(f"     MRR avant                : {pre_mrr:.3f}")
+        print(f"     MRR après                : {post_mrr:.3f}")
+        print(f"     Δ MRR                    : {delta_mrr:+.3f}")
+        print(f"     Chunks pertinents        : {n_pert}/{n_tot} ({n_pert/n_tot:.1%})" if n_tot > 0 else "")
 
     # ④ Grading — uniquement sur les questions où le grading a réellement eu lieu (difficulté > 1)
     if "grading_performed" in df.columns:
@@ -520,6 +817,16 @@ def print_summary(df: pd.DataFrame):
             print(f"     Déclenchements       : {len(triggered)}/{n}")
             print(f"     Δ Context Precision   : {gain_p:+.3f}")
             print(f"     Δ Context Recall      : {gain_r:+.3f}")
+            # Taux de réussite et nouveaux chunks utiles
+            if "rewrite_success" in triggered.columns:
+                success_rate = triggered["rewrite_success"].mean()
+                print(f"     Taux de réussite      : {success_rate:.1%} (grading OUI après rewrite)")
+            if "rewrite_n_new_chunks" in triggered.columns:
+                total_new = triggered["rewrite_n_new_chunks"].sum()
+                total_new_pert = triggered["rewrite_n_new_pertinents"].sum()
+                ratio = total_new_pert / total_new if total_new > 0 else float("nan")
+                print(f"     Nouveaux chunks       : {int(total_new)} au total")
+                print(f"     Nouveaux pertinents   : {int(total_new_pert)} ({ratio:.1%})")
         else:
             print(f"     Jamais déclenché")
 
@@ -528,6 +835,48 @@ def print_summary(df: pd.DataFrame):
         faith = df["gen_faithfulness"].mean()
         print(f"\n  ⑥ GENERATION")
         print(f"     Faithfulness : {faith:.3f}")
+
+    # ⑦ Déduplication
+    if "dedup_available" in df.columns:
+        dedup_df = df[df["dedup_available"] == 1]
+        print(f"\n  ⑦ DÉDUPLICATION ({len(dedup_df)}/{n} questions avec données)")
+        if len(dedup_df) > 0:
+            avg_avant = dedup_df["dedup_n_avant"].mean()
+            avg_apres = dedup_df["dedup_n_apres"].mean()
+            avg_retires = dedup_df["dedup_n_retires"].mean()
+            total_retires = dedup_df["dedup_n_retires"].sum()
+            total_retires_pert = dedup_df["dedup_n_retires_pertinents"].sum()
+            perte_glob = total_retires_pert / total_retires if total_retires > 0 else 0.0
+            print(f"     Chunks avant dédup    : {avg_avant:.1f} (moyenne)")
+            print(f"     Chunks après dédup    : {avg_apres:.1f} (moyenne)")
+            print(f"     Retirés par dédup     : {int(total_retires)} au total ({avg_retires:.1f}/question)")
+            print(f"     Pertinents perdus     : {int(total_retires_pert)} ({perte_glob:.1%} des retirés)")
+
+    # ⑧ Fusion RRF
+    if "rrf_available" in df.columns:
+        rrf_df = df[df["rrf_available"] == 1]
+        print(f"\n  ⑧ FUSION RRF ({len(rrf_df)}/{n} questions avec données)")
+        if len(rrf_df) > 0:
+            sem_r = rrf_df["rrf_semantic_ratio"].mean()
+            bm25_r = rrf_df["rrf_bm25_ratio"].mean()
+            fus_r = rrf_df["rrf_fusion_ratio"].mean()
+            total_excl_sem = rrf_df["rrf_exclusifs_semantic"].sum()
+            total_excl_bm25 = rrf_df["rrf_exclusifs_bm25"].sum()
+            total_communs = rrf_df["rrf_communs"].sum()
+            print(f"     Taux pertinence sémantique : {sem_r:.1%}")
+            print(f"     Taux pertinence BM25       : {bm25_r:.1%}")
+            print(f"     Taux pertinence fusion RRF : {fus_r:.1%}")
+            print(f"     Chunks exclusifs sémantique: {int(total_excl_sem)}")
+            print(f"     Chunks exclusifs BM25      : {int(total_excl_bm25)}")
+            print(f"     Chunks communs             : {int(total_communs)}")
+            # Verdict sur la complémentarité
+            if fus_r > sem_r and fus_r > bm25_r:
+                print(f"     → La fusion RRF améliore le taux de pertinence")
+            elif fus_r >= max(sem_r, bm25_r):
+                print(f"     → La fusion RRF maintient le meilleur taux")
+            else:
+                best = "sémantique" if sem_r > bm25_r else "BM25"
+                print(f"     → Le {best} seul fait mieux que la fusion")
 
     # Ventilation par niveau
     if "niveau" in df.columns and "retrieval_ctx_precision" in df.columns:

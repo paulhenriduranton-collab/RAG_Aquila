@@ -831,14 +831,16 @@ flowchart TD
         M5["<b>Answer Correctness</b><br/><i>Réponse correcte vs<br/>réponse attendue ?</i>"]
     end
 
-    subgraph COMP["<b>Évaluation par Composant (6 briques)</b>"]
+    subgraph COMP["<b>Évaluation par Composant (8 briques)</b>"]
         direction LR
         C1["<b>1. Router</b><br/><i>Sources & difficulté<br/>corrects ?</i>"]
         C2["<b>2. Retrieval</b><br/><i>Precision & Recall<br/>des chunks finaux</i>"]
-        C3["<b>3. Re-ranking</b><br/><i>Delta Precision/Recall<br/>avant vs après</i>"]
+        C3["<b>3. Re-ranking</b><br/><i>Delta RAGAS + NDCG + MRR<br/>avant vs après</i>"]
         C4["<b>4. Grading</b><br/><i>Accord avec juge externe<br/>TP/TN/FP/FN</i>"]
-        C5["<b>5. Rewriting</b><br/><i>Gain Precision/Recall<br/>après reformulation</i>"]
+        C5["<b>5. Rewriting</b><br/><i>Gain RAGAS + taux réussite<br/>+ chunks utiles</i>"]
         C6["<b>6. Generation</b><br/><i>Faithfulness<br/>(pas d'hallucination)</i>"]
+        C7["<b>7. Déduplication</b><br/><i>Chunks retirés /<br/>pertinents perdus</i>"]
+        C8["<b>8. Fusion RRF</b><br/><i>Sém. vs BM25 vs fusion<br/>complémentarité</i>"]
     end
 
     subgraph OUTPUT["<b>Sorties</b>"]

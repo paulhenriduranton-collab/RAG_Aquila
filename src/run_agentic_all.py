@@ -127,6 +127,10 @@ def run_question(entry: dict) -> tuple[dict, dict]:
             "chunks_loop_1": [_doc_to_dict(d) for d in final_state["docs_before_rewrite"]] if rewrite_triggered else [],
             "chunks_loop_2": [_doc_to_dict(d) for d in docs] if rewrite_triggered else [],
         },
+        # Données intermédiaires pour l'évaluation de la déduplication et de la fusion RRF
+        "pre_dedup_docs": [_doc_to_dict(d) for d in final_state["pre_dedup_docs"]],
+        "semantic_docs": [_doc_to_dict(d) for d in final_state["semantic_docs"]],
+        "bm25_docs": [_doc_to_dict(d) for d in final_state["bm25_docs"]],
     }
 
     return light, debug

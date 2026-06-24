@@ -453,14 +453,83 @@ flowchart TD
   </div>
 
   <!-- ============================== -->
-  <!-- SECTION 3: LES 6 BRIQUES       -->
+  <!-- SECTION 3a: BRIQUE ① ROUTER   -->
   <!-- ============================== -->
   <div class="section">
     <div class="section-header">
-      <div class="section-number s3">3</div>
+      <div class="section-number s1">①</div>
       <div>
-        <div class="section-title">Les 6 Briques d'Évaluation</div>
-        <div class="section-subtitle">evaluate_components.py — Chaque brique isolée et scorée indépendamment</div>
+        <div class="section-title">Brique ① — Router</div>
+        <div class="section-subtitle">eval_router() — Comparaison exacte, aucun appel LLM — 50 questions</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart LR
+    subgraph INPUT["<b>Données lues</b>"]
+        direction TB
+        I1["📦 entry['router']<br/><i>Prédiction capturée par<br/>run_agentic_all.py</i><br/><br/><code>sources: ['ENS.pdf']</code><br/><code>difficulty: 2</code>"]
+        I2["📋 meta (questions.json)<br/><i>Ground truth</i><br/><br/><code>source: 'ENS'</code><br/><code>niveau: 2</code>"]
+    end
+
+    subgraph GROUND["<b>Résolution de la ground truth</b><br/><i>eval_common.py</i>"]
+        direction TB
+        G1["init_source_map()<br/><i>Scan documents/ au démarrage</i><br/><code>ENS → ['ENS.pdf']</code><br/><code>Sorbonne → ['SORBONNE.pdf']</code><br/><code>ENS+Sorbonne → None (toutes)</code>"]
+        G2["expected_sources(meta)<br/><i>Traduit 'ENS' → ['ENS.pdf']</i>"]
+        G3["expected_difficulty(meta)<br/><i>= meta['niveau']</i>"]
+        G1 --> G2
+        G1 --> G3
+    end
+
+    subgraph COMPARE["<b>Comparaison</b>"]
+        direction TB
+        C1["<b>Source correcte ?</b><br/><code>set(pred_src) == set(exp_src)</code><br/><i>Ou les deux valent None (toutes sources)</i>"]
+        C2["<b>Difficulté correcte ?</b><br/><code>pred_diff == exp_diff</code>"]
+    end
+
+    subgraph OUTPUT["<b>Résultats</b>"]
+        direction TB
+        O1["📊 <b>router_source_ok</b> : 0 ou 1"]
+        O2["📊 <b>router_diff_ok</b> : 0 ou 1"]
+        O3["<i>+ pred/exp détaillés<br/>pour le diagnostic</i>"]
+    end
+
+    I1 --> COMPARE
+    I2 --> GROUND
+    GROUND --> COMPARE
+    COMPARE --> OUTPUT
+
+    style INPUT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style GROUND fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style COMPARE fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style OUTPUT fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="blue">Points clés</h4>
+        <ul>
+          <li><b>Aucun appel LLM</b> — comparaison pure d'ensembles et d'entiers</li>
+          <li>Ground truth des sources construite au démarrage par scan de documents/</li>
+          <li>Appliqué sur les <b>50 questions</b> sans exception</li>
+          <li>Résumé : accuracy binaire (source correcte %, difficulté correcte %)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 3b: BRIQUES ②③         -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s3">②③</div>
+      <div>
+        <div class="section-title">Briques ②③ — Retrieval + Re-ranking</div>
+        <div class="section-subtitle">eval_retrieval_and_reranking() — RAGAS ContextPrecision + ContextRecall, gemma2:2b — 50 questions</div>
       </div>
     </div>
 
@@ -468,207 +537,324 @@ flowchart TD
       <pre class="mermaid">
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#059669', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
-    subgraph INPUT["<b>Entrées</b>"]
-        D1["📋 questions.json<br/><i>50 questions + ground truth</i>"]
-        D2["📦 agentic_results_debug.json<br/><i>États intermédiaires capturés</i>"]
+    subgraph INPUT["<b>Données lues</b>"]
+        direction LR
+        I1["📦 entry['pre_rerank_docs']<br/><i>Chunks AVANT le cross-encoder<br/>(après RRF + dédoublonnage)</i>"]
+        I2["📦 entry['post_rerank_docs']<br/><i>Chunks APRÈS re-ranking<br/>(avant tout rewrite)</i>"]
+        I3["📋 meta['reponse_attendue']<br/><i>Ground truth (reference)</i>"]
     end
 
-    subgraph R1["<b>① ROUTER</b> — <i>eval_router()</i>"]
-        R1A["Comparaison exacte<br/><b>Aucun appel LLM</b>"]
-        R1B["pred_src vs exp_src<br/><i>set(pred) == set(exp)</i>"]
-        R1C["pred_diff vs exp_diff<br/><i>niveau dans questions.json</i>"]
-        R1D["📊 router_source_ok<br/>router_diff_ok<br/><i>(0 ou 1)</i>"]
-        R1A --> R1B
-        R1A --> R1C
-        R1B --> R1D
-        R1C --> R1D
+    CHECK{"pre_rerank_docs<br/>==<br/>post_rerank_docs ?<br/><br/><i>Pool ≤ K_FINAL : _rerank()<br/>n'a jamais été appelé</i>"}
+
+    subgraph SHORTCUT["<b>Cas OUI — un seul scoring</b>"]
+        direction LR
+        S1["RAGAS ContextPrecision<br/><i>sur post_rerank_docs</i>"]
+        S2["RAGAS ContextRecall<br/><i>sur post_rerank_docs</i>"]
+        S3["pre = post<br/><i>Delta = 0</i>"]
     end
 
-    subgraph R23["<b>②③ RETRIEVAL + RE-RANKING</b> — <i>eval_retrieval_and_reranking()</i>"]
-        R23A["RAGAS ContextPrecision + ContextRecall<br/><b>Appels LLM : gemma2:2b (juge RAGAS)</b>"]
-        R23B["<b>② Post re-ranking</b><br/><i>Score sur post_rerank_docs</i><br/>ctx_precision + ctx_recall"]
-        R23C["<b>③ Pré re-ranking</b><br/><i>Score sur pre_rerank_docs</i><br/>ctx_precision + ctx_recall"]
-        R23D{"pre == post ?<br/><i>Pool ≤ K_FINAL :<br/>_rerank() jamais appelé</i>"}
-        R23E["📊 Delta = post − pre<br/><i>Positif = le re-ranker améliore</i>"]
-        R23A --> R23D
-        R23D -->|"OUI"| R23B
-        R23D -->|"NON"| R23B
-        R23D -->|"NON"| R23C
-        R23B --> R23E
-        R23C --> R23E
+    subgraph FULL["<b>Cas NON — double scoring (en parallèle via asyncio.gather)</b>"]
+        direction TB
+        subgraph PRE["<b>③ Avant re-ranking</b><br/><i>Score sur pre_rerank_docs</i>"]
+            direction LR
+            P1["RAGAS ContextPrecision"]
+            P2["RAGAS ContextRecall"]
+        end
+        subgraph POST["<b>② Après re-ranking</b><br/><i>Score sur post_rerank_docs</i>"]
+            direction LR
+            Q1["RAGAS ContextPrecision"]
+            Q2["RAGAS ContextRecall"]
+        end
     end
 
-    subgraph R4["<b>④ GRADING</b> — <i>eval_grading()</i>"]
-        R4A["Juge externe custom<br/><b>Appel LLM : gemma4:12b</b><br/><i>Même modèle, mais avec la ground truth</i>"]
-        R4B["Grader réel<br/><i>sufficient: OUI/NON<br/>(capturé par run_agentic_all)</i>"]
-        R4C["Juge externe<br/><i>GRADING_JUDGE prompt<br/>+ réponse attendue visible</i>"]
-        R4D["📊 Matrice de confusion<br/>TP / TN / FP / FN<br/><i>+ Precision, Recall, F1</i>"]
-        R4E{"Difficulté > 1 ?"}
-        R4E -->|"NON"| R4F["N/A<br/><i>Non applicable</i>"]
-        R4E -->|"OUI"| R4A
-        R4A --> R4B
-        R4A --> R4C
-        R4B --> R4D
-        R4C --> R4D
+    subgraph DELTA["<b>Résultats</b>"]
+        direction TB
+        D1["📊 <b>② Retrieval</b><br/><code>retrieval_ctx_precision</code><br/><code>retrieval_ctx_recall</code><br/><i>(scores post re-ranking)</i>"]
+        D2["📊 <b>③ Re-ranking</b><br/><code>rerank_precision_delta = post − pre</code><br/><code>rerank_recall_delta = post − pre</code><br/><i>Positif = le re-ranker améliore</i>"]
     end
 
-    subgraph R5["<b>⑤ QUERY REWRITING</b> — <i>eval_rewriting()</i>"]
-        R5A["RAGAS ContextPrecision + ContextRecall<br/><b>Appels LLM : gemma2:2b</b>"]
-        R5B["Baseline : scores ②<br/><i>Avant rewrite (réutilisés,<br/>pas de 2ème calcul)</i>"]
-        R5C["Après rewrite :<br/><i>Score sur entry['chunks']<br/>(pool final fusionné)</i>"]
-        R5D["📊 Gain = après − baseline<br/><i>Positif = la reformulation aide</i>"]
-        R5E{"Rewrite<br/>déclenché ?"}
-        R5E -->|"NON"| R5F["N/A"]
-        R5E -->|"OUI"| R5A
-        R5A --> R5B
-        R5A --> R5C
-        R5B --> R5D
-        R5C --> R5D
-    end
-
-    subgraph R6["<b>⑥ GENERATION</b> — <i>eval_generation()</i>"]
-        R6A["RAGAS Faithfulness<br/><b>Appels LLM : gemma2:2b</b>"]
-        R6B["reponse_llm<br/><i>Réponse réellement générée</i>"]
-        R6C["entry['chunks']<br/><i>Chunks réellement utilisés<br/>par generate_node</i>"]
-        R6D["📊 gen_faithfulness<br/><i>0→1 : la réponse dit-elle<br/>seulement ce que les chunks<br/>permettent de dire ?</i>"]
-        R6A --> R6B
-        R6A --> R6C
-        R6B --> R6D
-        R6C --> R6D
-    end
-
-    INPUT --> R1
-    INPUT --> R23
-    INPUT --> R4
-    INPUT --> R5
-    INPUT --> R6
+    INPUT --> CHECK
+    CHECK -->|"OUI<br/>pool ≤ K_FINAL"| SHORTCUT --> DELTA
+    CHECK -->|"NON<br/>re-ranking a eu lieu"| FULL --> DELTA
 
     style INPUT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
-    style R1 fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
-    style R23 fill:#052e16,stroke:#16a34a,color:#e2e8f0
-    style R4 fill:#2d1a00,stroke:#d97706,color:#e2e8f0
-    style R5 fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
-    style R6 fill:#1a2332,stroke:#0891b2,color:#e2e8f0
+    style SHORTCUT fill:#1a2332,stroke:#0891b2,color:#e2e8f0
+    style FULL fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style PRE fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style POST fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style DELTA fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
       </pre>
     </div>
 
     <div class="info-grid">
       <div class="info-card">
-        <h4 class="blue">① Router — Comparaison pure</h4>
+        <h4 class="green">Comment RAGAS juge (gemma2:2b)</h4>
         <ul>
-          <li>Aucun appel LLM — comparaison d'ensembles</li>
-          <li><b>Source correcte</b> : set(pred) == set(expected)</li>
-          <li><b>Difficulté correcte</b> : pred == meta["niveau"]</li>
-          <li>Ground truth des sources via eval_common.SOURCE_MAP (scan de documents/)</li>
-          <li>Appliqué sur les 50 questions sans exception</li>
+          <li><b>ContextPrecision</b> : pour chaque chunk, le LLM juge s'il est pertinent vis-à-vis de la reference → proportion pondérée par rang</li>
+          <li><b>ContextRecall</b> : le LLM découpe la reference en affirmations atomiques → vérifie si chacune est attribuable à au moins un chunk</li>
+          <li>Les 4 appels RAGAS (precision/recall × pre/post) sont lancés en <b>parallèle</b> via asyncio.gather</li>
         </ul>
       </div>
       <div class="info-card">
-        <h4 class="green">②③ Retrieval + Re-ranking — RAGAS</h4>
+        <h4 class="cyan">Optimisation</h4>
         <ul>
-          <li>gemma2:2b juge chaque chunk (pertinent ou non vis-à-vis de la reference)</li>
-          <li><b>ContextPrecision</b> : proportion de chunks pertinents, pondérée par rang</li>
-          <li><b>ContextRecall</b> : proportion d'affirmations de la reference couvertes par les chunks</li>
-          <li><b>Optimisation</b> : si pre == post (pool ≤ K_FINAL), un seul scoring (delta = 0)</li>
-          <li>Scoring parallèle via asyncio.gather (même nombre d'appels, temps réduit)</li>
-        </ul>
-      </div>
-      <div class="info-card">
-        <h4 class="orange">④ Grading — Juge externe custom</h4>
-        <ul>
-          <li>Le grader réel voit les chunks, PAS la ground truth</li>
-          <li>Le juge externe voit les chunks ET la réponse attendue</li>
-          <li>Même modèle (gemma4:12b) — seul le prompt diffère</li>
-          <li>Matrice de confusion : TP/TN/FP/FN + Precision/Recall/F1</li>
-          <li>Non applicable pour les questions de difficulté 1 (jamais gradées)</li>
-        </ul>
-      </div>
-      <div class="info-card">
-        <h4 class="pink">⑤⑥ Rewriting + Generation</h4>
-        <ul>
-          <li><b>⑤ Rewriting</b> : mesure le gain concret (pas juste si la reformulation "sonne mieux")</li>
-          <li>Baseline = scores ② réutilisés (pas de 2ème calcul)</li>
-          <li>Pool après rewrite = entry["chunks"], produit par le vrai mécanisme de fusion (3+2)</li>
-          <li><b>⑥ Generation</b> : Faithfulness = décompose la réponse en affirmations → chacune vérifiable dans les chunks ?</li>
-          <li>Mesure d'hallucination pure, sans comparer à la reference</li>
+          <li>Si pre == post (pool ≤ K_FINAL), <code>_rerank()</code> n'a jamais été invoqué dans agent.py</li>
+          <li>Un seul scoring suffit — le delta serait de toute façon nul</li>
+          <li>Économise 2 appels LLM par question dans ce cas</li>
         </ul>
       </div>
     </div>
   </div>
 
   <!-- ============================== -->
-  <!-- SECTION 4: MATRICE DE CONFUSION -->
+  <!-- SECTION 3c: BRIQUE ④ GRADING  -->
   <!-- ============================== -->
   <div class="section">
     <div class="section-header">
-      <div class="section-number s4">4</div>
+      <div class="section-number s4">④</div>
       <div>
-        <div class="section-title">④ Grading — Matrice de Confusion Détaillée</div>
-        <div class="section-subtitle">Le grader réel (sans ground truth) vs le juge externe (avec ground truth)</div>
+        <div class="section-title">Brique ④ — Grading</div>
+        <div class="section-subtitle">eval_grading() — Juge externe custom, gemma4:12b — Uniquement difficulté > 1</div>
       </div>
     </div>
 
     <div class="diagram-card">
       <pre class="mermaid">
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#ea580c', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
-flowchart LR
-    subgraph GRADER["<b>Grader Réel (pipeline)</b><br/><i>grade_documents dans agent.py</i>"]
-        G1["Reçoit : question + chunks"]
-        G2["Ne voit PAS la réponse attendue"]
-        G3["Verdict : OUI ou NON"]
+flowchart TD
+    CHECK{"entry['grading']['performed']<br/><br/><i>Difficulté > 1 ?</i>"}
+
+    CHECK -->|"NON (difficulté = 1)<br/>Le vrai pipeline n'a<br/>jamais gradé cette question"| NA["📊 Résultat : <b>N/A</b><br/><i>grading_performed = 0<br/>Exclu des moyennes</i>"]
+
+    CHECK -->|"OUI (difficulté ≥ 2)"| EVAL
+
+    subgraph EVAL["<b>Évaluation du grading</b>"]
+        direction TB
+
+        subgraph GRADER["<b>Grader réel (pipeline)</b><br/><i>Verdict capturé par run_agentic_all.py</i>"]
+            direction TB
+            GR1["Reçoit : question + chunks récupérés"]
+            GR2["❌ Ne voit PAS la réponse attendue"]
+            GR3["Verdict capturé :<br/><code>sufficient: true/false</code><br/><code>verdict: 'NON — la durée...'</code>"]
+            GR1 --> GR2 --> GR3
+        end
+
+        subgraph JUDGE["<b>Juge externe (évaluation)</b><br/><i>GRADING_JUDGE prompt — gemma4:12b</i>"]
+            direction TB
+            JU1["Reçoit : question + chunks<br/>+ <b>réponse attendue (ground truth)</b>"]
+            JU2["✅ Voit AUSSI la reference"]
+            JU3["Appel LLM : <code>_invoke_with_retry()</code><br/><i>Même gemma4:12b, prompt différent</i>"]
+            JU4["Verdict : OUI / NON"]
+            JU1 --> JU2 --> JU3 --> JU4
+        end
     end
 
-    subgraph JUDGE["<b>Juge Externe (évaluation)</b><br/><i>GRADING_JUDGE dans evaluate_components.py</i>"]
-        J1["Reçoit : question + chunks<br/>+ réponse attendue"]
-        J2["Voit AUSSI la ground truth"]
-        J3["Verdict : OUI ou NON"]
+    subgraph MATRIX["<b>Classification (matrice de confusion)</b>"]
+        direction LR
+        M1["✅ <b>Vrai Positif (TP)</b><br/>Grader: OUI<br/>Juge: OUI<br/><i>D'accord : suffisant</i>"]
+        M2["✅ <b>Vrai Négatif (TN)</b><br/>Grader: NON<br/>Juge: NON<br/><i>D'accord : insuffisant</i>"]
+        M3["⚠️ <b>Faux Négatif (FN)</b><br/>Grader: NON<br/>Juge: OUI<br/><i>Grader trop sévère</i>"]
+        M4["⚠️ <b>Faux Positif (FP)</b><br/>Grader: OUI<br/>Juge: NON<br/><i>Grader trop laxiste</i>"]
     end
 
-    subgraph MATRIX["<b>Classification</b>"]
-        M1["✅ <b>Vrai Positif</b><br/>Grader: OUI, Juge: OUI<br/><i>Les deux sont d'accord : suffisant</i>"]
-        M2["✅ <b>Vrai Négatif</b><br/>Grader: NON, Juge: NON<br/><i>Les deux sont d'accord : insuffisant</i>"]
-        M3["⚠️ <b>Faux Négatif</b><br/>Grader: NON, Juge: OUI<br/><i>Grader trop sévère</i>"]
-        M4["⚠️ <b>Faux Positif</b><br/>Grader: OUI, Juge: NON<br/><i>Grader trop laxiste</i>"]
+    subgraph METRICS["<b>Métriques dérivées</b>"]
+        direction LR
+        ME1["<b>Accuracy</b><br/>(TP+TN) / total"]
+        ME2["<b>Precision (OUI)</b><br/>TP / (TP+FP)"]
+        ME3["<b>Recall (OUI)</b><br/>TP / (TP+FN)"]
+        ME4["<b>F1</b><br/>2×P×R / (P+R)"]
     end
 
-    G3 --> MATRIX
-    J3 --> MATRIX
+    EVAL --> MATRIX --> METRICS
 
+    style CHECK fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style NA fill:#1a2332,stroke:#475569,color:#94a3b8
+    style EVAL fill:#2d1a00,stroke:#d97706,stroke-width:2px,color:#e2e8f0
     style GRADER fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
-    style JUDGE fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style JUDGE fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
     style MATRIX fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style METRICS fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
       </pre>
     </div>
 
     <div class="info-grid">
       <div class="info-card">
-        <h4 class="orange">Le prompt du juge externe</h4>
+        <h4 class="orange">Pourquoi le même modèle comme juge ?</h4>
         <ul>
-          <li>Question + extraits de documents + réponse attendue (ground truth)</li>
-          <li>Demande : "les extraits contiennent-ils suffisamment d'info pour produire la réponse attendue ?"</li>
-          <li>Réponse : OUI / NON — [explication]</li>
-          <li>Utilise _invoke_with_retry() d'ask.py (même gemma4:12b)</li>
+          <li>Le juge externe est le même <b>gemma4:12b</b> que le grader évalué</li>
+          <li>Seule différence : le prompt du juge inclut la <b>réponse attendue</b></li>
+          <li>Avantage : pas de modèle supplémentaire à télécharger/configurer</li>
+          <li>Limite : biais de cohérence possible (un modèle qui se juge lui-même)</li>
+          <li>Alternative plus rigoureuse : utiliser gemma2:2b ou un tiers modèle comme juge</li>
         </ul>
       </div>
       <div class="info-card">
-        <h4 class="cyan">Métriques dérivées</h4>
+        <h4 class="cyan">Interprétation de la matrice</h4>
         <ul>
-          <li><b>Accuracy</b> : (TP + TN) / total — accord global</li>
-          <li><b>Precision (classe OUI)</b> : TP / (TP + FP) — quand le grader dit OUI, a-t-il raison ?</li>
-          <li><b>Recall (classe OUI)</b> : TP / (TP + FN) — le grader détecte-t-il tous les cas suffisants ?</li>
-          <li><b>F1</b> : moyenne harmonique Precision × Recall</li>
-          <li><b>Limite</b> : même modèle → biais de cohérence possible</li>
+          <li><b>Faux Négatifs (FN)</b> fréquents → le grader est trop sévère, déclenche des rewrites inutiles</li>
+          <li><b>Faux Positifs (FP)</b> fréquents → le grader est trop laxiste, rate des informations manquantes</li>
+          <li>Un bon grader maximise TP + TN (accuracy élevée)</li>
+          <li>Precision élevée → quand il dit OUI, on peut lui faire confiance</li>
+          <li>Recall élevé → il détecte bien tous les cas réellement suffisants</li>
         </ul>
       </div>
     </div>
   </div>
 
   <!-- ============================== -->
-  <!-- SECTION 5: FLUX SÉQUENCE       -->
+  <!-- SECTION 3d: BRIQUE ⑤ REWRITING -->
   <!-- ============================== -->
   <div class="section">
     <div class="section-header">
-      <div class="section-number s5">5</div>
+      <div class="section-number s5">⑤</div>
+      <div>
+        <div class="section-title">Brique ⑤ — Query Rewriting</div>
+        <div class="section-subtitle">eval_rewriting() — RAGAS ContextPrecision + ContextRecall (gain), gemma2:2b — Uniquement si déclenché</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart TD
+    CHECK{"entry['rewrite']['triggered']<br/><br/><i>Le rewrite a-t-il été<br/>déclenché pour cette question ?</i>"}
+
+    CHECK -->|"NON<br/>Grading a dit OUI<br/>ou difficulté = 1"| NA["📊 Résultat : <b>N/A</b><br/><i>rewrite_triggered = 0<br/>Exclu des moyennes</i>"]
+
+    CHECK -->|"OUI<br/>Grading a dit NON<br/>→ reformulation + 2ème retrieval"| EVAL
+
+    subgraph EVAL["<b>Mesure du gain apporté par la reformulation</b>"]
+        direction TB
+
+        subgraph BASELINE["<b>Baseline (AVANT rewrite)</b><br/><i>Scores réutilisés depuis la brique ②</i>"]
+            direction LR
+            B1["retrieval_ctx_precision<br/><i>Déjà calculé plus haut<br/>Pas de 2ème appel LLM</i>"]
+            B2["retrieval_ctx_recall<br/><i>Idem — réutilisation directe</i>"]
+        end
+
+        subgraph AFTER["<b>Après rewrite</b><br/><i>Score RAGAS sur entry['chunks'] (pool final fusionné)</i>"]
+            direction LR
+            A1["RAGAS ContextPrecision<br/><i>gemma2:2b juge</i>"]
+            A2["RAGAS ContextRecall<br/><i>gemma2:2b juge</i>"]
+        end
+
+        subgraph POOL["<b>Le pool final = vrai mécanisme de fusion du pipeline</b>"]
+            direction LR
+            P1["3 slots → meilleurs chunks<br/>du 1er retrieval"]
+            P2["2 slots → top 2 des nouveaux<br/>chunks, re-rankés sur la<br/>requête reformulée"]
+            P3["= entry['chunks']<br/><i>Ce que generate_node<br/>a réellement reçu</i>"]
+            P1 --> P3
+            P2 --> P3
+        end
+    end
+
+    subgraph RESULT["<b>Résultats</b>"]
+        direction LR
+        R1["📊 <b>rewrite_precision_gain</b><br/><code>= après − baseline</code>"]
+        R2["📊 <b>rewrite_recall_gain</b><br/><code>= après − baseline</code>"]
+        R3["<i>Positif = la reformulation<br/>a concrètement amélioré<br/>le retrieval</i>"]
+    end
+
+    EVAL --> RESULT
+
+    style CHECK fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style NA fill:#1a2332,stroke:#475569,color:#94a3b8
+    style EVAL fill:#3b0a1a,stroke:#db2777,stroke-width:2px,color:#e2e8f0
+    style BASELINE fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
+    style AFTER fill:#052e16,stroke:#16a34a,color:#e2e8f0
+    style POOL fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style RESULT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="pink">Ce que cette brique mesure vraiment</h4>
+        <ul>
+          <li>Pas juste "est-ce que la reformulation sonne mieux" — mais <b>est-ce que le retrieval a concrètement rapporté plus d'info pertinente</b></li>
+          <li>La baseline n'est pas recalculée (0 appel LLM supplémentaire) — elle vient directement de la brique ②</li>
+          <li>Le pool "après" est exactement celui produit par le vrai pipeline (3 anciens + 2 nouveaux), pas un pool reconstruit artificiellement</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- SECTION 3e: BRIQUE ⑥ GENERATION -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s6">⑥</div>
+      <div>
+        <div class="section-title">Brique ⑥ — Generation</div>
+        <div class="section-subtitle">eval_generation() — RAGAS Faithfulness, gemma2:2b — 50 questions</div>
+      </div>
+    </div>
+
+    <div class="diagram-card">
+      <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+flowchart LR
+    subgraph INPUT["<b>Données lues</b>"]
+        direction TB
+        I1["💬 entry['reponse_llm']<br/><i>Réponse réellement générée<br/>par le pipeline</i>"]
+        I2["📦 entry['chunks']<br/><i>Chunks réellement utilisés<br/>par generate_node<br/>(post-rewrite si applicable)</i>"]
+        I3["❓ meta['question']<br/><i>Question posée</i>"]
+    end
+
+    subgraph RAGAS["<b>RAGAS Faithfulness</b><br/><i>gemma2:2b en juge</i>"]
+        direction TB
+        R1["<b>Étape 1 :</b> Décompose la réponse<br/>en affirmations atomiques<br/><i>'Le DMA sélectionne 50 étudiants'<br/>'Le cursus dure 3 ans'</i>"]
+        R2["<b>Étape 2 :</b> Pour chaque affirmation,<br/>vérifie si elle est dérivable<br/>du contexte fourni (les chunks)"]
+        R3["<b>Étape 3 :</b> Score = proportion<br/>d'affirmations vérifiables<br/><i>1.0 = aucune hallucination<br/>0.5 = moitié inventée</i>"]
+        R1 --> R2 --> R3
+    end
+
+    subgraph OUTPUT["<b>Résultat</b>"]
+        direction TB
+        O1["📊 <b>gen_faithfulness</b><br/><i>Score entre 0 et 1</i>"]
+        O2["<i>Mesure d'hallucination pure :<br/>la réponse dit-elle UNIQUEMENT<br/>ce que les chunks permettent<br/>de dire ?</i>"]
+        O3["<i>Ne compare PAS à la reference<br/>(ground truth) — seulement<br/>au contexte fourni</i>"]
+    end
+
+    INPUT --> RAGAS --> OUTPUT
+
+    style INPUT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
+    style RAGAS fill:#1a2332,stroke:#0891b2,stroke-width:2px,color:#e2e8f0
+    style OUTPUT fill:#052e16,stroke:#16a34a,color:#e2e8f0
+      </pre>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h4 class="cyan">Pourquoi Faithfulness et pas AnswerCorrectness ?</h4>
+        <ul>
+          <li><b>Faithfulness</b> mesure si le LLM reste fidèle aux chunks — pas s'il a raison ou tort par rapport à la ground truth</li>
+          <li>C'est une mesure d'hallucination pure : "le LLM invente-t-il des choses ?"</li>
+          <li>Si les chunks sont bons mais la réponse invente → problème de génération (cette brique le détecte)</li>
+          <li>Si les chunks sont mauvais mais la réponse les suit fidèlement → problème de retrieval (briques ②③ le détectent)</li>
+          <li>AnswerCorrectness mélange les deux responsabilités — ici on les isole</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4 class="blue">Chunks utilisés = les vrais</h4>
+        <ul>
+          <li>On utilise toujours <code>entry['chunks']</code> — le pool <b>réellement</b> fourni à generate_node</li>
+          <li>Si un rewrite a eu lieu, c'est le pool post-rewrite (3+2 fusionnés)</li>
+          <li>Sinon, c'est le pool direct du 1er retrieval</li>
+          <li>La fidélité est mesurée par rapport à ce qui a <b>vraiment servi</b>, pas un pool reconstruit</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================== -->
+  <!-- SECTION 4: FLUX SÉQUENCE       -->
+  <!-- ============================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number s5">3</div>
       <div>
         <div class="section-title">Flux Complet — Évaluation d'une Question</div>
         <div class="section-subtitle">Parcours séquentiel des 6 briques pour une question de difficulté 2 avec rewrite</div>
@@ -736,11 +922,11 @@ sequenceDiagram
   </div>
 
   <!-- ============================== -->
-  <!-- SECTION 6: RÉSUMÉ              -->
+  <!-- SECTION 5: RÉSUMÉ              -->
   <!-- ============================== -->
   <div class="section">
     <div class="section-header">
-      <div class="section-number s6">6</div>
+      <div class="section-number s6">4</div>
       <div>
         <div class="section-title">Résumé Final — print_summary()</div>
         <div class="section-subtitle">Agrégation des scores par brique et par niveau de difficulté</div>

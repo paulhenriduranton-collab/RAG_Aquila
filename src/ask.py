@@ -273,7 +273,7 @@ def _hyde(question: str) -> str:
     return _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 
 
-def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True) -> list[Document]:
+def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True, _pre_rerank_out: list | None = None) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
     sémantique → BM25 → RRF → re-ranking.
@@ -369,6 +369,13 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     rrf_docs = _dedup(rrf_docs, verbose=verbose)
 
     # ── 4. Re-ranking ─────────────────────────────────────────────────────────
+    # Capture les candidats RRF avant re-ranking (copies indépendantes pour éviter
+    # que _rerank() ne mute leurs métadonnées via rerank_score)
+    if _pre_rerank_out is not None:
+        _pre_rerank_out.extend(
+            Document(page_content=d.page_content, metadata=dict(d.metadata))
+            for d in rrf_docs
+        )
     # Le cross-encoder reclasse les K_RERANK candidats RRF avec une lecture conjointe (question + chunk)
     final_docs = _rerank(question, rrf_docs, verbose=verbose)
 

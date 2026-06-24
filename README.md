@@ -2,7 +2,7 @@
 
 Système RAG (Retrieval-Augmented Generation) permettant à un LLM local de répondre à des questions sur tes propres documents PDF/DOCX/TXT, sans connexion internet et sans envoyer de données à l'extérieur.
 
-Conçu pour des brochures universitaires (ENS DMA, Sorbonne) et testé sur 40 questions de 3 niveaux de difficulté.
+Conçu pour des brochures universitaires (ENS DMA, Sorbonne) et testé sur 50 questions de 3 niveaux de difficulté.
 
 ## Architecture en bref
 
@@ -11,12 +11,12 @@ Conçu pour des brochures universitaires (ENS DMA, Sorbonne) et testé sur 40 qu
 Documents PDF/TXT/DOCX
     → Extraction Markdown page par page (pymupdf4llm + ftfy)
     → Détection et suppression des pages de table des matières
-    → Chevauchement inter-pages (300 chars) pour ne pas couper les listes
-    → Découpage par titres Markdown (MarkdownHeaderTextSplitter)
-    → Fusion des micro-chunks (< 500 chars)
-    → Re-découpage par taille (RecursiveCharacterTextSplitter, 1000 chars)
-    → Overlap systématique entre chunks adjacents (200 chars)
-    → Préfixe contextuel par chunk : source + page + titres + mots-clés LLM (gemma2:2b)
+    → Concaténation des pages par document (marqueurs <!-- PAGE X -->)
+    → Pré-découpe par titres Markdown (#, ##), fusion sections < 800 chars
+    → Split agentique LLM (gemma4:12b insère ===SPLIT=== entre sous-sections)
+    → Fallback récursif (RecursiveCharacterTextSplitter, 1500 chars, sans overlap)
+    → Filtre micro-chunks (< 30 chars)
+    → Préfixe contextuel déterministe : source + page + titres + mots-clés par fréquence (zéro LLM)
     → Vectorisation (bge-m3 via Ollama) → ChromaDB
 
 ─── QUESTION/RÉPONSE (agentique) ───────────────────────────────────
@@ -34,10 +34,12 @@ Question utilisateur
     → Génération de la réponse (gemma4:12b, temperature=0)
 
 ─── ÉVALUATION (à la demande) ──────────────────────────────────────
-run_agentic_all.py  → passe les 40 questions au pipeline agentique
-evaluate_ragas.py   → score 5 métriques RAGAS via Ollama (Faithfulness,
-                       AnswerRelevancy, ContextPrecision, ContextRecall,
-                       AnswerCorrectness)
+run_agentic_all.py       → passe les 50 questions au pipeline agentique
+                            + capture les états intermédiaires
+evaluate_ragas.py        → score 5 métriques RAGAS (bout-en-bout)
+evaluate_components.py   → score 6 briques indépendamment
+                            (Router, Retrieval, Re-ranking, Grading,
+                             Rewriting, Generation)
 ```
 
 ## Arborescence
@@ -56,15 +58,19 @@ RAG_Aquila/
 ├── src/
 │   ├── ingest.py             ← indexe les documents → ChromaDB
 │   ├── ask.py                ← pipeline RAG hybride (retrieval + génération)
-│   ├── agent.py              ← pipeline agentique LangGraph
+│   ├── agent.py              ← pipeline agentique LangGraph (instrumenté pour l'éval)
 │   ├── api_server.py         ← API OpenAI-compatible pour Open WebUI
-│   ├── run_agentic_all.py    ← passe le dataset complet au pipeline agentique
-│   ├── evaluate_ragas.py     ← évalue les résultats avec 5 métriques RAGAS
+│   ├── run_agentic_all.py    ← passe le dataset au pipeline + capture états intermédiaires
+│   ├── evaluate_ragas.py     ← évaluation RAGAS globale (5 métriques, bout-en-bout)
+│   ├── evaluate_components.py ← évaluation par composant (6 briques)
+│   ├── eval_common.py        ← utilitaires partagés (ground truth sources, chunks → RAGAS)
 │   └── debug_question.py     ← script de debug pour analyser le retrieval d'une question
 ├── data/
-│   ├── questions.json        ← 40 questions avec réponses de référence
-│   ├── agentic_results.json  ← résultats du pipeline agentique (généré)
-│   └── ragas_evaluation.csv  ← scores RAGAS par question (généré)
+│   ├── questions.json            ← 50 questions avec réponses de référence
+│   ├── agentic_results.json      ← résultats du pipeline agentique (généré)
+│   ├── agentic_results_debug.json ← résultats + états intermédiaires (pour éval composant)
+│   ├── ragas_evaluation.csv      ← scores RAGAS par question (généré)
+│   └── component_evaluation.csv  ← scores par brique et par question (généré)
 ├── vector_db/                ← base vectorielle ChromaDB (versionnée pour Colab)
 └── documentation/            ← documentation complète du projet
 ```
@@ -79,10 +85,7 @@ RAG_Aquila/
 # Modèle d'embedding multilingue (indexation + recherche)
 ollama pull bge-m3
 
-# LLM léger pour la contextualisation des chunks à l'ingestion
-ollama pull gemma2:2b
-
-# LLM principal pour HyDE, grading, reformulation et génération finale
+# LLM principal pour split agentique (ingestion), HyDE, grading, reformulation et génération
 ollama pull gemma4:12b
 ```
 
@@ -136,11 +139,14 @@ python src/agent.py        # pipeline agentique (plus lent, plus précis)
 ### 4. Évaluer le pipeline
 
 ```powershell
-# Étape 1 : passe toutes les questions au pipeline agentique
+# Étape 1 : passe toutes les questions au pipeline agentique (capture les états intermédiaires)
 python src/run_agentic_all.py
 
-# Étape 2 : calcule les métriques RAGAS sur les résultats
+# Étape 2a : évaluation globale (5 métriques RAGAS bout-en-bout)
 python src/evaluate_ragas.py
+
+# Étape 2b : évaluation par composant (6 briques isolées)
+python src/evaluate_components.py
 ```
 
 ### 5. Sur Google Colab (GPU recommandé)
@@ -152,7 +158,7 @@ Ouvre le notebook directement depuis GitHub :
 Avant de lancer : **Exécution → Modifier le type d'exécution → GPU (L4 ou A100)**.
 
 Deux modes disponibles sur Colab :
-- **Batch** (étape 4) : passe les 40 questions au pipeline agentique
+- **Batch** (étape 4) : passe les 50 questions au pipeline agentique
 - **Interface Gradio** (étape 4b) : interface web interactive avec surlignage des chunks dans les PDF sources
 
 ## Documentation complète

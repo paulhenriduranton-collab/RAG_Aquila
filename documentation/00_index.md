@@ -51,6 +51,8 @@
 
 ```
 RAG_Aquila/
+├── schema_rag_aquila.html            # Schéma interactif Mermaid de l'architecture complète
+├── schema_evaluate_components.html   # Schéma interactif Mermaid de l'évaluation par composant
 ├── src/
 │   ├── ingest.py             # Indexation des documents (à lancer une fois)
 │   ├── ask.py                # Pipeline RAG complet (retrieval hybride + génération)

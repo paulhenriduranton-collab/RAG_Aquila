@@ -60,7 +60,7 @@ Sans le "R", le LLM répondrait de mémoire (et inventerait). Avec le "R", il es
 | Terminal RAG classique | `python src/ask.py` | Debug — affiche tous les logs de retrieval |
 | Terminal agentique | `python src/agent.py` | Debug agentique — plus lent, plus précis |
 | Indexation | `python src/ingest.py` | À relancer si tu changes tes documents |
-| Évaluation | `python src/run_agentic_all.py` puis `python src/evaluate_ragas.py` | Mesure la qualité sur 40 questions |
+| Évaluation | `python src/run_agentic_all.py` puis `python src/evaluate_ragas.py` | Mesure la qualité sur 50 questions |
 
 ---
 

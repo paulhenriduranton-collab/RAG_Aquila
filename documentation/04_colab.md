@@ -2,7 +2,7 @@
 
 ## Pourquoi Colab ?
 
-gemma4:12b (12 milliards de paramètres) est lent sur CPU. Sur un GPU Colab (L4 ou A100), la génération est **5 à 10x plus rapide**, ce qui rend le passage des 40 questions viable en quelques heures au lieu d'une journée.
+gemma4:12b (12 milliards de paramètres) est lent sur CPU. Sur un GPU Colab (L4 ou A100), la génération est **5 à 10x plus rapide**, ce qui rend le passage des 50 questions viable en quelques heures au lieu d'une journée.
 
 ## Lien direct
 
@@ -51,7 +51,7 @@ ingest.VECTOR_DB_DIR = Path("/content/RAG_Aquila/vector_db")
 
 ### Étape 4 — Batch (run_agentic_all.py)
 
-Passe les 40 questions au pipeline agentique. Le notebook :
+Passe les 50 questions au pipeline agentique. Le notebook :
 - Configure git (user, email, token) pour pouvoir pusher automatiquement
 - Override `ask.VECTOR_DB_DIR` pour pointer sur la base clonée
 - Sauvegarde les résultats après chaque question dans `data/agentic_results.json`

@@ -188,7 +188,7 @@ def slide_overview(prs):
             "num": "03",
             "titre": "ÉVALUATION",
             "color": C_ACCENT3,
-            "sub": "À la demande — 40 questions de référence",
+            "sub": "À la demande — 50 questions de référence",
             "steps": [
                 "run_agentic_all.py  → agentic_results.json",
                 "evaluate_ragas.py  → ragas_evaluation.csv",
@@ -585,14 +585,14 @@ def slide_evaluation(prs):
 
     label(sl, "Phase 3 — Évaluation RAGAS", Inches(0.4), Inches(0.1), Inches(10), Inches(0.55),
           font_size=Pt(24), bold=True, color=C_WHITE)
-    label(sl, "40 questions de référence  •  5 métriques  •  Modèles locaux (Ollama)",
+    label(sl, "50 questions de référence  •  5 métriques  •  Modèles locaux (Ollama)",
           Inches(0.4), Inches(0.62), Inches(10), Inches(0.32),
           font_size=Pt(11), color=C_GRAY, italic=True, align=PP_ALIGN.LEFT)
     hline(sl, Inches(0.4), Inches(0.95), Inches(12.5), color=C_ACCENT3, width=Pt(1.5))
 
     # Flux évaluation
     eval_steps = [
-        ("questions.json\n40 questions + réponses\nde référence", C_ACCENT3),
+        ("questions.json\n50 questions + réponses\nde référence", C_ACCENT3),
         ("run_agentic_all.py\nLance le pipeline sur\nchaque question", C_CARD),
         ("agentic_results.json\nRéponse LLM + chunks\n+ logs par question", C_ACCENT3),
         ("evaluate_ragas.py\nConstruit le dataset\nRAGAS et score", C_CARD),

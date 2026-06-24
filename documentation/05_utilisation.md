@@ -177,7 +177,7 @@ Utilise **Ctrl+C** pour quitter les modes interactifs.
 python src/run_agentic_all.py
 ```
 
-Lance les 40 questions séquentiellement. Durée estimée : **2 à 4 heures** (selon GPU/CPU). Les résultats sont sauvegardés dans `data/agentic_results.json` après **chaque question** — tu peux faire Ctrl+C à tout moment sans perdre la progression.
+Lance les 50 questions séquentiellement. Durée estimée : **2 à 4 heures** (selon GPU/CPU). Les résultats sont sauvegardés dans `data/agentic_results.json` après **chaque question** — tu peux faire Ctrl+C à tout moment sans perdre la progression.
 
 ### Étape 2 — Calculer les métriques RAGAS
 
@@ -185,7 +185,7 @@ Lance les 40 questions séquentiellement. Durée estimée : **2 à 4 heures** (s
 python src/evaluate_ragas.py
 ```
 
-Durée estimée : **30 à 60 minutes** (5 appels LLM par question × 40 questions). Les scores sont sauvegardés dans `data/ragas_evaluation.csv`.
+Durée estimée : **30 à 60 minutes** (5 appels LLM par question × 50 questions). Les scores sont sauvegardés dans `data/ragas_evaluation.csv`.
 
 ### Interpréter les résultats
 

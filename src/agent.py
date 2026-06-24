@@ -226,7 +226,7 @@ def rewrite_query(state: AgentState) -> dict:
 
 def upgrade_difficulty(state: AgentState) -> dict:
     """Remonte la difficulté à 3 pour débloquer la reformulation.
-    Appelé quand un retrieval de niveau 1 (troncature détectée) ou 2 (grade NON) s'avère insuffisant."""
+    Appelé quand le grading (difficulté 2) juge les chunks insuffisants."""
     return {"difficulty": 3}
 
 

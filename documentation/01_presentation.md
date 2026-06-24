@@ -60,7 +60,7 @@ Sans le "R", le LLM répondrait de mémoire (et inventerait). Avec le "R", il es
 | Terminal RAG classique | `python src/ask.py` | Debug — affiche tous les logs de retrieval |
 | Terminal agentique | `python src/agent.py` | Debug agentique — plus lent, plus précis |
 | Indexation | `python src/ingest.py` | À relancer si tu changes tes documents |
-| Évaluation | `python src/run_agentic_all.py` puis `python src/evaluate_ragas.py` | Mesure la qualité sur 40 questions |
+| Évaluation | `python src/run_agentic_all.py` puis `python src/evaluate_ragas.py` | Mesure la qualité sur 50 questions |
 
 ---
 
@@ -117,9 +117,7 @@ retrieve
     → pipeline RAG hybride sur la/les source(s) ciblée(s)
     → si difficulté 3 : un retrieval par sous-requête, puis fusion + re-rank global
     │
-    ├── difficulté 1 → vérifie la troncature des chunks
-    │     → pas de troncature → generate directement (pas d'appel LLM de grading)
-    │     → troncature détectée → upgrade_difficulty → rewrite_query → retrieve
+    ├── difficulté 1 → generate directement (pas d'appel LLM de grading)
     │
     └── difficulté 2/3 → grade_documents
           → le LLM évalue si les chunks sont suffisants pour répondre

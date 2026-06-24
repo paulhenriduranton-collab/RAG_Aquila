@@ -437,7 +437,7 @@ flowchart TD
     end
 
     subgraph ENRICH["<b>5. ENRICHISSEMENT</b>"]
-        E1["Attribution chunk_index<br/><i>Par page, pour expansion agent</i>"]
+        E1["Attribution chunk_index<br/><i>Par page, pour tri à l'export</i>"]
         E2["<b>Préfixe contextuel</b><br/><code>[source | p.X | section_path | keywords]</code><br/><i>Extraction de section par regex<br/>Mots-clés par fréquence (sans LLM)</i>"]
     end
 
@@ -818,7 +818,7 @@ flowchart LR
 %%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
     subgraph DATA["<b>Données d'entrée</b>"]
-        D1["📋 questions.json<br/><i>40 questions + réponses attendues<br/>3 niveaux de difficulté</i>"]
+        D1["📋 questions.json<br/><i>50 questions + réponses attendues<br/>3 niveaux de difficulté</i>"]
         D2["📊 agentic_results.json<br/><i>Réponses LLM + chunks utilisés<br/>+ durée + logs</i>"]
     end
 
@@ -1037,7 +1037,7 @@ flowchart LR
 
     subgraph DATA["<b>data/</b>"]
         direction TB
-        QJ["questions.json<br/><i>40 questions</i>"]
+        QJ["questions.json<br/><i>50 questions</i>"]
         AR["agentic_results.json<br/><i>Résultats batch</i>"]
         RE["ragas_evaluation.csv<br/><i>Scores RAGAS</i>"]
         CE["component_evaluation.csv"]

@@ -390,7 +390,7 @@ def _split_documents(documents: list[Document]) -> list[Document]:
     3. Le LLM affine chaque bloc en sous-sections cohérentes (===SPLIT===)
     4. Fallback déterministe pour les chunks > MAX_CHUNK_SIZE
     5. Filtre les chunks trop courts
-    6. Assigne chunk_index par page (requis par agent.py)
+    6. Assigne chunk_index par page (utilisé par export_chunks.py pour le tri)
     7. Contextualise avec section_path + mots-clés déterministes
     """
     split_llm = OllamaLLM(model=SPLIT_MODEL, num_ctx=4096, temperature=0, num_predict=2048)
@@ -451,7 +451,7 @@ def _split_documents(documents: list[Document]) -> list[Document]:
 
             print(f"    [{s_idx+1}/{len(sections)}] → {len(final_segments)} chunk(s)", flush=True)
 
-        # Étape 6 : assigne chunk_index par page (agent.py utilise chunk_index=0 pour l'expansion)
+        # Étape 6 : assigne chunk_index par page (utilisé par export_chunks.py pour le tri)
         chunks_by_page: dict[int, int] = {}
         for chunk in source_chunks:
             page = chunk.metadata["page"]

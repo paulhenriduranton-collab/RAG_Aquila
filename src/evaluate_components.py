@@ -9,7 +9,7 @@
 #   6. Generation (réponse finale)     — RAGAS Faithfulness
 #
 # Ne ré-exécute jamais le pipeline (retrieval/génération) : tout est lu depuis
-# data/agentic_results.json, généré une seule fois par run_agentic_all.py (qui fait
+# data/agentic_results_debug.json, généré une seule fois par run_agentic_all.py (qui fait
 # tourner le vrai graph agent.py et sauvegarde tous les états intermédiaires : router,
 # chunks avant/après re-ranking, verdict de grading, requête reformulée). Seuls les
 # calculs propres au scoring (RAGAS + juge externe du grading) font des appels LLM ici
@@ -46,7 +46,7 @@ from openai import AsyncOpenAI
 # CONFIGURATION — modifier ici selon l'environnement
 # =============================================================================
 QUESTIONS_PATH       = Path(__file__).resolve().parent.parent / "data" / "questions.json"
-AGENTIC_RESULTS_PATH = Path(__file__).resolve().parent.parent / "data" / "agentic_results.json"
+AGENTIC_RESULTS_PATH = Path(__file__).resolve().parent.parent / "data" / "agentic_results_debug.json"
 OUTPUT_CSV           = Path(__file__).resolve().parent.parent / "data" / "component_evaluation.csv"
 
 EVAL_LLM    = "gemma2:2b"   # modèle Ollama pour les jugements RAGAS (plus rapide que gemma4:12b)
@@ -556,7 +556,8 @@ def main():
     if not AGENTIC_RESULTS_PATH.exists():
         sys.exit(
             f"[ERREUR] Fichier introuvable : {AGENTIC_RESULTS_PATH}\n"
-            "Lancez d'abord `python run_agentic_all.py` pour générer les résultats du pipeline."
+            "Lancez d'abord `python run_agentic_all.py` pour générer les résultats du pipeline "
+            "(génère à la fois agentic_results.json et agentic_results_debug.json)."
         )
     results = json.loads(AGENTIC_RESULTS_PATH.read_text(encoding="utf-8"))
     results_by_id = {r["id"]: r for r in results}

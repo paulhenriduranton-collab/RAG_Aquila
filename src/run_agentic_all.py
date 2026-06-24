@@ -14,6 +14,10 @@ from agent import run_agent
 
 DATASET_PATH = Path(__file__).resolve().parent.parent / "data" / "questions.json"
 OUTPUT_PATH = DATASET_PATH.parent / "agentic_results.json"
+# Fichier séparé, dédié à evaluate_components.py — contient les états intermédiaires complets
+# (router, grading, rewrite, chunks avant/après re-ranking) pour ne jamais avoir à relancer
+# le pipeline. Tenu à part car bien plus volumineux (contenu texte des chunks dupliqué 2-3 fois).
+DEBUG_OUTPUT_PATH = DATASET_PATH.parent / "agentic_results_debug.json"
 
 
 def _doc_to_dict(doc) -> dict:
@@ -33,6 +37,7 @@ class _Tee(io.TextIOBase):
     def write(self, s):
         for stream in self._streams:
             stream.write(s)
+            stream.flush()
         return len(s)
 
     def flush(self):
@@ -40,11 +45,29 @@ class _Tee(io.TextIOBase):
             stream.flush()
 
 
-def run_question(entry: dict) -> dict:
-    """Lance le RAG agentique sur une question et regroupe tout ce qu'on veut garder :
-    question, réponse attendue/générée, chunks récupérés (à chaque étape) et logs de l'agent.
-    Capture aussi tous les états intermédiaires (router, grading, rewrite) nécessaires à
-    evaluate_components.py, pour ne plus jamais avoir à refaire tourner le pipeline."""
+def _print_summary(final_state: dict) -> None:
+    """Affiche le récapitulatif [Agent] (difficulté, source(s), tentatives, suffisance) — repris
+    de ask_question_agentic(), perdu depuis que run_question() appelle run_agent() directement."""
+    diff_labels = {1: "factuel", 2: "synthèse", 3: "complexe"}
+    init_d = final_state["initial_difficulty"]
+    final_d = final_state["difficulty"]
+    upgrade_str = " → remontée à 3 (pipeline complet)" if final_d > init_d else ""
+    print(f"[Agent] Difficulté : {init_d} — {diff_labels.get(init_d, '?')}{upgrade_str}")
+    if final_state["sub_queries"]:
+        for i, sq in enumerate(final_state["sub_queries"], 1):
+            print(f"[Agent] Sous-requête {i} : {sq}")
+    print(f"[Agent] Source(s) ciblée(s) : {', '.join(final_state['sources']) if final_state['sources'] else 'toutes (pas de filtre)'}")
+    print(f"[Agent] Tentative(s) de retrieval : {final_state['attempts']}")
+    if final_d > 1 or final_state["attempts"] > 1:
+        print(f"[Agent] Chunks jugés suffisants : {'oui' if final_state['sufficient'] else 'non'}")
+
+
+def run_question(entry: dict) -> tuple[dict, dict]:
+    """Lance le RAG agentique sur une question et retourne deux dicts :
+    - le résultat léger (question, réponse, chunks finaux, logs) destiné à agentic_results.json
+    - le résultat complet (+ router, grading, rewrite, chunks avant/après re-ranking) destiné à
+      agentic_results_debug.json, utilisé par evaluate_components.py pour ne jamais avoir à
+      refaire tourner le pipeline."""
     question = entry["question"]
     print(f"\n{'='*60}")
     print(f"[{entry['id']}] {question}")
@@ -54,6 +77,7 @@ def run_question(entry: dict) -> dict:
     start = time.time()
     with contextlib.redirect_stdout(_Tee(sys.stdout, buffer)):
         final_state = run_agent(question, verbose=True)
+        _print_summary(final_state)
     duration = time.time() - start
 
     docs = final_state["docs"]
@@ -66,7 +90,7 @@ def run_question(entry: dict) -> dict:
         score_str = f"{score:.4f}" if score is not None else "n/a"
         print(f"  #{i+1}  score={score_str}  {doc.metadata.get('source','?')}  p.{doc.metadata.get('page','?')}")
 
-    return {
+    light = {
         "id": entry["id"],
         "question": question,
         "reponse_attendue": entry["reponse_attendue"],
@@ -74,6 +98,10 @@ def run_question(entry: dict) -> dict:
         "duree_secondes": round(duration, 1),
         "logs": buffer.getvalue().strip(),
         "chunks": [_doc_to_dict(d) for d in docs],
+    }
+
+    debug = {
+        **light,
         # --- états intermédiaires, pour evaluate_components.py ---
         "router": {
             "sources": final_state["sources"],
@@ -96,11 +124,14 @@ def run_question(entry: dict) -> dict:
         },
     }
 
+    return light, debug
+
 
 def main():
     dataset = json.loads(DATASET_PATH.read_text(encoding="utf-8"))
 
-    # Reprend là où on s'était arrêté (utile si le run de nuit est interrompu)
+    # Reprend là où on s'était arrêté (utile si le run de nuit est interrompu) — la reprise se
+    # base sur le fichier léger, qui existe toujours dès qu'une question a été traitée.
     if OUTPUT_PATH.exists():
         results = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
         already_done = {r["id"] for r in results}
@@ -108,24 +139,29 @@ def main():
         results = []
         already_done = set()
 
+    debug_results = json.loads(DEBUG_OUTPUT_PATH.read_text(encoding="utf-8")) if DEBUG_OUTPUT_PATH.exists() else []
+
     to_run = [e for e in dataset if e["id"] not in already_done]
 
     print("=== RAG agentique — passage complet sur le dataset ===")
     print(f"Dataset      : {DATASET_PATH.name} ({len(dataset)} questions au total)")
     print(f"Déjà traités : {len(already_done)} — À traiter : {len(to_run)}")
     print(f"Résultats    : {OUTPUT_PATH}")
+    print(f"Debug (eval) : {DEBUG_OUTPUT_PATH}")
 
     try:
         for entry in to_run:
-            result = run_question(entry)
-            results.append(result)
+            light, debug = run_question(entry)
+            results.append(light)
+            debug_results.append(debug)
             # Sauvegarde après chaque question : un crash ou un Ctrl+C en pleine nuit ne perd rien
             OUTPUT_PATH.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+            DEBUG_OUTPUT_PATH.write_text(json.dumps(debug_results, ensure_ascii=False, indent=2), encoding="utf-8")
             print(f"  → sauvegardé ({len(results)}/{len(dataset)})")
     except KeyboardInterrupt:
         print("\n\nInterrompu — résultats partiels sauvegardés.")
 
-    print(f"\nTerminé. {len(results)} question(s) traitée(s). Résultats dans {OUTPUT_PATH}")
+    print(f"\nTerminé. {len(results)} question(s) traitée(s). Résultats dans {OUTPUT_PATH} et {DEBUG_OUTPUT_PATH}")
 
 
 if __name__ == "__main__":

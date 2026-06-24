@@ -121,6 +121,11 @@ def run_question(entry: dict) -> tuple[dict, dict]:
         "rewrite": {
             "triggered": rewrite_triggered,
             "new_query": final_state["current_query"] if rewrite_triggered else "",
+            # Chunks récupérés par le 2ème retrieval (requête réécrite), avant fusion
+            "retrieved_docs": [_doc_to_dict(d) for d in final_state["post_rewrite_docs"]] if rewrite_triggered else [],
+            # Comparaison directe : chunks finaux boucle 1 vs chunks finaux boucle 2
+            "chunks_loop_1": [_doc_to_dict(d) for d in final_state["docs_before_rewrite"]] if rewrite_triggered else [],
+            "chunks_loop_2": [_doc_to_dict(d) for d in docs] if rewrite_triggered else [],
         },
     }
 

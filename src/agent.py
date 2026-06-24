@@ -73,7 +73,10 @@ Question originale : {question}
 Requête de recherche utilisée jusqu'ici : {query}
 Ce qui manque selon l'analyse des extraits : {verdict}
 
-Propose une requête de recherche ciblée sur ce qui manque (synonymes, mots-clés différents, reformulation).
+Génère une nouvelle requête de recherche en respectant ces règles :
+1. CONSERVE OBLIGATOIREMENT les identifiants de contexte de la question originale : nom d'établissement (ENS, Sorbonne…), nom de programme/parcours, année (L3, M1, M2…), nom de cours ou d'enseignant s'il y en a.
+2. AJOUTE des mots-clés ciblant précisément ce qui manque (synonymes, termes techniques alternatifs, noms de sections du document).
+3. Produis une liste de mots-clés séparés par des espaces, PAS une question ni une phrase complète.
 
 Réponds uniquement par la nouvelle requête, sans explication ni guillemets."""
 
@@ -92,6 +95,7 @@ class AgentState(TypedDict):
     answer: str                 # réponse finale produite par generate_node
     pre_rerank_docs: list[Document]      # chunks juste avant le re-ranking du 1er retrieval — debug/éval (③)
     docs_before_rewrite: list[Document]  # pool de chunks au moment du grading initial, avant rewrite — debug/éval (⑤)
+    post_rewrite_docs: list[Document]    # chunks récupérés spécifiquement par le 2ème retrieval (post-rewrite) — debug
 
 
 def _available_sources() -> list[str]:
@@ -188,11 +192,12 @@ def retrieve_node(state: AgentState) -> dict:
     # On garde une copie du pool précédent (state["docs"]) avant de l'écraser : c'est lui qui a servi
     # au grading initial et qui sert de baseline pour mesurer l'apport du rewrite (éval ⑤).
     old_top = state["docs"][:K_FINAL - 2]  # déjà triés par re-rank sur la question originale
-    new_top = _rerank(state["current_query"], new_docs_deduped, n=2) if new_docs_deduped else []
+    # Re-rank sur la question ORIGINALE (pas la requête réécrite) pour juger la pertinence réelle
+    new_top = _rerank(state["question"], new_docs_deduped, n=2) if new_docs_deduped else []
     seen = {d.page_content for d in old_top}
     final = old_top + [d for d in new_top if d.page_content not in seen]
 
-    return {"docs": final, "attempts": state["attempts"] + 1, "docs_before_rewrite": state["docs"]}
+    return {"docs": final, "attempts": state["attempts"] + 1, "docs_before_rewrite": state["docs"], "post_rewrite_docs": new_docs}
 
 
 
@@ -321,6 +326,7 @@ def run_agent(question: str, verbose: bool = True) -> AgentState:
         "answer": "",
         "pre_rerank_docs": [],
         "docs_before_rewrite": [],
+        "post_rewrite_docs": [],
     })
 
 

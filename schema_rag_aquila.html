@@ -319,7 +319,7 @@ graph TB
             R3["🔍 Recherche Sémantique MMR<br/><i>25 candidats diversifiés</i>"]
             R4["📝 Recherche Lexicale BM25<br/><i>25 candidats par mots-clés</i>"]
             R5["⚡ Fusion RRF<br/><i>Combinaison des rangs → 15 chunks</i>"]
-            R6["🧹 Dédoublonnage Jaccard<br/><i>Seuil 80% similarité</i>"]
+            R6["🧹 Dédoublonnage Jaccard<br/><i>Seuil 90% similarité</i>"]
             R7["🏆 Re-ranking CrossEncoder<br/><i>BAAI/bge-reranker-v2-m3<br/>Seuil ≥ 0.5 — en dessous = hors-sujet éliminé</i>"]
             R8["📦 Top 5 chunks finaux"]
             R2 --> R3
@@ -343,7 +343,7 @@ graph TB
     subgraph PHASE3["<b>ÉVALUATION (hors-ligne, après batch)</b><br/><i>evaluate_ragas.py + evaluate_components.py</i>"]
         direction TB
         E1["📏 RAGAS 5 métriques<br/><i>Faithfulness, Relevancy, Precision, Recall, Correctness</i>"]
-        E2["🔬 Évaluation par composant<br/><i>Router, Retrieval, Rerank, Grading, Rewriting, Generation</i>"]
+        E2["🔬 Évaluation par composant<br/><i>Router, Retrieval, Rerank, Grading,<br/>Rewriting, Generation, Dédup, Fusion RRF</i>"]
     end
 
     subgraph API["<b>INTERFACE</b><br/><i>api_server.py</i>"]
@@ -539,7 +539,7 @@ flowchart TD
 
     subgraph DEDUP["<b>4. DÉDOUBLONNAGE</b>"]
         DD1["Similarité Jaccard<br/>sur tokens normalisés"]
-        DD2{"Jaccard > 0.8 ?"}
+        DD2{"Jaccard > 0.9 ?"}
         DD3["❌ Doublon supprimé<br/><i>Garde le mieux classé</i>"]
         DD4["✅ Chunk conservé"]
         DD1 --> DD2
@@ -693,8 +693,7 @@ stateDiagram-v2
     Retrieve --> route_after_retrieve
 
     route_after_retrieve --> Generate : difficulté == 1\n(factuel, pas de grading)
-    route_after_retrieve --> Generate : tentatives > MAX (1)
-    route_after_retrieve --> Grade : difficulté ≥ 2\net tentatives ≤ MAX
+    route_after_retrieve --> Grade : difficulté ≥ 2\n(y compris après la 2e tentative —\nce grading final enregistre juste\nun verdict, sans relancer la boucle)
 
     Grade --> route_after_grade
 
@@ -738,7 +737,7 @@ stateDiagram-v2
         <ul>
           <li><b>Chemin court (factuel)</b> : identify → retrieve → generate (1 appel LLM retrieval)</li>
           <li><b>Chemin moyen (synthèse OK)</b> : identify → retrieve → grade=OUI → generate</li>
-          <li><b>Chemin long (reformulation)</b> : identify → retrieve → grade=NON → upgrade → rewrite → retrieve → generate</li>
+          <li><b>Chemin long (reformulation)</b> : identify → retrieve → grade=NON → upgrade → rewrite → retrieve → grade (final, n'enregistre que le verdict) → generate</li>
           <li><b>Chemin comparaison</b> : identify → retrieve (N sous-questions) → grade → [rewrite?] → generate</li>
         </ul>
       </div>
@@ -835,11 +834,11 @@ flowchart TD
         direction LR
         C1["<b>1. Router</b><br/><i>Sources & difficulté<br/>corrects ?</i>"]
         C2["<b>2. Retrieval</b><br/><i>Precision & Recall<br/>des chunks finaux</i>"]
-        C3["<b>3. Re-ranking</b><br/><i>Delta RAGAS + NDCG + MRR<br/>avant vs après</i>"]
+        C3["<b>3. Re-ranking</b><br/><i>Delta RAGAS + MRR<br/>avant vs après</i>"]
         C4["<b>4. Grading</b><br/><i>Accord avec juge externe<br/>TP/TN/FP/FN</i>"]
-        C5["<b>5. Rewriting</b><br/><i>Gain RAGAS + taux réussite<br/>+ chunks utiles</i>"]
+        C5["<b>5. Rewriting</b><br/><i>Gain RAGAS + taux réussite<br/>+ ciblage + chunks utiles</i>"]
         C6["<b>6. Generation</b><br/><i>Faithfulness<br/>(pas d'hallucination)</i>"]
-        C7["<b>7. Déduplication</b><br/><i>Chunks retirés /<br/>pertinents perdus</i>"]
+        C7["<b>7. Déduplication</b><br/><i>Chunk écarté vs conservé<br/>(perte réelle)</i>"]
         C8["<b>8. Fusion RRF</b><br/><i>Sém. vs BM25 vs fusion<br/>complémentarité</i>"]
     end
 
@@ -880,8 +879,10 @@ flowchart TD
           <li><b>Retrieval</b> : context precision + recall après pipeline complet</li>
           <li><b>Re-ranking</b> : amélioration de precision/recall AVANT vs APRÈS re-ranking</li>
           <li><b>Grading</b> : matrice de confusion (TP/TN/FP/FN) vs juge externe</li>
-          <li><b>Rewriting</b> : gain de precision/recall après reformulation + taux de flip OUI/NON</li>
+          <li><b>Rewriting</b> : gain de precision/recall après reformulation + taux de réussite + ciblage de la requête reformulée</li>
           <li><b>Generation</b> : faithfulness (réponse ancrée dans le contexte)</li>
+          <li><b>Déduplication</b> : compare chaque chunk écarté au doublon conservé qui l'a remplacé (perte d'info réelle, pas juste pertinence isolée)</li>
+          <li><b>Fusion RRF</b> : taux de pertinence sémantique seul vs BM25 seul vs fusion, + complémentarité (chunks exclusifs/communs)</li>
         </ul>
       </div>
     </div>
@@ -965,9 +966,9 @@ flowchart TD
         </tr>
         <tr>
           <td><code>DEDUP_THRESHOLD</code></td>
-          <td>0.8</td>
+          <td>0.9</td>
           <td>ask.py</td>
-          <td>Jaccard > 0.8 = quasi-doublon → éliminé</td>
+          <td>Jaccard > 0.9 = quasi-doublon → éliminé</td>
         </tr>
         <tr>
           <td><code>RRF_K</code></td>
@@ -1131,7 +1132,7 @@ sequenceDiagram
     Note over RET: Fusion RRF
     RET->>RET: score = 1/(60+rang_sem) + 1/(60+rang_bm25) → 15 chunks
 
-    Note over RET: Dédoublonnage (Jaccard > 0.8)
+    Note over RET: Dédoublonnage (Jaccard > 0.9)
 
     Note over RET: Re-ranking
     RET->>CE: Score (question, chunk) × 15 paires

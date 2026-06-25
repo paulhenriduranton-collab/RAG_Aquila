@@ -362,7 +362,7 @@ graph TB
         <h4 class="green">Pourquoi instrumenter agent.py plutôt que dupliquer ?</h4>
         <ul>
           <li>Une version antérieure rejouait la logique dans un script séparé — risque de divergence</li>
-          <li>agent.py a 5 champs debug dans AgentState : <code>pre_rerank_docs</code>, <code>docs_before_rewrite</code>, <code>pre_dedup_docs</code>, <code>semantic_docs</code>, <code>bm25_docs</code></li>
+          <li>agent.py a 8 champs debug dans AgentState : <code>pre_rerank_docs</code>, <code>docs_before_rewrite</code>, <code>pre_dedup_docs</code>, <code>semantic_docs</code>, <code>bm25_docs</code>, <code>dedup_removed_docs</code>, <code>dedup_kept_docs</code>, <code>grading_before_rewrite</code></li>
           <li>Garantit que les données d'évaluation reflètent exactement le comportement réel</li>
           <li>run_agent() retourne l'état final complet (tous les champs, y compris debug)</li>
         </ul>
@@ -394,12 +394,13 @@ flowchart TD
         N3["📊 grade_documents<br/><i>LLM évalue la suffisance<br/>(seulement si difficulté ≥ 2)</i>"]
         N4["🔄 rewrite_query<br/><i>Reformulation ciblée<br/>(si NON au grading)</i>"]
         N5["🔍 retrieve_node<br/><i>2ème retrieval avec requête reformulée<br/>Fusion : 3 anciens + 2 nouveaux</i>"]
+        N3b["📊 grade_documents (final)<br/><i>Re-grade le pool post-rewrite<br/>n'enregistre qu'un verdict, ne boucle plus</i>"]
         N6["💬 generate_node<br/><i>Génération de la réponse finale</i>"]
 
         N1 --> N2
         N2 -->|"diff ≥ 2"| N3
         N2 -->|"diff = 1"| N6
-        N3 -->|"NON"| N4 --> N5 --> N6
+        N3 -->|"NON"| N4 --> N5 --> N3b --> N6
         N3 -->|"OUI"| N6
     end
 
@@ -415,14 +416,20 @@ flowchart TD
         C8["📦 <b>pre_dedup_docs</b><br/><i>Chunks après RRF, avant dédup</i>"]
         C9["📦 <b>semantic_docs</b><br/><i>Résultats sémantiques bruts</i>"]
         C10["📦 <b>bm25_docs</b><br/><i>Résultats BM25 bruts</i>"]
+        C11["📦 <b>dedup_removed_docs / dedup_kept_docs</b><br/><i>Paires (écarté, conservé), même index</i>"]
+        C12["🏷️ <b>grading.verdict (snapshot)</b><br/><i>= grading_before_rewrite, pris avant<br/>d'être écrasé par le grading final</i>"]
+        C13["🏷️ <b>rewrite.grading_after</b><br/><i>Verdict du grading final (post-rewrite)<br/>= sufficient/grade_verdict à la fin</i>"]
     end
 
     N1 -.->|"capture"| C1
     N2 -.->|"avant _rerank()"| C2
     N2 -.->|"après _rerank()"| C3
     N3 -.->|"capture"| C4
+    N4 -.->|"snapshot avant écrasement"| C12
     N4 -.->|"capture"| C5
     N5 -.->|"pool fusionné"| C6
+    N5 -.->|"paires dédup"| C11
+    N3b -.->|"capture"| C13
     N6 -.->|"capture"| C7
 
     style GRAPH fill:#0c2d48,stroke:#2563eb,stroke-width:2px,color:#e2e8f0
@@ -440,9 +447,11 @@ flowchart TD
           <li><b>router</b> : {sources, difficulty} — prédictions du LLM</li>
           <li><b>pre_rerank_docs</b> : chunks avant le cross-encoder</li>
           <li><b>post_rerank_docs</b> : chunks après re-ranking, avant rewrite</li>
-          <li><b>grading</b> : {performed, sufficient, verdict}</li>
-          <li><b>rewrite</b> : {triggered, new_query, retrieved_docs, chunks_loop_1/2}</li>
+          <li><b>grading</b> : {performed, sufficient, verdict} — si rewrite déclenché, c'est le snapshot du grading qui l'a causé (<code>grading_before_rewrite</code>), pas le grading final</li>
+          <li><b>rewrite</b> : {triggered, new_query, chunks_loop_1/2, <b>grading_after</b>} — <code>grading_after</code> = verdict du grading final sur le pool post-rewrite</li>
           <li><b>chunks</b> : pool final (ce que generate_node a réellement reçu)</li>
+          <li><b>pre_dedup_docs / semantic_docs / bm25_docs</b> : intermédiaires pour l'éval ⑧ (déjà disponibles)</li>
+          <li><b>dedup_removed_docs / dedup_kept_docs</b> : paires (écarté, conservé) pour l'éval ⑦ (nécessite un re-run)</li>
         </ul>
       </div>
       <div class="info-card">
@@ -534,7 +543,7 @@ flowchart LR
       <div class="section-number s3">②③</div>
       <div>
         <div class="section-title">Briques ②③ — Retrieval + Re-ranking</div>
-        <div class="section-subtitle">eval_retrieval_and_reranking() — RAGAS ContextPrecision + ContextRecall + NDCG + MRR (LLM-juge), gemma2:2b — 50 questions</div>
+        <div class="section-subtitle">eval_retrieval_and_reranking() — RAGAS ContextPrecision + ContextRecall + MRR (LLM-juge), gemma2:2b — 50 questions</div>
       </div>
     </div>
 
@@ -572,15 +581,23 @@ flowchart TD
         end
     end
 
+    subgraph MRR["<b>③bis MRR (LLM-juge)</b><br/><i>_judge_relevance() par lots de 5 sur post_rerank_docs<br/>(et pre_rerank_docs si pre ≠ post)</i>"]
+        direction LR
+        MR1["LLM-juge : pertinent (1) / non (0)<br/>pour chaque chunk"]
+        MR2["MRR = 1 / position du<br/>1er chunk pertinent"]
+    end
+
     subgraph DELTA["<b>Résultats</b>"]
         direction TB
         D1["📊 <b>② Retrieval</b><br/><code>retrieval_ctx_precision</code><br/><code>retrieval_ctx_recall</code><br/><i>(scores post re-ranking)</i>"]
-        D2["📊 <b>③ Re-ranking</b><br/><code>rerank_precision_delta = post − pre</code><br/><code>rerank_recall_delta = post − pre</code><br/><i>Positif = le re-ranker améliore</i>"]
+        D2["📊 <b>③ Re-ranking — RAGAS</b><br/><code>rerank_precision_delta = post − pre</code><br/><code>rerank_recall_delta = post − pre</code><br/><i>Positif = le re-ranker améliore</i>"]
+        D3["📊 <b>③ Re-ranking — MRR</b><br/><code>rerank_mrr_delta = post − pre</code><br/><code>rerank_n_pertinents / rerank_n_total</code>"]
     end
 
     INPUT --> CHECK
     CHECK -->|"OUI<br/>pool ≤ K_FINAL"| SHORTCUT --> DELTA
     CHECK -->|"NON<br/>re-ranking a eu lieu"| FULL --> DELTA
+    INPUT --> MRR --> D3
 
     style INPUT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
     style SHORTCUT fill:#1a2332,stroke:#0891b2,color:#e2e8f0
@@ -588,6 +605,7 @@ flowchart TD
     style PRE fill:#2d1a00,stroke:#d97706,color:#e2e8f0
     style POST fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
     style DELTA fill:#3b0a1a,stroke:#db2777,color:#e2e8f0
+    style MRR fill:#1a2332,stroke:#0891b2,stroke-width:2px,color:#e2e8f0
       </pre>
     </div>
 
@@ -598,6 +616,7 @@ flowchart TD
           <li><b>ContextPrecision</b> : pour chaque chunk, le LLM juge s'il est pertinent vis-à-vis de la reference → proportion pondérée par rang</li>
           <li><b>ContextRecall</b> : le LLM découpe la reference en affirmations atomiques → vérifie si chacune est attribuable à au moins un chunk</li>
           <li>Les 4 appels RAGAS (precision/recall × pre/post) sont lancés en <b>parallèle</b> via asyncio.gather</li>
+          <li><b>MRR</b> (③bis) : un LLM-juge labellise chaque chunk pertinent/non pertinent ; mesure la position du <b>premier</b> chunk pertinent, avant et après re-ranking</li>
         </ul>
       </div>
       <div class="info-card">
@@ -714,7 +733,7 @@ flowchart TD
       <div class="section-number s5">⑤</div>
       <div>
         <div class="section-title">Brique ⑤ — Query Rewriting</div>
-        <div class="section-subtitle">eval_rewriting() — RAGAS (gain) + taux de réussite + nouveaux chunks utiles (LLM-juge), gemma2:2b — Uniquement si déclenché</div>
+        <div class="section-subtitle">eval_rewriting() — RAGAS (gain) + taux de réussite + nouveaux chunks utiles + ciblage (LLM-juge), gemma2:2b — Uniquement si déclenché</div>
       </div>
     </div>
 
@@ -751,6 +770,13 @@ flowchart TD
             P1 --> P3
             P2 --> P3
         end
+
+        subgraph TARGET["<b>Ciblage de la reformulation</b><br/><i>REWRITE_TARGETING_JUDGE — gemma2:2b</i>"]
+            direction LR
+            T1["Verdict du grading qui a<br/>déclenché le rewrite<br/>(grading_before_rewrite)"]
+            T2["La nouvelle requête<br/>vise-t-elle bien ce manque ?"]
+            T1 --> T2
+        end
     end
 
     subgraph RESULT["<b>Résultats</b>"]
@@ -758,6 +784,7 @@ flowchart TD
         R1["📊 <b>rewrite_precision_gain</b><br/><code>= après − baseline</code>"]
         R2["📊 <b>rewrite_recall_gain</b><br/><code>= après − baseline</code>"]
         R3["<i>Positif = la reformulation<br/>a concrètement amélioré<br/>le retrieval</i>"]
+        R4["📊 <b>rewrite_success</b><br/><i>grading final OUI après rewrite ?</i><br/><b>rewrite_targeted</b><br/><i>requête bien ciblée ?</i>"]
     end
 
     EVAL --> RESULT
@@ -768,6 +795,7 @@ flowchart TD
     style BASELINE fill:#0c2d48,stroke:#2563eb,color:#e2e8f0
     style AFTER fill:#052e16,stroke:#16a34a,color:#e2e8f0
     style POOL fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style TARGET fill:#1a2332,stroke:#0891b2,color:#e2e8f0
     style RESULT fill:#1a0d3a,stroke:#7c3aed,color:#e2e8f0
       </pre>
     </div>
@@ -779,6 +807,8 @@ flowchart TD
           <li>Pas juste "est-ce que la reformulation sonne mieux" — mais <b>est-ce que le retrieval a concrètement rapporté plus d'info pertinente</b></li>
           <li>La baseline n'est pas recalculée (0 appel LLM supplémentaire) — elle vient directement de la brique ②</li>
           <li>Le pool "après" est exactement celui produit par le vrai pipeline (3 anciens + 2 nouveaux), pas un pool reconstruit artificiellement</li>
+          <li><b>Taux de réussite</b> (rewrite_success) : le grading final (sur le pool post-rewrite) dit-il OUI ?</li>
+          <li><b>Ciblage</b> (rewrite_targeted) : un LLM-juge vérifie si la nouvelle requête vise bien le manque identifié par le grading qui a déclenché la reformulation</li>
         </ul>
       </div>
     </div>
@@ -921,9 +951,10 @@ sequenceDiagram
     end
 
     rect rgb(20, 30, 45)
-    Note over EC: ⑦ eval_dedup — chunks retirés par la dédup
-    EC->>RAGAS: LLM-juge pertinence des chunks retirés
-    RAGAS-->>EC: 1 pertinent perdu / 3 retirés
+    Note over EC: ⑦ eval_dedup — compare chaque chunk écarté au conservé qui l'a remplacé
+    EC->>LLM: DEDUP_LOSS_JUDGE(chunk écarté, chunk conservé) — paire par paire
+    LLM-->>EC: OUI = info perdue / NON = déjà couverte
+    Note over EC: 1 perte réelle / 3 chunks écartés
     end
 
     rect rgb(15, 35, 40)
@@ -958,11 +989,11 @@ flowchart TD
         direction LR
         COL1["router_source_ok<br/>router_diff_ok"]
         COL2["retrieval_ctx_precision<br/>retrieval_ctx_recall"]
-        COL3["rerank_pre/post_precision<br/>rerank_precision_delta<br/>rerank_pre/post_recall<br/>rerank_recall_delta<br/>rerank_pre/post_ndcg<br/>rerank_pre/post_mrr"]
+        COL3["rerank_pre/post_precision<br/>rerank_precision_delta<br/>rerank_pre/post_recall<br/>rerank_recall_delta<br/>rerank_pre/post_mrr<br/>rerank_mrr_delta<br/>rerank_n_pertinents"]
         COL4["grading_performed<br/>grading_sufficient<br/>grading_judge_sufficient<br/>grading_correct<br/>grading_label"]
-        COL5["rewrite_triggered<br/>rewrite_ctx_precision<br/>rewrite_precision_gain<br/>rewrite_ctx_recall<br/>rewrite_recall_gain<br/>rewrite_success<br/>rewrite_n_new_pertinents"]
+        COL5["rewrite_triggered<br/>rewrite_ctx_precision<br/>rewrite_precision_gain<br/>rewrite_ctx_recall<br/>rewrite_recall_gain<br/>rewrite_success<br/>rewrite_n_new_pertinents<br/>rewrite_targeted"]
         COL6["gen_faithfulness"]
-        COL7["dedup_n_retires<br/>dedup_n_retires_pertinents<br/>dedup_perte_ratio"]
+        COL7["dedup_n_retires<br/>dedup_n_pertes<br/>dedup_perte_ratio"]
         COL8["rrf_semantic_ratio<br/>rrf_bm25_ratio<br/>rrf_fusion_ratio<br/>rrf_exclusifs_semantic<br/>rrf_exclusifs_bm25"]
     end
 
@@ -970,9 +1001,9 @@ flowchart TD
         direction TB
         S1["<b>① ROUTER</b><br/>Source correcte : X%<br/>Difficulté correcte : X%"]
         S2["<b>② RETRIEVAL</b><br/>Context Precision : 0.XXX<br/>Context Recall : 0.XXX"]
-        S3["<b>③ RE-RANKING</b><br/>Precision avant/après + Δ<br/>Recall avant/après + Δ<br/>NDCG + MRR avant/après + Δ"]
+        S3["<b>③ RE-RANKING</b><br/>Precision avant/après + Δ<br/>Recall avant/après + Δ<br/>MRR avant/après + Δ"]
         S4["<b>④ GRADING</b><br/>Accuracy vs juge : X%<br/>Matrice TP/TN/FP/FN<br/>Precision/Recall/F1"]
-        S5["<b>⑤ REWRITING</b><br/>Déclenchements : X/50<br/>Δ Precision + Δ Recall<br/>Taux réussite + chunks utiles"]
+        S5["<b>⑤ REWRITING</b><br/>Déclenchements : X/50<br/>Δ Precision + Δ Recall<br/>Taux réussite + ciblage + chunks utiles"]
         S6["<b>⑥ GENERATION</b><br/>Faithfulness : 0.XXX"]
         S7b["<b>⑦ DÉDUPLICATION</b><br/>Retirés, pertinents perdus, ratio"]
         S8["<b>⑧ FUSION RRF</b><br/>Pertinence sém. vs BM25 vs fusion<br/>Exclusifs + communs"]
@@ -994,7 +1025,8 @@ flowchart TD
           <li><b>①②③⑥</b> : calculés sur les 50 questions</li>
           <li><b>④ Grading</b> : seulement sur les questions de difficulté > 1 (grading_performed=1)</li>
           <li><b>⑤ Rewriting</b> : seulement sur les questions où le rewrite a été déclenché (rewrite_triggered=1)</li>
-          <li><b>⑦⑧ Dédup + RRF</b> : seulement si les données intermédiaires sont disponibles (nécessite un re-run de run_agentic_all.py)</li>
+          <li><b>⑦ Dédup</b> : seulement si dedup_removed/kept_docs sont disponibles (nécessite un re-run de run_agentic_all.py)</li>
+          <li><b>⑧ Fusion RRF</b> : seulement si semantic/bm25_docs sont disponibles (déjà capturés par la version actuelle)</li>
           <li>Les moyennes sont calculées sur le sous-ensemble pertinent, pas sur les 50</li>
         </ul>
       </div>
@@ -1054,7 +1086,7 @@ flowchart TD
           <td>③</td>
           <td><b>Re-ranking</b></td>
           <td><code>eval_retrieval_and_reranking()</code></td>
-          <td>Delta RAGAS + NDCG + MRR (LLM-juge pertinence)</td>
+          <td>Delta RAGAS + MRR (LLM-juge pertinence)</td>
           <td>gemma2:2b (juge RAGAS + LLM-juge)</td>
           <td>Toujours (delta=0 si pool ≤ K_FINAL)</td>
         </tr>
@@ -1070,7 +1102,7 @@ flowchart TD
           <td>⑤</td>
           <td><b>Query Rewriting</b></td>
           <td><code>eval_rewriting()</code></td>
-          <td>RAGAS (gain) + taux de réussite + chunks utiles (LLM-juge)</td>
+          <td>RAGAS (gain) + taux de réussite + chunks utiles + ciblage (LLM-juge)</td>
           <td>gemma2:2b (juge RAGAS + LLM-juge)</td>
           <td>Rewrite déclenché seulement</td>
         </tr>
@@ -1086,9 +1118,9 @@ flowchart TD
           <td>⑦</td>
           <td><b>Déduplication</b></td>
           <td><code>eval_dedup()</code></td>
-          <td>LLM-juge sur chunks retirés (pertinents perdus)</td>
+          <td>LLM-juge : compare chaque chunk écarté au conservé qui l'a remplacé (perte réelle)</td>
           <td>gemma2:2b (LLM-juge)</td>
-          <td>Si pre_dedup_docs disponible</td>
+          <td>Si dedup_removed_docs / dedup_kept_docs disponibles</td>
         </tr>
         <tr>
           <td>⑧</td>
@@ -1136,7 +1168,7 @@ flowchart TD
         <h4 class="blue">Coût en appels LLM par question</h4>
         <ul>
           <li><b>run_agentic_all.py</b> (exécution, une fois) : le plus coûteux (pipeline complet)</li>
-          <li><b>evaluate_components.py</b> : 15 à 40 appels gemma2:2b (RAGAS + LLM-juge NDCG/MRR/dédup/RRF) par question</li>
+          <li><b>evaluate_components.py</b> : 15 à 40 appels gemma2:2b (RAGAS + LLM-juge MRR/dédup/RRF/ciblage rewrite) par question</li>
           <li>+ 1 appel gemma4:12b pour le juge de grading (si difficulté > 1)</li>
           <li>Total scoring : ~750 à 2000 appels LLM pour 50 questions</li>
         </ul>
@@ -1144,10 +1176,10 @@ flowchart TD
       <div class="info-card">
         <h4 class="green">⑦⑧ Données intermédiaires requises</h4>
         <ul>
-          <li>Les briques ⑦ (Déduplication) et ⑧ (Fusion RRF) nécessitent des champs ajoutés récemment</li>
-          <li><code>pre_dedup_docs</code>, <code>semantic_docs</code>, <code>bm25_docs</code> — capturés par la version mise à jour de run_agentic_all.py</li>
-          <li>Pour les anciens résultats : ces briques affichent « données non disponibles » sans bloquer les 6 autres</li>
-          <li>Solution : relancer <code>run_agentic_all.py</code> pour regénérer agentic_results_debug.json</li>
+          <li><b>⑧ Fusion RRF</b> : <code>semantic_docs</code>, <code>bm25_docs</code>, <code>pre_dedup_docs</code> — déjà capturés sur le dataset actuel, prêt à scorer</li>
+          <li><b>⑦ Déduplication</b> : <code>dedup_removed_docs</code>, <code>dedup_kept_docs</code> — champs plus récents, pas encore présents dans agentic_results_debug.json</li>
+          <li>Sans ces champs, les briques affichent « données non disponibles » sans bloquer les autres</li>
+          <li>Solution pour ⑦ : relancer <code>run_agentic_all.py</code> pour regénérer agentic_results_debug.json</li>
         </ul>
       </div>
     </div>

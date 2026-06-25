@@ -99,6 +99,9 @@ class AgentState(TypedDict):
     pre_dedup_docs: list[Document]       # chunks après fusion RRF, avant déduplication — debug/éval (⑦ dédup)
     semantic_docs: list[Document]        # résultats sémantiques bruts (avant fusion) — debug/éval (⑧ RRF)
     bm25_docs: list[Document]            # résultats BM25 bruts (avant fusion) — debug/éval (⑧ RRF)
+    dedup_removed_docs: list[Document]   # chunks écartés par la dédup — debug/éval (⑦ dédup)
+    dedup_kept_docs: list[Document]      # chunk conservé qui a remplacé chaque écarté (même index) — debug/éval (⑦ dédup)
+    grading_before_rewrite: dict         # snapshot {sufficient, verdict} du grading qui a déclenché le rewrite — debug/éval (④)
 
 
 def _available_sources() -> list[str]:
@@ -173,25 +176,29 @@ def retrieve_node(state: AgentState) -> dict:
         pre_dedup: list[Document] = []
         semantic: list[Document] = []
         bm25: list[Document] = []
+        dedup_pairs: list[tuple[Document, Document]] = []
         for sq in state["sub_queries"]:
             for doc in retrieve(sq, sources=state["sources"], verbose=False, use_hyde=False,
                                 _pre_rerank_out=pre_rerank, _pre_dedup_out=pre_dedup,
-                                _semantic_out=semantic, _bm25_out=bm25):
+                                _semantic_out=semantic, _bm25_out=bm25, _dedup_pairs_out=dedup_pairs):
                 if doc.page_content not in seen_content:
                     seen_content.add(doc.page_content)
                     all_docs.append(doc)
         # Re-rank global sur la question originale pour trier le pool fusionné
         final = _rerank(state["question"], all_docs) if len(all_docs) > K_FINAL else all_docs
         return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank,
-                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25}
+                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25,
+                "dedup_removed_docs": [r for r, _ in dedup_pairs],
+                "dedup_kept_docs": [k for _, k in dedup_pairs]}
 
     pre_rerank: list[Document] = []
     pre_dedup: list[Document] = []
     semantic: list[Document] = []
     bm25: list[Document] = []
+    dedup_pairs: list[tuple[Document, Document]] = []
     new_docs = retrieve(state["current_query"], sources=state["sources"], verbose=False, use_hyde=use_hyde,
                         _pre_rerank_out=pre_rerank, _pre_dedup_out=pre_dedup,
-                        _semantic_out=semantic, _bm25_out=bm25)
+                        _semantic_out=semantic, _bm25_out=bm25, _dedup_pairs_out=dedup_pairs)
     # Déduplique par contenu : évite d'envoyer deux fois le même chunk au LLM
     existing_contents = {d.page_content for d in state["docs"]}
     new_docs_deduped = [d for d in new_docs if d.page_content not in existing_contents]
@@ -201,7 +208,9 @@ def retrieve_node(state: AgentState) -> dict:
         merged = state["docs"] + new_docs_deduped
         final = _rerank(state["question"], merged) if len(merged) > K_FINAL else merged
         return {"docs": final, "attempts": 1, "pre_rerank_docs": pre_rerank,
-                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25}
+                "pre_dedup_docs": pre_dedup, "semantic_docs": semantic, "bm25_docs": bm25,
+                "dedup_removed_docs": [r for r, _ in dedup_pairs],
+                "dedup_kept_docs": [k for _, k in dedup_pairs]}
 
     # 2ème retrieval (post-rewrite) — 3 slots pour l'ancien pool + 2 slots réservés aux nouveaux chunks.
     # On garde une copie du pool précédent (state["docs"]) avant de l'écraser : c'est lui qui a servi
@@ -237,7 +246,14 @@ def rewrite_query(state: AgentState) -> dict:
         verdict=state["grade_verdict"],   # transmet ce qui manque pour une reformulation ciblée
     )
     new_query = _invoke_with_retry(prompt).strip()
-    return {"current_query": new_query}
+    # Snapshot du grading qui a déclenché la reformulation, avant qu'il soit écrasé par le
+    # grading final (post-rewrite) — sert de référence cohérente avec post_rerank_docs pour
+    # l'évaluation du grading (④), pendant que sufficient/grade_verdict portent désormais le
+    # verdict final post-rewrite, utilisé par l'évaluation du rewrite (⑤ rewrite_success).
+    return {
+        "current_query": new_query,
+        "grading_before_rewrite": {"sufficient": state["sufficient"], "verdict": state["grade_verdict"]},
+    }
 
 
 def upgrade_difficulty(state: AgentState) -> dict:
@@ -265,12 +281,11 @@ def generate_node(state: AgentState) -> dict:
 def _route_after_retrieve(state: AgentState) -> str:
     """
     Difficulté 1 : generate directement (question factuelle, pas besoin de grading).
-    Difficulté 2/3, dernier retrieve (attempts > MAX_ATTEMPTS) : generate directement.
-    Difficulté 2/3, 1er retrieve : grade_documents.
+    Difficulté 2/3 : grade_documents, y compris après le dernier retrieve (post-rewrite) —
+    ce grading final (qui ne peut plus déclencher de nouvelle boucle, cf. _route_after_grading)
+    sert à enregistrer un verdict de suffisance sur le pool définitif, pour l'évaluateur (⑤).
     """
     if state["difficulty"] == 1:
-        return "generate"
-    if state["attempts"] > MAX_ATTEMPTS:
         return "generate"
     return "grade_documents"
 
@@ -346,6 +361,9 @@ def run_agent(question: str, verbose: bool = True) -> AgentState:
         "pre_dedup_docs": [],
         "semantic_docs": [],
         "bm25_docs": [],
+        "dedup_removed_docs": [],
+        "dedup_kept_docs": [],
+        "grading_before_rewrite": {},
     })
 
 

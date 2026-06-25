@@ -114,9 +114,18 @@ def run_question(entry: dict) -> tuple[dict, dict]:
         "grading": {
             # Le grading n'a réellement lieu que pour difficulté > 1 (cf. _route_after_retrieve) ;
             # pour difficulté 1, sufficient/grade_verdict gardent leur valeur initiale (non significative).
+            # Si un rewrite a eu lieu, on rapporte le grading QUI L'A DÉCLENCHÉ (snapshot pris dans
+            # rewrite_query avant d'être écrasé) — il est cohérent avec post_rerank_docs ci-dessus,
+            # contrairement au grading final qui porte lui sur le pool post-rewrite (cf. ci-dessous).
             "performed": final_state["initial_difficulty"] > 1,
-            "sufficient": final_state["sufficient"],
-            "verdict": final_state["grade_verdict"],
+            "sufficient": (
+                final_state["grading_before_rewrite"]["sufficient"] if rewrite_triggered
+                else final_state["sufficient"]
+            ),
+            "verdict": (
+                final_state["grading_before_rewrite"]["verdict"] if rewrite_triggered
+                else final_state["grade_verdict"]
+            ),
         },
         "rewrite": {
             "triggered": rewrite_triggered,
@@ -126,11 +135,19 @@ def run_question(entry: dict) -> tuple[dict, dict]:
             # Comparaison directe : chunks finaux boucle 1 vs chunks finaux boucle 2
             "chunks_loop_1": [_doc_to_dict(d) for d in final_state["docs_before_rewrite"]] if rewrite_triggered else [],
             "chunks_loop_2": [_doc_to_dict(d) for d in docs] if rewrite_triggered else [],
+            # Grading final, réalisé sur le pool post-rewrite (docs) — répond à "le rewrite a-t-il
+            # vraiment résolu le manque ?" (éval ⑤), contrairement à entry["grading"] ci-dessus.
+            "grading_after": {
+                "sufficient": final_state["sufficient"], "verdict": final_state["grade_verdict"],
+            } if rewrite_triggered else {},
         },
         # Données intermédiaires pour l'évaluation de la déduplication et de la fusion RRF
         "pre_dedup_docs": [_doc_to_dict(d) for d in final_state["pre_dedup_docs"]],
         "semantic_docs": [_doc_to_dict(d) for d in final_state["semantic_docs"]],
         "bm25_docs": [_doc_to_dict(d) for d in final_state["bm25_docs"]],
+        # Paires (chunk écarté, chunk conservé qui l'a remplacé), même index — éval ⑦ dédup
+        "dedup_removed_docs": [_doc_to_dict(d) for d in final_state["dedup_removed_docs"]],
+        "dedup_kept_docs": [_doc_to_dict(d) for d in final_state["dedup_kept_docs"]],
     }
 
     return light, debug

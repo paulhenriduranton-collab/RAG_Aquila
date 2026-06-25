@@ -3,11 +3,11 @@
 # 8 briques testées indépendamment :
 #   1. Router (identify_sources)       — comparaison exacte avec ground truth
 #   2. Retrieval (pipeline complet)    — RAGAS Context Precision + Context Recall
-#   3. Re-ranking (cross-encoder)      — RAGAS Context Precision + NDCG + MRR (LLM-juge)
+#   3. Re-ranking (cross-encoder)      — RAGAS Context Precision + MRR (LLM-juge)
 #   4. Grading (jugement suffisance)   — verdict OUI/NON enregistré
-#   5. Query Rewriting (reformulation) — RAGAS + taux de réussite + nouveaux chunks utiles
+#   5. Query Rewriting (reformulation) — RAGAS + taux de réussite + nouveaux chunks + ciblage (LLM-juge)
 #   6. Generation (réponse finale)     — RAGAS Faithfulness
-#   7. Déduplication                   — chunks retirés / pertinents perdus
+#   7. Déduplication                   — chunk écarté vs chunk conservé (perte d'info réelle)
 #   8. Fusion RRF                      — sémantique vs BM25 vs fusion (LLM-juge)
 #
 # Ne ré-exécute jamais le pipeline (retrieval/génération) : tout est lu depuis
@@ -22,6 +22,7 @@ import asyncio
 import inspect
 import json
 import math
+import re
 import sys
 import time
 import pandas as pd
@@ -136,50 +137,65 @@ def eval_router(entry: dict, meta: dict) -> dict:
 
 
 # =============================================================================
-# ÉVALUATION — 2+3. RETRIEVAL + RE-RANKING (RAGAS Context Precision/Recall + NDCG/MRR)
+# ÉVALUATION — 2+3. RETRIEVAL + RE-RANKING (RAGAS Context Precision/Recall + MRR)
 # =============================================================================
 
-# Prompt LLM-juge pour labelliser la pertinence de chaque chunk (0 ou 1)
-RELEVANCE_JUDGE = """Voici une question, la réponse attendue, et un extrait de document.
+# Prompt LLM-juge pour labelliser la pertinence d'un lot de chunks (0 ou 1 chacun)
+RELEVANCE_JUDGE_BATCH = """Voici une question, la réponse attendue, et {n} extraits de documents numérotés.
 
 Question : {question}
 
 Réponse attendue : {reference}
 
-Extrait :
-{chunk}
+Extraits :
+{chunks}
 
-Cet extrait contient-il de l'information directement utile pour produire la réponse attendue ?
+Pour chaque extrait, indique s'il contient de l'information directement utile pour produire
+la réponse attendue. Réponds avec exactement {n} lignes, au format suivant (rien d'autre) :
+1. OUI ou NON
+2. OUI ou NON
+..."""
 
-Réponds uniquement : OUI ou NON"""
+_BATCH_SIZE = 5
+_BATCH_LINE_RE = re.compile(r"^\s*(\d+)\D+(OUI|NON)", re.IGNORECASE)
+
+
+def _judge_relevance_one(question: str, reference: str, chunk: str) -> int:
+    """Juge un seul chunk isolément (fallback si le parsing du batch échoue)."""
+    prompt = RELEVANCE_JUDGE_BATCH.format(
+        n=1, question=question, reference=reference, chunks=f"1. {chunk}",
+    )
+    raw = _invoke_with_retry(prompt).strip()
+    return 1 if raw.lower().lstrip("1.").strip().startswith("oui") else 0
 
 
 def _judge_relevance(question: str, reference: str, chunks: list[dict]) -> list[int]:
-    """Labellise chaque chunk comme pertinent (1) ou non (0) via un appel LLM-juge.
+    """Labellise chaque chunk comme pertinent (1) ou non (0) via un appel LLM-juge,
+    par lots de _BATCH_SIZE chunks pour limiter le nombre d'appels LLM.
     Retourne une liste de labels dans le même ordre que les chunks."""
-    labels = []
-    for c in chunks:
-        prompt = RELEVANCE_JUDGE.format(
-            question=question, reference=reference, chunk=c["content"][:1500],
+    labels: list[int] = []
+    for i in range(0, len(chunks), _BATCH_SIZE):
+        batch = chunks[i:i + _BATCH_SIZE]
+        contents = [c["content"][:1500] for c in batch]
+        numbered = "\n\n".join(f"{j+1}. {content}" for j, content in enumerate(contents))
+        prompt = RELEVANCE_JUDGE_BATCH.format(
+            n=len(batch), question=question, reference=reference, chunks=numbered,
         )
         raw = _invoke_with_retry(prompt).strip()
-        labels.append(1 if raw.lower().startswith("oui") else 0)
+
+        parsed: dict[int, int] = {}
+        for line in raw.splitlines():
+            m = _BATCH_LINE_RE.match(line)
+            if m:
+                idx, verdict = int(m.group(1)), m.group(2)
+                parsed[idx] = 1 if verdict.upper() == "OUI" else 0
+
+        if len(parsed) == len(batch):
+            labels.extend(parsed[j + 1] for j in range(len(batch)))
+        else:
+            # Parsing raté (réponse mal formée) : on retombe sur un appel par chunk pour ce lot
+            labels.extend(_judge_relevance_one(question, reference, content) for content in contents)
     return labels
-
-
-def _ndcg(relevances: list[int], k: int | None = None) -> float:
-    """Calcule le NDCG (Normalized Discounted Cumulative Gain) sur une liste de labels de pertinence.
-    Un NDCG de 1.0 signifie que tous les chunks pertinents sont classés en premier."""
-    if not relevances or sum(relevances) == 0:
-        return float("nan")
-    if k is not None:
-        relevances = relevances[:k]
-    # DCG : somme des pertinences pondérées par 1/log2(position+1)
-    dcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(relevances))
-    # IDCG : DCG idéal (tous les pertinents en premier)
-    ideal = sorted(relevances, reverse=True)
-    idcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(ideal))
-    return round(dcg / idcg, 3) if idcg > 0 else float("nan")
 
 
 def _mrr(relevances: list[int]) -> float:
@@ -192,7 +208,7 @@ def _mrr(relevances: list[int]) -> float:
 
 async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: dict) -> dict:
     """Évalue retrieval (Context Precision + Recall) et re-ranking (delta Context Precision
-    + NDCG + MRR via LLM-juge) à partir des chunks pre/post re-ranking déjà capturés."""
+    + MRR via LLM-juge) à partir des chunks pre/post re-ranking déjà capturés."""
     question = meta["question"]
     reference = meta["reponse_attendue"]
     pre_ctx = chunks_to_contexts(entry["pre_rerank_docs"])
@@ -225,29 +241,25 @@ async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: d
             _ragas_score(ragas_metrics["ctx_recall"], post_sample),
         )
 
-    # --- ③bis NDCG + MRR : le LLM-juge labellise chaque chunk, puis on calcule ---
+    # --- ③bis MRR : le LLM-juge labellise chaque chunk, puis on calcule ---
     # On labellise les chunks POST re-ranking (dans l'ordre produit par le cross-encoder)
     post_docs = entry["post_rerank_docs"]
     if post_docs:
         post_labels = _judge_relevance(question, reference, post_docs)
-        rerank_ndcg = _ndcg(post_labels)
         rerank_mrr = _mrr(post_labels)
         rerank_n_pertinents = sum(post_labels)
     else:
         post_labels = []
-        rerank_ndcg = float("nan")
         rerank_mrr = float("nan")
         rerank_n_pertinents = 0
 
-    # NDCG/MRR AVANT re-ranking pour mesurer l'amélioration apportée par le cross-encoder
+    # MRR AVANT re-ranking pour mesurer l'amélioration apportée par le cross-encoder
     pre_docs = entry["pre_rerank_docs"]
     if pre_docs and pre_ctx != post_ctx:
         pre_labels = _judge_relevance(question, reference, pre_docs)
-        pre_ndcg = _ndcg(pre_labels)
         pre_mrr = _mrr(pre_labels)
     else:
         pre_labels = post_labels
-        pre_ndcg = rerank_ndcg
         pre_mrr = rerank_mrr
 
     # Deltas re-ranking (positif = le re-ranker améliore)
@@ -266,10 +278,7 @@ async def eval_retrieval_and_reranking(entry: dict, meta: dict, ragas_metrics: d
         "rerank_pre_recall": pre_recall,
         "rerank_post_recall": post_recall,
         "rerank_recall_delta": _delta(post_recall, pre_recall),
-        # ③ Re-ranking — NDCG + MRR (qualité de l'ordre des chunks)
-        "rerank_pre_ndcg": pre_ndcg,
-        "rerank_post_ndcg": rerank_ndcg,
-        "rerank_ndcg_delta": _delta(rerank_ndcg, pre_ndcg),
+        # ③ Re-ranking — MRR (qualité de l'ordre des chunks)
         "rerank_pre_mrr": pre_mrr,
         "rerank_post_mrr": rerank_mrr,
         "rerank_mrr_delta": _delta(rerank_mrr, pre_mrr),
@@ -351,15 +360,45 @@ async def eval_grading(entry: dict, meta: dict) -> dict:
 # ÉVALUATION — 5. QUERY REWRITING
 # =============================================================================
 
+# Prompt LLM-juge : la nouvelle requête cible-t-elle bien l'information manquante
+# identifiée par le grading (celle qui a déclenché la reformulation) ? Évalue la
+# qualité de la reformulation elle-même, indépendamment du résultat du retrieval qui suit.
+REWRITE_TARGETING_JUDGE = """Voici une question initiale, l'information jugée manquante dans
+les documents récupérés (verdict du grading qui a déclenché la reformulation), et la nouvelle
+requête de recherche reformulée pour combler ce manque.
+
+Question initiale : {question}
+
+Information manquante (verdict du grading) : {verdict}
+
+Nouvelle requête reformulée : {new_query}
+
+Cette nouvelle requête cible-t-elle bien et spécifiquement l'information manquante identifiée
+ci-dessus ?
+
+- Si oui, réponds uniquement : OUI
+- Si non, réponds : NON — [explique en 1 phrase ce qui ne colle pas]"""
+
+
+def _judge_rewrite_targeting(question: str, verdict: str, new_query: str) -> tuple[int, str]:
+    """Juge si la requête reformulée cible bien l'information manquante du verdict de grading.
+    Retourne (1 si bien ciblée sinon 0, le verdict brut du juge)."""
+    prompt = REWRITE_TARGETING_JUDGE.format(question=question, verdict=verdict, new_query=new_query)
+    raw = _invoke_with_retry(prompt).strip()
+    return int(raw.lower().startswith("oui")), raw
+
+
 async def eval_rewriting(
     entry: dict, meta: dict,
     baseline_precision: float, baseline_recall: float,
     ragas_metrics: dict,
 ) -> dict:
     """Évalue le query rewriting : la reformulation améliore-t-elle le retrieval ?
-    Métriques : RAGAS precision/recall + taux de réussite + nouveaux chunks utiles.
-    Le déclenchement et la fusion des chunks ont déjà eu lieu dans le vrai pipeline
-    (run_agentic_all.py) — ici on ne fait que le scoring RAGAS sur les chunks finaux."""
+    Métriques : RAGAS precision/recall + taux de réussite + nouveaux chunks utiles +
+    ciblage de la reformulation (la nouvelle requête vise-t-elle bien le manque identifié
+    par le grading qui a déclenché le rewrite ?). Le déclenchement et la fusion des chunks
+    ont déjà eu lieu dans le vrai pipeline (run_agentic_all.py) — ici on ne fait que le
+    scoring RAGAS + les jugements LLM sur les chunks/requêtes finaux."""
     rewrite = entry["rewrite"]
     if not rewrite.get("triggered"):
         return {
@@ -373,6 +412,8 @@ async def eval_rewriting(
             "rewrite_n_new_chunks": float("nan"),
             "rewrite_n_new_pertinents": float("nan"),
             "rewrite_new_ratio": float("nan"),
+            "rewrite_targeted": float("nan"),
+            "rewrite_targeting_verdict": "",
         }
 
     # entry["chunks"] = pool final du graph, déjà fusionné post-rewrite (3 anciens + 2 nouveaux)
@@ -389,10 +430,20 @@ async def eval_rewriting(
     def _gain(new: float, old: float) -> float:
         return round(new - old, 3) if not (math.isnan(new) or math.isnan(old)) else float("nan")
 
-    # --- Taux de réussite : le grading final (après rewrite) dit-il OUI ? ---
-    # Si le grading est toujours NON après rewrite, la reformulation n'a pas suffi
+    # --- Taux de réussite : le grading final (après rewrite, sur le pool post-rewrite) dit-il
+    # OUI ? rewrite["grading_after"] est distinct de entry["grading"] (qui porte lui sur le
+    # grading AVANT rewrite, cohérent avec post_rerank_docs pour l'éval ④). Absent sur les
+    # anciens résultats générés avant l'ajout du grading final post-rewrite → NaN.
     grading = entry["grading"]
-    rewrite_success = int(grading.get("sufficient", False))
+    grading_after = rewrite.get("grading_after") or {}
+    rewrite_success = int(grading_after["sufficient"]) if "sufficient" in grading_after else float("nan")
+
+    # --- Ciblage de la reformulation : la nouvelle requête vise-t-elle bien le manque
+    # identifié par le grading qui a déclenché le rewrite ? (entry["grading"]["verdict"] est
+    # le verdict du grading initial, le seul à avoir lieu avant la reformulation)
+    rewrite_targeted, targeting_verdict = _judge_rewrite_targeting(
+        meta["question"], grading.get("verdict", ""), rewrite["new_query"],
+    )
 
     # --- Nouveaux chunks utiles : combien de chunks du 2ème retrieval sont pertinents ? ---
     chunks_loop_1 = rewrite["chunks_loop_1"]
@@ -424,6 +475,8 @@ async def eval_rewriting(
         "rewrite_n_new_chunks": n_new,
         "rewrite_n_new_pertinents": n_new_pertinents,
         "rewrite_new_ratio": new_ratio,
+        "rewrite_targeted": rewrite_targeted,
+        "rewrite_targeting_verdict": targeting_verdict[:200],
     }
 
 
@@ -454,49 +507,70 @@ async def eval_generation(entry: dict, meta: dict, ragas_metrics: dict) -> dict:
 # ÉVALUATION — 7. DÉDUPLICATION
 # =============================================================================
 
-def eval_dedup(entry: dict, meta: dict) -> dict:
-    """Évalue la déduplication : combien de chunks sont retirés, et parmi eux combien étaient
-    pertinents (= chunks perdus à tort) ? Nécessite les champs pre_dedup_docs et pre_rerank_docs
-    ajoutés par run_agentic_all.py. Si ces champs sont absents (anciens résultats), retourne NaN."""
-    pre_dedup = entry.get("pre_dedup_docs")
-    post_dedup = entry.get("pre_rerank_docs")  # pre_rerank = post_dedup (après dédup, avant re-ranking)
+# Prompt LLM-juge pour la dédup : compare directement les deux chunks entre eux,
+# sans passer par la question — au lieu de juger le chunk écarté isolément (ancienne
+# méthode, trop pessimiste : elle comptait comme "perte" tout chunk écarté pertinent,
+# même si son quasi-doublon conservé couvrait déjà la même information).
+DEDUP_LOSS_JUDGE = """Voici deux extraits de documents quasi-identiques détectés comme doublons.
+Le premier a été ÉCARTÉ, le second a été CONSERVÉ à sa place.
 
-    if pre_dedup is None:
-        # Données générées avant l'ajout de ce champ — on ne peut pas évaluer
+Extrait ÉCARTÉ :
+{removed}
+
+Extrait CONSERVÉ (l'a remplacé) :
+{kept}
+
+L'extrait ÉCARTÉ contient-il une information qui N'EST PAS déjà présente dans l'extrait CONSERVÉ ?
+
+- Si oui (information perdue), réponds uniquement : OUI
+- Si non (l'extrait conservé couvre déjà toute l'information de l'extrait écarté), réponds : NON"""
+
+
+def _judge_loss(removed: dict, kept: dict) -> int:
+    """Compare un chunk écarté par la dédup à celui qui l'a remplacé. Retourne 1 si le LLM
+    juge que le chunk écarté contient une information absente du chunk conservé
+    (= perte réelle), 0 sinon."""
+    prompt = DEDUP_LOSS_JUDGE.format(
+        removed=removed["content"][:1500], kept=kept["content"][:1500],
+    )
+    raw = _invoke_with_retry(prompt).strip()
+    return 1 if raw.lower().startswith("oui") else 0
+
+
+def eval_dedup(entry: dict, meta: dict) -> dict:
+    """Évalue la déduplication par comparaison directe de chaque chunk écarté avec le chunk
+    conservé qui l'a remplacé (dedup_removed_docs / dedup_kept_docs, même index, ajoutés par
+    run_agentic_all.py). Mesure une vraie perte d'information — pas juste la pertinence du
+    chunk écarté pris isolément. Si ces champs sont absents (anciens résultats), retourne NaN."""
+    removed = entry.get("dedup_removed_docs")
+    kept = entry.get("dedup_kept_docs")
+
+    if removed is None:
+        # Données générées avant l'ajout de ces champs — on ne peut pas évaluer
         return {
             "dedup_available": 0,
-            "dedup_n_avant": float("nan"),
-            "dedup_n_apres": float("nan"),
             "dedup_n_retires": float("nan"),
-            "dedup_n_retires_pertinents": float("nan"),
+            "dedup_n_pertes": float("nan"),
             "dedup_perte_ratio": float("nan"),
         }
 
-    n_avant = len(pre_dedup)
-    n_apres = len(post_dedup)
-    n_retires = n_avant - n_apres
+    n_retires = len(removed)
+    if n_retires == 0:
+        return {
+            "dedup_available": 1,
+            "dedup_n_retires": 0,
+            "dedup_n_pertes": 0,
+            "dedup_perte_ratio": 0.0,
+        }
 
-    # Identifier les chunks retirés par la dédup (présents avant mais pas après)
-    post_contents = {c["content"] for c in post_dedup}
-    chunks_retires = [c for c in pre_dedup if c["content"] not in post_contents]
-
-    # Labelliser la pertinence des chunks retirés via LLM-juge
-    if chunks_retires:
-        labels = _judge_relevance(meta["question"], meta["reponse_attendue"], chunks_retires)
-        n_retires_pertinents = sum(labels)
-    else:
-        n_retires_pertinents = 0
-
-    # Ratio de perte : proportion de chunks retirés qui étaient pertinents (0 = aucune perte)
-    perte_ratio = round(n_retires_pertinents / n_retires, 3) if n_retires > 0 else 0.0
+    pertes = [_judge_loss(r, k) for r, k in zip(removed, kept)]
+    n_pertes = sum(pertes)
 
     return {
         "dedup_available": 1,
-        "dedup_n_avant": n_avant,
-        "dedup_n_apres": n_apres,
         "dedup_n_retires": n_retires,
-        "dedup_n_retires_pertinents": n_retires_pertinents,
-        "dedup_perte_ratio": perte_ratio,
+        "dedup_n_pertes": n_pertes,
+        "dedup_perte_ratio": round(n_pertes / n_retires, 3),
     }
 
 
@@ -632,16 +706,14 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
                   f"diff={'OK' if router_row['router_diff_ok'] else 'MISS'} "
                   f"(pred={router_row['router_pred_diff']}, exp={router_row['router_exp_diff']})")
 
-            # ②③ Retrieval + Re-ranking (RAGAS + NDCG + MRR)
+            # ②③ Retrieval + Re-ranking (RAGAS + MRR)
             ret_row = await eval_retrieval_and_reranking(entry, meta, ragas_metrics)
             row.update(ret_row)
             print(f"  ②③ ctx_prec={ret_row['retrieval_ctx_precision']}  "
                   f"ctx_rec={ret_row['retrieval_ctx_recall']}  "
                   f"rerank Δprec={ret_row['rerank_precision_delta']}  "
                   f"Δrec={ret_row['rerank_recall_delta']}")
-            print(f"      NDCG={ret_row['rerank_post_ndcg']}  "
-                  f"MRR={ret_row['rerank_post_mrr']}  "
-                  f"ΔNDCG={ret_row['rerank_ndcg_delta']}  "
+            print(f"      MRR={ret_row['rerank_post_mrr']}  "
                   f"ΔMRR={ret_row['rerank_mrr_delta']}  "
                   f"pertinents={ret_row['rerank_n_pertinents']}/{ret_row['rerank_n_total']}")
 
@@ -664,10 +736,14 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
             )
             row.update(rewrite_row)
             if rewrite_row["rewrite_triggered"]:
+                succes_str = "N/A" if math.isnan(rewrite_row["rewrite_success"]) else (
+                    "OUI" if rewrite_row["rewrite_success"] else "NON"
+                )
                 print(f"  ⑤ Rewrite : Δprec={rewrite_row['rewrite_precision_gain']}  "
                       f"Δrec={rewrite_row['rewrite_recall_gain']}  "
-                      f"succès={'OUI' if rewrite_row['rewrite_success'] else 'NON'}  "
-                      f"nouveaux={rewrite_row['rewrite_n_new_pertinents']}/{rewrite_row['rewrite_n_new_chunks']} pertinents")
+                      f"succès={succes_str}  "
+                      f"nouveaux={rewrite_row['rewrite_n_new_pertinents']}/{rewrite_row['rewrite_n_new_chunks']} pertinents  "
+                      f"ciblage={'OUI' if rewrite_row['rewrite_targeted'] else 'NON'}")
             else:
                 print("  ⑤ Rewrite : non déclenché")
 
@@ -680,9 +756,9 @@ async def _run_all(questions: list[dict], results_by_id: dict, ragas_metrics: di
             dedup_row = eval_dedup(entry, meta)
             row.update(dedup_row)
             if dedup_row["dedup_available"]:
-                print(f"  ⑦ Dédup : {dedup_row['dedup_n_avant']}→{dedup_row['dedup_n_apres']} "
-                      f"({dedup_row['dedup_n_retires']} retirés, "
-                      f"{dedup_row['dedup_n_retires_pertinents']} pertinents perdus)")
+                print(f"  ⑦ Dédup : {dedup_row['dedup_n_retires']} chunk(s) écarté(s), "
+                      f"{dedup_row['dedup_n_pertes']} avec perte d'info réelle "
+                      f"(ratio={dedup_row['dedup_perte_ratio']})")
             else:
                 print("  ⑦ Dédup : données non disponibles (relancez run_agentic_all.py)")
 
@@ -755,19 +831,13 @@ def print_summary(df: pd.DataFrame):
         print(f"     Context Recall après     : {post_r:.3f}")
         print(f"     Δ Recall                 : {delta_r:+.3f}")
 
-    if "rerank_post_ndcg" in df.columns:
-        pre_ndcg = df["rerank_pre_ndcg"].mean()
-        post_ndcg = df["rerank_post_ndcg"].mean()
-        delta_ndcg = df["rerank_ndcg_delta"].mean()
+    if "rerank_post_mrr" in df.columns:
         pre_mrr = df["rerank_pre_mrr"].mean()
         post_mrr = df["rerank_post_mrr"].mean()
         delta_mrr = df["rerank_mrr_delta"].mean()
         n_pert = df["rerank_n_pertinents"].sum()
         n_tot = df["rerank_n_total"].sum()
-        print(f"\n  ③ RE-RANKING — NDCG + MRR (LLM-juge)")
-        print(f"     NDCG avant               : {pre_ndcg:.3f}")
-        print(f"     NDCG après               : {post_ndcg:.3f}")
-        print(f"     Δ NDCG                   : {delta_ndcg:+.3f}")
+        print(f"\n  ③ RE-RANKING — MRR (LLM-juge)")
         print(f"     MRR avant                : {pre_mrr:.3f}")
         print(f"     MRR après                : {post_mrr:.3f}")
         print(f"     Δ MRR                    : {delta_mrr:+.3f}")
@@ -827,6 +897,10 @@ def print_summary(df: pd.DataFrame):
                 ratio = total_new_pert / total_new if total_new > 0 else float("nan")
                 print(f"     Nouveaux chunks       : {int(total_new)} au total")
                 print(f"     Nouveaux pertinents   : {int(total_new_pert)} ({ratio:.1%})")
+            # Qualité du ciblage de la reformulation (vise-t-elle bien le manque identifié ?)
+            if "rewrite_targeted" in triggered.columns:
+                targeting_rate = triggered["rewrite_targeted"].mean()
+                print(f"     Reformulation ciblée  : {targeting_rate:.1%} (vise bien le manque identifié)")
         else:
             print(f"     Jamais déclenché")
 
@@ -841,16 +915,12 @@ def print_summary(df: pd.DataFrame):
         dedup_df = df[df["dedup_available"] == 1]
         print(f"\n  ⑦ DÉDUPLICATION ({len(dedup_df)}/{n} questions avec données)")
         if len(dedup_df) > 0:
-            avg_avant = dedup_df["dedup_n_avant"].mean()
-            avg_apres = dedup_df["dedup_n_apres"].mean()
             avg_retires = dedup_df["dedup_n_retires"].mean()
             total_retires = dedup_df["dedup_n_retires"].sum()
-            total_retires_pert = dedup_df["dedup_n_retires_pertinents"].sum()
-            perte_glob = total_retires_pert / total_retires if total_retires > 0 else 0.0
-            print(f"     Chunks avant dédup    : {avg_avant:.1f} (moyenne)")
-            print(f"     Chunks après dédup    : {avg_apres:.1f} (moyenne)")
+            total_pertes = dedup_df["dedup_n_pertes"].sum()
+            perte_glob = total_pertes / total_retires if total_retires > 0 else 0.0
             print(f"     Retirés par dédup     : {int(total_retires)} au total ({avg_retires:.1f}/question)")
-            print(f"     Pertinents perdus     : {int(total_retires_pert)} ({perte_glob:.1%} des retirés)")
+            print(f"     Perte d'info réelle   : {int(total_pertes)} ({perte_glob:.1%} des retirés)")
 
     # ⑧ Fusion RRF
     if "rrf_available" in df.columns:

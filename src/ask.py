@@ -40,9 +40,9 @@ RERANK_THRESHOLD = 0.5
 # Seuil de déduplication après fusion RRF — deux chunks dont le recouvrement de tokens
 # (similarité de Jaccard sur les tokens normalisés) dépasse ce seuil sont considérés
 # quasi-identiques : seul le mieux classé (premier dans la liste RRF) est conservé.
-# 0.8 = 80 % des tokens uniques en commun — attrape les passages quasi-copiés mais
-# laisse passer des chunks proches qui couvrent des détails différents.
-DEDUP_THRESHOLD = 0.8
+# 0.9 = 90 % des tokens uniques en commun — attrape les passages quasi-copiés tout en
+# laissant passer des chunks proches qui couvrent des détails différents.
+DEDUP_THRESHOLD = 0.9
 
 # Ces modèles sont instanciés une seule fois au démarrage du programme pour éviter de les recharger
 llm = OllamaLLM(model=GEN_MODEL, num_ctx=8192, temperature=0)  # temperature=0 = réponses déterministes (pas d'aléatoire) ; num_ctx=8192 pour laisser de la place au raisonnement interne sur les questions de synthèse/comparaison
@@ -197,30 +197,38 @@ def _body(text: str) -> str:
     return text
 
 
-def _dedup(docs: list[Document], threshold: float = DEDUP_THRESHOLD, verbose: bool = False) -> list[Document]:
+def _dedup(docs: list[Document], threshold: float = DEDUP_THRESHOLD, verbose: bool = False,
+           _pairs_out: list[tuple[Document, Document]] | None = None) -> list[Document]:
     """
     Supprime les chunks quasi-identiques après la fusion RRF.
     Compare les ensembles de tokens normalisés (Jaccard) sur le CONTENU uniquement
     (sans la ligne de contexte '[...]') : si deux chunks partagent plus de `threshold`
     de leurs tokens uniques, le moins bien classé est écarté.
     L'ordre d'entrée (classement RRF) détermine lequel est conservé.
+
+    _pairs_out : si fourni, reçoit pour chaque chunk écarté le couple (chunk_écarté,
+    chunk_conservé_à_sa_place) — utilisé par evaluate_components.py pour vérifier si
+    l'information du chunk écarté est bien couverte par celui qui l'a remplacé (éval ⑦).
     """
     kept: list[Document] = []
     kept_tokens: list[set[str]] = []  # ensembles de tokens des chunks déjà conservés
 
     for doc in docs:
         tokens = set(_tokenize(_body(doc.page_content)))  # compare sur le contenu sans le préfixe [...]
-        duplicate = False
-        for seen in kept_tokens:
+        duplicate_idx = None
+        for i, seen in enumerate(kept_tokens):
             union = tokens | seen
             if union and len(tokens & seen) / len(union) >= threshold:
-                duplicate = True
+                duplicate_idx = i
                 break
-        if not duplicate:
+        if duplicate_idx is None:
             kept.append(doc)
             kept_tokens.append(tokens)
-        elif verbose:
-            print(f"  [Dedup] écarté (quasi-doublon) : {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')}")
+        else:
+            if verbose:
+                print(f"  [Dedup] écarté (quasi-doublon) : {doc.metadata.get('source','?')} p.{doc.metadata.get('page','?')}")
+            if _pairs_out is not None:
+                _pairs_out.append((doc, kept[duplicate_idx]))
 
     return kept
 
@@ -273,7 +281,7 @@ def _hyde(question: str) -> str:
     return _invoke_with_retry(HYDE_PROMPT.format(question=question)).strip()
 
 
-def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True, _pre_rerank_out: list | None = None, _pre_dedup_out: list | None = None, _semantic_out: list | None = None, _bm25_out: list | None = None) -> list[Document]:
+def retrieve(question: str, sources: list[str] | None = None, verbose: bool = True, use_hyde: bool = True, _pre_rerank_out: list | None = None, _pre_dedup_out: list | None = None, _semantic_out: list | None = None, _bm25_out: list | None = None, _dedup_pairs_out: list | None = None) -> list[Document]:
     """
     Exécute le pipeline de retrieval complet sur une question :
     sémantique → BM25 → RRF → re-ranking.
@@ -386,7 +394,7 @@ def retrieve(question: str, sources: list[str] | None = None, verbose: bool = Tr
     # ── 3b. Déduplication ────────────────────────────────────────────────────
     # Supprime les quasi-doublons avant le re-ranking pour ne pas gaspiller des
     # slots sur des passages répétés — conserve le mieux classé par RRF de chaque paire.
-    rrf_docs = _dedup(rrf_docs, verbose=verbose)
+    rrf_docs = _dedup(rrf_docs, verbose=verbose, _pairs_out=_dedup_pairs_out)
 
     # ── 4. Re-ranking ─────────────────────────────────────────────────────────
     # Capture les candidats RRF avant re-ranking (copies indépendantes pour éviter

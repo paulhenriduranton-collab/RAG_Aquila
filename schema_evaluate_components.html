@@ -384,7 +384,7 @@ graph TB
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
 flowchart TD
     subgraph GRAPH["<b>Graph LangGraph (agent.py)</b><br/><i>Exécuté par run_agent(question)</i>"]
         direction TB
@@ -480,7 +480,7 @@ flowchart TD
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
 flowchart LR
     subgraph INPUT["<b>Données lues</b>"]
         direction TB
@@ -739,7 +739,7 @@ flowchart TD
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
 flowchart TD
     CHECK{"entry['rewrite']['triggered']<br/><br/><i>Le rewrite a-t-il été<br/>déclenché pour cette question ?</i>"}
 
@@ -983,7 +983,7 @@ sequenceDiagram
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
 flowchart TD
     subgraph CSVDATA["<b>component_evaluation.csv</b><br/><i>50 lignes × 40+ colonnes</i>"]
         direction LR
@@ -1170,7 +1170,7 @@ flowchart TD
           <li><b>run_agentic_all.py</b> (exécution, une fois) : le plus coûteux (pipeline complet)</li>
           <li><b>evaluate_components.py</b> : 15 à 40 appels gemma2:2b (RAGAS + LLM-juge MRR/dédup/RRF/ciblage rewrite) par question</li>
           <li>+ 1 appel gemma4:12b pour le juge de grading (si difficulté > 1)</li>
-          <li>Total scoring : ~750 à 2000 appels LLM pour 50 questions</li>
+          <li>Total scoring : ~900 appels LLM pour 50 questions</li>
         </ul>
       </div>
       <div class="info-card">

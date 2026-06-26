@@ -384,56 +384,42 @@ graph TB
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#7c3aed', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
-    subgraph GRAPH["<b>Graph LangGraph (agent.py)</b><br/><i>Exécuté par run_agent(question)</i>"]
-        direction TB
+    N1["🧠 <b>identify_sources</b><br/><i>LLM classifie la question</i><br/>━━━━━━━━━━<br/>📸 capture <b>router</b><br/><code>sources, difficulty</code>"]
 
-        N1["🧠 identify_sources<br/><i>LLM classifie la question</i>"]
-        N2["🔍 retrieve_node<br/><i>1er retrieval : HyDE + sémantique + BM25<br/>+ RRF + dédoublonnage + re-ranking</i>"]
-        N3["📊 grade_documents<br/><i>LLM évalue la suffisance<br/>(seulement si difficulté ≥ 2)</i>"]
-        N4["🔄 rewrite_query<br/><i>Reformulation ciblée<br/>(si NON au grading)</i>"]
-        N5["🔍 retrieve_node<br/><i>2ème retrieval avec requête reformulée<br/>Fusion : 3 anciens + 2 nouveaux</i>"]
-        N3b["📊 grade_documents (final)<br/><i>Re-grade le pool post-rewrite<br/>n'enregistre qu'un verdict, ne boucle plus</i>"]
-        N6["💬 generate_node<br/><i>Génération de la réponse finale</i>"]
+    N2["🔍 <b>retrieve_node</b> — 1er retrieval<br/><i>HyDE + sémantique + BM25 + RRF<br/>+ dédoublonnage + re-ranking</i><br/>━━━━━━━━━━<br/>📸 capture <b>pre_rerank_docs</b> (avant cross-encoder)<br/>📸 capture <b>post_rerank_docs</b> (après cross-encoder)<br/>📸 capture <b>semantic_docs</b>, <b>bm25_docs</b><br/>📸 capture <b>pre_dedup_docs</b>, <b>dedup_removed/kept_docs</b>"]
 
-        N1 --> N2
-        N2 -->|"diff ≥ 2"| N3
-        N2 -->|"diff = 1"| N6
-        N3 -->|"NON"| N4 --> N5 --> N3b --> N6
-        N3 -->|"OUI"| N6
-    end
+    D1{"difficulté ≥ 2 ?"}
 
-    subgraph CAPTURE["<b>États Capturés (run_agentic_all.py)</b>"]
-        direction TB
-        C1["🏷️ <b>router</b><br/><code>sources: ['ENS.pdf']</code><br/><code>difficulty: 2</code>"]
-        C2["📦 <b>pre_rerank_docs</b><br/><i>Chunks après RRF + dédoublonnage<br/>AVANT le cross-encoder (1er retrieval)</i>"]
-        C3["📦 <b>post_rerank_docs</b><br/><i>Chunks APRÈS re-ranking<br/>AVANT tout rewrite<br/>(= docs_before_rewrite si rewrite déclenché,<br/>sinon = chunks finaux)</i>"]
-        C4["📊 <b>grading</b><br/><code>performed: true/false</code><br/><code>sufficient: true/false</code><br/><code>verdict: 'NON — ...'</code>"]
-        C5["🔄 <b>rewrite</b><br/><code>triggered: true/false</code><br/><code>new_query: '...'</code><br/><code>retrieved_docs: [...]</code><br/><code>chunks_loop_1: [...]</code><br/><code>chunks_loop_2: [...]</code>"]
-        C6["📦 <b>chunks</b><br/><i>Pool FINAL utilisé par generate_node<br/>(post-rewrite si rewrite déclenché)</i>"]
-        C7["💬 <b>reponse_llm</b><br/><i>Réponse réellement générée</i>"]
-        C8["📦 <b>pre_dedup_docs</b><br/><i>Chunks après RRF, avant dédup</i>"]
-        C9["📦 <b>semantic_docs</b><br/><i>Résultats sémantiques bruts</i>"]
-        C10["📦 <b>bm25_docs</b><br/><i>Résultats BM25 bruts</i>"]
-        C11["📦 <b>dedup_removed_docs / dedup_kept_docs</b><br/><i>Paires (écarté, conservé), même index</i>"]
-        C12["🏷️ <b>grading.verdict (snapshot)</b><br/><i>= grading_before_rewrite, pris avant<br/>d'être écrasé par le grading final</i>"]
-        C13["🏷️ <b>rewrite.grading_after</b><br/><i>Verdict du grading final (post-rewrite)<br/>= sufficient/grade_verdict à la fin</i>"]
-    end
+    N3["📊 <b>grade_documents</b><br/><i>LLM évalue la suffisance</i><br/>━━━━━━━━━━<br/>📸 capture <b>grading</b><br/><code>performed, sufficient, verdict</code>"]
 
-    N1 -.->|"capture"| C1
-    N2 -.->|"avant _rerank()"| C2
-    N2 -.->|"après _rerank()"| C3
-    N3 -.->|"capture"| C4
-    N4 -.->|"snapshot avant écrasement"| C12
-    N4 -.->|"capture"| C5
-    N5 -.->|"pool fusionné"| C6
-    N5 -.->|"paires dédup"| C11
-    N3b -.->|"capture"| C13
-    N6 -.->|"capture"| C7
+    D2{"grading suffisant ?"}
 
-    style GRAPH fill:#0c2d48,stroke:#2563eb,stroke-width:2px,color:#e2e8f0
-    style CAPTURE fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    N4["🔄 <b>rewrite_query</b><br/><i>Reformulation ciblée sur le manque</i><br/>━━━━━━━━━━<br/>📸 snapshot <b>grading.verdict</b> avant écrasement<br/>📸 capture <b>rewrite.new_query</b>"]
+
+    N5["🔍 <b>retrieve_node</b> — 2ème retrieval<br/><i>Requête reformulée<br/>Fusion : 3 anciens + 2 nouveaux</i><br/>━━━━━━━━━━<br/>📸 capture <b>rewrite.chunks_loop_1/2</b><br/>📸 capture <b>chunks</b> (pool fusionné final)"]
+
+    N3b["📊 <b>grade_documents (final)</b><br/><i>Re-grade le pool post-rewrite<br/>n'enregistre qu'un verdict, ne boucle plus</i><br/>━━━━━━━━━━<br/>📸 capture <b>rewrite.grading_after</b>"]
+
+    N6["💬 <b>generate_node</b><br/><i>Génération de la réponse finale</i><br/>━━━━━━━━━━<br/>📸 capture <b>reponse_llm</b>"]
+
+    N1 --> N2 --> D1
+    D1 -->|"OUI (diff ≥ 2)"| N3
+    D1 -->|"NON (diff = 1)"| N6
+    N3 --> D2
+    D2 -->|"OUI (suffisant)"| N6
+    D2 -->|"NON"| N4 --> N5 --> N3b --> N6
+
+    style N1 fill:#0c2d48,stroke:#2563eb,stroke-width:2px,color:#e2e8f0
+    style N2 fill:#0c2d48,stroke:#2563eb,stroke-width:2px,color:#e2e8f0
+    style N3 fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    style N4 fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    style N5 fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    style N3b fill:#1a0d3a,stroke:#7c3aed,stroke-width:2px,color:#e2e8f0
+    style N6 fill:#052e16,stroke:#16a34a,stroke-width:2px,color:#e2e8f0
+    style D1 fill:#2d1a00,stroke:#d97706,color:#e2e8f0
+    style D2 fill:#2d1a00,stroke:#d97706,color:#e2e8f0
       </pre>
     </div>
 
@@ -480,7 +466,7 @@ flowchart TD
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#2563eb', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart LR
     subgraph INPUT["<b>Données lues</b>"]
         direction TB
@@ -739,7 +725,7 @@ flowchart TD
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#db2777', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
     CHECK{"entry['rewrite']['triggered']<br/><br/><i>Le rewrite a-t-il été<br/>déclenché pour cette question ?</i>"}
 
@@ -983,7 +969,7 @@ sequenceDiagram
 
     <div class="diagram-card">
       <pre class="mermaid">
-%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569', 'fontSize': '20px'}, 'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#0891b2', 'lineColor': '#64748b', 'background': '#1e293b', 'mainBkg': '#1e293b', 'nodeBorder': '#475569'}}}%%
 flowchart TD
     subgraph CSVDATA["<b>component_evaluation.csv</b><br/><i>50 lignes × 40+ colonnes</i>"]
         direction LR
